@@ -1,23 +1,23 @@
-import Logo from './logobox.jsx'
+import Logo from "./logobox.jsx"
+import { FaFacebook, FaInstagram, FaSquareXTwitter, FaSquareEnvelope, FaRegComment,FaArrowRight} from "react-icons/fa6";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBagShopping, faSearch, faUser } from '@fortawesome/free-solid-svg-icons'
 
-import { FaFacebook, FaInstagram, FaSquareXTwitter, FaSquareEnvelope, FaRegComment,FaArrowRight} from "react-icons/fa6";
 
-function Navbar (){
+function Navbar() {
     const handleMouseEnter = () => {
-      const btn = document.getElementById('arrow');
-      btn.style.transform = "rotate(0)";
-      btn.style.transition = "all 0.5s ease";
-      //console.log(btn);
-    }  
-    const handleMouseLeave = () => {
-      const btn = document.getElementById('arrow');
-      btn.style.transform = "rotate(-45deg)";
-      //console.log(btn);
-    } 
-    return(
-        <>
+        const btn = document.getElementById('arrow');
+        btn.style.transform = "rotate(0)";
+        btn.style.transition = "all 0.5s ease";
+        //console.log(btn);
+      }  
+      const handleMouseLeave = () => {
+        const btn = document.getElementById('arrow');
+        btn.style.transform = "rotate(-45deg)";
+        //console.log(btn);
+      } 
+
+    return ( 
         <div className='navbar-container '>
           <div className='bg-top-menu flex flex-row'>
             <div className='extra-menu flex justify-between items-center w-full p-20'>
@@ -58,8 +58,7 @@ function Navbar (){
           </div>  
 
         </div>
-        </>
-
-    )
+     );
 }
+
 export default Navbar;
