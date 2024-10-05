@@ -65,17 +65,16 @@
   
 }
 .btn-top{
-  display: flex;
+  /*display: flex;
   background-color:#464fa3;
-  /*height:64px;*/
   padding: 0 20PX;
   align-items: center;
   border-radius: 50px;
   color:white;
-  transition: background-color 0.3s ease-in-out;
+  transition: background-color 0.3s ease-in-out;*/
 }
 .btn-top:hover{
-  background-color: #3d84ac;
+  background-color: #dbf2ff;
   
 
 }

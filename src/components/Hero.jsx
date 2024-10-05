@@ -7,13 +7,13 @@ import { faBoltLightning, faHeadset} from '@fortawesome/free-solid-svg-icons'
 //import { height } from "@fortawesome/free-solid-svg-icons/fa0";
 
 function Hero() {
-    const btnWidth = {
-       width:'400px'
+    const imgMelher = () =>{
+
     }
     return ( 
         <>
-        <div className="hero h-800 w-full h-800 flex flex-row">
-          <div className="content flex flex-row" >
+        <div className="hero h-800 w-full h-800 flex flex-row rounded-b-[90px]">
+          <div className="content flex flex-row bg-[url('./img/bg-bola.png')] bg-no-repeat bg-contain bg-right-top" >
             <div className="texts pl-6 w-1/2 flex flex-col h-full">
                 <p className="hero-p mt-16">Esteja no controle</p>
                 <h1 className="titulo-main text-2xl mb-4 " >Melhor app de <br />finanças pessoais</h1>
@@ -22,9 +22,9 @@ function Hero() {
                    <div className="flex flex-row  w-full mb-3 items-center"><Icon.CheckCircleFill size={20} color="#464fa3" title="Controlando o orçamento" style={{marginRight:'20'}} /><span className="txt-span-hero">Controlando o orçamento</span></div>
                    <div className="flex flex-row  w-full mb-3 items-center"><Icon.CheckCircleFill size={20} color="#464fa3" title="Poupando para o futuro" style={{marginRight:'20'}} /><span className="txt-span-hero">Poupando para o futuro</span></div>
                 </div>
-                <div className="input-email flex flex-row w-full flex-wrap ">
-                   <input type="text" className="input-hero w-96 pl-6 mt-6 h-16 rounded-full outline-none" placeholder="Digite seu email" />
-                   <ButtonArrow45 texto={'Inscreva-se'} cor={'#464fa3'} id={'btn1'} altu={'65px'} larg={'150px'} />
+                <div className="input-email flex flex-row w-full items-center mt-6 ">
+                   <input type="text" className="input-hero w-96 pl-6 h-16 rounded-full outline-none" placeholder="Digite seu email" />
+                   <span className="-ml-16"><ButtonArrow45 texto={'Inscreva-se'} cor={'#464fa3'} id={'arrowHero'} altu={'65px'} larg={'150px'} /></span>
                 </div>
                 <div className="flex flex-row mt-5 w-full flex-wrap ">
                     <span className="flex flex-row items-center mr-11">
@@ -37,8 +37,8 @@ function Hero() {
                     </span>
                 </div>
             </div>
-            <div className="img w-1/2 flex justify-end h-full border">
-                <img className="mt-5 -mr-40" src={img} alt="Mulher segurando cartão de crédito melhor app de finança pessoal" />
+            <div className="img w-1/2 flex justify-end h-full">
+                <img id="img-mulher" className="mt-5 -mr-36" src={img} alt="Mulher segurando cartão de crédito melhor app de finança pessoal" />
             </div>
           </div>
         </div>

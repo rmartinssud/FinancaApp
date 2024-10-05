@@ -3,7 +3,7 @@ import { FaFacebook, FaInstagram, FaSquareXTwitter, FaSquareEnvelope, FaRegComme
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBagShopping, faSearch, faUser } from '@fortawesome/free-solid-svg-icons'
 import ButtonArrow45 from "./buttonarrow45.jsx";
-import { Border, BorderAll } from "react-bootstrap-icons";
+
 
 
 function Navbar() {
@@ -37,11 +37,11 @@ function Navbar() {
                   </ul>
     
                </nav>
-               <div className='avatar-getarted flex justify-around gap-2 items-center w-1/4 border'>
-                   <span><FontAwesomeIcon icon={faSearch} className='text-black'/></span>
-                   <span><FontAwesomeIcon icon={faUser} className='text-black'/></span>
-                   <span><FontAwesomeIcon icon={faBagShopping} className='text-black'/></span>
-                   <ButtonArrow45 texto={'Comece Agora'} cor={'#464fa3'} altu={'55px'} larg={'170px'} style='border'/>
+               <div className='avatar-getarted flex justify-end items-center w-1/4'>
+                   <span className="w-10"><FontAwesomeIcon icon={faSearch} className='text-[#464fa3] text-xl'/></span>
+                   <span className="w-10"><FontAwesomeIcon icon={faUser} className='text-[#464fa3] text-xl'/></span>
+                   <span className="w-10"><FontAwesomeIcon icon={faBagShopping} className='text-[#464fa3] text-xl'/></span>
+                   <span ><ButtonArrow45 texto={'Comece Agora'} cor={'#464fa3'} altu={'55px'} larg={'170px'} id={'arrowNav'} /></span>
                </div>
             </div>
           </div>  
