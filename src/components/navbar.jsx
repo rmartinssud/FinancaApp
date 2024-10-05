@@ -1,26 +1,18 @@
 import Logo from "./logobox.jsx"
-import { FaFacebook, FaInstagram, FaSquareXTwitter, FaSquareEnvelope, FaRegComment,FaArrowRight} from "react-icons/fa6";
+import { FaFacebook, FaInstagram, FaSquareXTwitter, FaSquareEnvelope, FaRegComment} from "react-icons/fa6";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBagShopping, faSearch, faUser } from '@fortawesome/free-solid-svg-icons'
+import ButtonArrow45 from "./buttonarrow45.jsx";
+import { Border, BorderAll } from "react-bootstrap-icons";
 
 
 function Navbar() {
-    const handleMouseEnter = () => {
-        const btn = document.getElementById('arrow');
-        btn.style.transform = "rotate(0)";
-        btn.style.transition = "all 0.5s ease";
-        //console.log(btn);
-      }  
-      const handleMouseLeave = () => {
-        const btn = document.getElementById('arrow');
-        btn.style.transform = "rotate(-45deg)";
-        //console.log(btn);
-      } 
+    
 
     return ( 
-        <div className='navbar-container '>
-          <div className='bg-top-menu flex flex-row'>
-            <div className='extra-menu flex justify-between items-center w-full p-20'>
+        <div id='navbar-container '>
+          <div className='bg-top-menu flex flex-row justify-center bg-[#464fa3]'>
+            <div className='extra-menu flex justify-between items-center w-full p-20 '>
                 <div className='social-icons flex flex-row justify-between items-center text-white'>
                    <span className="item-icons first-icon flex justify-center items-center  max-h-full h-10  w-10"><FaFacebook className='text-lg'/></span>
                    <span className="item-icons others-icon flex justify-center items-center  max-h-full h-10  w-10"><FaInstagram className='text-lg' /></span>
@@ -34,9 +26,9 @@ function Navbar() {
 
             </div>
           </div>
-          <div className='bg-logo-menu'>
+          <div className='bg-logo-menu bg-white flex justify-center items-center'>
             <div className='logo-menu'>
-               <Logo />
+               <Logo style={{marginLeft:'20px'}}/>
                <nav className='menu-principal'>
                   <ul className='flex justify-between w-80'>
                     <li className='item active'>Sobre Nós</li>
@@ -45,14 +37,11 @@ function Navbar() {
                   </ul>
     
                </nav>
-               <div className='avatar-gstarted flex justify-between items-center w-1/4 '>
+               <div className='avatar-getarted flex justify-around gap-2 items-center w-1/4 border'>
                    <span><FontAwesomeIcon icon={faSearch} className='text-black'/></span>
                    <span><FontAwesomeIcon icon={faUser} className='text-black'/></span>
                    <span><FontAwesomeIcon icon={faBagShopping} className='text-black'/></span>
-                   <button className='btn-top'
-                      onMouseEnter={handleMouseEnter}
-                      onMouseLeave={handleMouseLeave} style={{display:"flex" }}>Começar Agora &nbsp; <FaArrowRight id='arrow' className='arrow -rotate-45 transform'/>
-                   </button>
+                   <ButtonArrow45 texto={'Comece Agora'} cor={'#464fa3'} altu={'55px'} larg={'170px'} style='border'/>
                </div>
             </div>
           </div>  

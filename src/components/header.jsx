@@ -8,7 +8,6 @@ function Header (){
         <>
         <header>
            <Navbar />
-           <Hero />
         </header>
         </>
 
