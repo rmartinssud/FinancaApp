@@ -12,7 +12,7 @@ function Hero() {
     }
     return ( 
         <>
-        <div className="hero h-800 w-full h-800 flex flex-row rounded-b-[90px]">
+        <div className="hero h-800 w-full h-800 flex flex-row rounded-b-[60px]">
           <div className="content flex flex-row bg-[url('./img/bg-bola.png')] bg-no-repeat bg-contain bg-right-top" >
             <div className="texts pl-6 w-1/2 flex flex-col h-full">
                 <p className="hero-p mt-16">Esteja no controle</p>
@@ -38,7 +38,7 @@ function Hero() {
                 </div>
             </div>
             <div className="img w-1/2 flex justify-end h-full">
-                <img id="img-mulher" className="mt-5 -mr-36" src={img} alt="Mulher segurando cartão de crédito melhor app de finança pessoal" />
+                <img id="img-mulher" className=" relative z-0 mt-5 -mr-36" src={img} alt="Mulher segurando cartão de crédito melhor app de finança pessoal" />
             </div>
           </div>
         </div>
