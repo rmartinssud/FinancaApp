@@ -26,14 +26,6 @@
   border:border-box;
 }
 
-
-.logo-menu{
-  width: 1760px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 20px;
- }
 .extra-menu{
   display: flex;
   justify-content: space-between;

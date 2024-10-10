@@ -27,7 +27,7 @@ function Navbar() {
             </div>
           </div>
           <div className='bg-logo-menu bg-white flex justify-center items-center'>
-            <div className='logo-menu'>
+             <div className='w-[1760px] py-[20px] px-[20px] flex flex-row justify-between items-center'>
                <Logo style={{marginLeft:'20px'}}/>
                <nav className='menu-principal'>
                   <ul className='flex justify-between w-80'>
@@ -35,8 +35,7 @@ function Navbar() {
                     <li className='item '>Features</li>
                     <li className='item '>Fale Conosco</li>
                   </ul>
-    
-               </nav>
+                </nav>
                <div className='avatar-getarted flex justify-end items-center w-1/4'>
                    <span className="w-10"><FontAwesomeIcon icon={faSearch} className='text-[#464fa3] text-xl'/></span>
                    <span className="w-10"><FontAwesomeIcon icon={faUser} className='text-[#464fa3] text-xl'/></span>
