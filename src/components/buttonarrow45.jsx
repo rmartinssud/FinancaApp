@@ -7,7 +7,7 @@ function ButtonArrow45({texto, cor, id,larg, altu}) {
         const btn = document.getElementById(id);
         btn.style.transform = "rotate(0)";
         btn.style.transition = "all 0.3s ease";
-        
+                
       }  
       const handleMouseLeave = () => {
         const btn = document.getElementById(id);

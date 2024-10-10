@@ -120,3 +120,15 @@
   /*height: 800px;*/
 }
 /*fim hero*/
+/*
+Inicio 3 cards
+*/
+.c1 li::before {
+  content: "•"; 
+  color: #8dcbef;
+  font-size:25px;
+  display: inline-block; 
+  width: 1em;
+  margin-left: -1em
+}
+/*fim 3  cards*/
