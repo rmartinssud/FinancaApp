@@ -20,7 +20,7 @@ function TresCards() {
                 <li className='flex flex-row items-center'>Evite novas dívidas</li>
               </ul>
               <span className='mt-7'>
-                <ButtonArrow45 texto={'Saiba Mais'} cor={'#464fa3'} id={'card1'} larg={'160px'} altu={'50px'} />
+                <ButtonArrow45 texto={'Saiba Mais'} cor={'#464fa3'} id={'card1'} larg={'150px'} altu={'50px'} />
               </span>
            </div>
 
@@ -38,7 +38,7 @@ function TresCards() {
                 <li className='flex flex-row items-center'>Estabeleça metas</li>
               </ul>
               <span className='mt-7'>
-                <ButtonArrow45 texto={'Saiba Mais'} cor={'#464fa3'} id={'card2'} larg={'160px'} altu={'50px'} />
+                <ButtonArrow45 texto={'Saiba Mais'} cor={'#464fa3'} id={'card2'} larg={'150px'} altu={'50px'} />
               </span>
            </div>
 
@@ -56,7 +56,7 @@ function TresCards() {
                 <li className='flex flex-row items-center'>Invista na sua paz</li>
               </ul>
               <span className='mt-7'>
-                <ButtonArrow45 texto={'Saiba Mais'} cor={'#464fa3'} id={'card3'} larg={'160px'} altu={'50px'} />
+                <ButtonArrow45 texto={'Saiba Mais'} cor={'#464fa3'} id={'card3'} larg={'150px'} altu={'50px'} />
               </span>
            </div>
         </div>

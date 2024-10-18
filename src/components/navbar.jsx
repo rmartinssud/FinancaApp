@@ -40,7 +40,7 @@ function Navbar() {
                    <span className="w-10"><FontAwesomeIcon icon={faSearch} className='text-[#464fa3] text-xl'/></span>
                    <span className="w-10"><FontAwesomeIcon icon={faUser} className='text-[#464fa3] text-xl'/></span>
                    <span className="w-10"><FontAwesomeIcon icon={faBagShopping} className='text-[#464fa3] text-xl'/></span>
-                   <span ><ButtonArrow45 texto={'Comece Agora'} cor={'#464fa3'} altu={'55px'} larg={'170px'} id={'arrowNav'} /></span>
+                   <span ><ButtonArrow45 texto={'Comece Agora'} cor={'#464fa3'} altu={'55px'} larg={'180px'} id={'arrowNav'} /></span>
                </div>
             </div>
           </div>  

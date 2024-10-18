@@ -12,11 +12,11 @@ function Hero() {
     }
     return ( 
         <>
-        <div className="hero h-800 w-full h-800 flex flex-row rounded-b-[60px]">
+        <main className="hero h-800 w-full h-800 flex flex-row rounded-b-[60px]">
           <div className="content flex flex-row bg-[url('./img/bg-bola.png')] bg-no-repeat bg-contain bg-right-top" >
             <div className="texts pl-6 w-1/2 flex flex-col h-full">
                 <p className="hero-p mt-16">Esteja no controle</p>
-                <h1 className="titulo-main text-2xl mb-4 " >Melhor app de <br />finanças pessoais</h1>
+                <h1 className="font-[Almarai] text-6xl text-white leading-[60px] not-italic font-extrabold mb-4 " >Melhor app de <br />finanças pessoais</h1>
                 <div className="flex flex-row flex-wrap w-1/2 mt-8">
                    <div className="flex flex-row  w-full mb-3 items-center" ><Icon.CheckCircleFill size={20} color="#464fa3" title="Eliminando as dividas" style={{marginRight:'20'}} /><span className="txt-span-hero">Eliminando as dividas</span></div>
                    <div className="flex flex-row  w-full mb-3 items-center"><Icon.CheckCircleFill size={20} color="#464fa3" title="Controlando o orçamento" style={{marginRight:'20'}} /><span className="txt-span-hero">Controlando o orçamento</span></div>
@@ -41,7 +41,7 @@ function Hero() {
                 <img id="img-mulher" className=" relative z-0 mt-5 -mr-36" src={img} alt="Mulher segurando cartão de crédito melhor app de finança pessoal" />
             </div>
           </div>
-        </div>
+        </main>
         </>
      );
 }
