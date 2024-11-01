@@ -126,3 +126,51 @@ Inicio 3 cards
   line-height: 60px;
   color: #FFF;
 }
+/*Carousel*/
+.wrapper{
+  
+}
+@media screen and (max-width:768px) {
+ 
+   .text-menu-extra{
+    display: none;
+   }
+   .avatar-getarted{
+    width: 17%;
+   }
+   .avatar-getarted .w-10{
+     display: none;
+   } 
+   .btn-top{
+    display: flex;
+    width: 100% !important;
+    height:40px !important;
+    border-radius: 25px;
+    padding: 13px 10px !important;
+    font-size: small;
+
+   }
+   .menu-principal>ul>li{
+     font-size: 14px;
+     padding: 2px;
+     margin: 0 10px;
+   }
+   .logobox{
+    max-width: 25%;
+   }
+   
+}
+@media screen and (max-width:601px) {
+  
+  .menu-principal>ul>li{
+    font-size: 13px;
+    padding: 0 4px;
+    margin: 0 12px;
+    justify-content: center;
+    gap: 0;
+  }
+  .logobox{
+    min-width:25% !important;
+  }
+ 
+}

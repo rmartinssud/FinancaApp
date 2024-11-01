@@ -1,8 +1,17 @@
 import {FaArrowRight} from "react-icons/fa6";
 
+/*const { innerWidth: width} = window;
+console.log(`Largura da tela ${innerWidth}`);
+if (innerWidth <= 768 ){
+  alert('chegou no tamanho');
+}*/
+
 function ButtonArrow45({texto, cor, id,larg, altu}) {
-  //console.log(id);  
-  const handleMouseEnter = () => {
+  //    console.log(id);  
+      const exibe = false;    
+      //console.log(exibe); 
+
+      const handleMouseEnter = () => {
       
         const btn = document.getElementById(id);
         btn.style.transform = "rotate(0)";
@@ -18,9 +27,9 @@ function ButtonArrow45({texto, cor, id,larg, altu}) {
       } 
         
     return ( 
-        <button className='btn-top flex rounded-[50px] items-center text-white pl-6 font-bold' style={{width:larg, height:altu, backgroundColor:cor}}
+        <button className='btn-top flex rounded-[50px] items-center justify-around text-white px-5 font-bold' style={{width:larg, height:altu, backgroundColor:cor}}
             onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave} >{texto} &nbsp; <FaArrowRight id={id} className='arrow -rotate-45 transform font-bold' />
+            onMouseLeave={handleMouseLeave} >{exibe?null:texto} <FaArrowRight id={id} className='arrow -rotate-45 transform font-bold' />
         </button>
      );
 }

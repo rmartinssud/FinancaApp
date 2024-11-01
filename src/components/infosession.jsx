@@ -11,7 +11,12 @@ function InfoSession() {
           <section className="flex flex-row w-[1280px] h-[671px] mx-auto mt-24">
             <div className="w-1/2">
                <span className="text-5xl font-[Almarai] font-bold leading-tight">Proteger sua
-               <span className="texto-diferente"> família</span>  das adversidades</span>
+                     <span className="active relative">
+                        <span className="texto-diferente text-cyan-600  before:w-[160px] before:h-[16px] before:absolute before:bg-sky-600 before:opacity-20 before:bottom-[16px] before:left-1"> família&nbsp;
+                        </span>
+                     </span> 
+                   das adversidades
+               </span>
                <div className="flex flex-row flex-wrap w-full mt-8">
                  <div className="flex flex-row  w-full mb-3 items-center" >
                     <Icon.CheckCircleFill size={20} color="#737dd9" title="Planejamento cuidadoso" style={{marginRight:'20'}} />
@@ -29,7 +34,7 @@ function InfoSession() {
                     <span className="mr-8">
                        <ButtonArrow45 texto={'Começar agora'} cor={'#464fa3'} id={'btnrating'} altu={'50px'} larg={'180px'}/>
                     </span>
-                    <div className="rating border-[1px] h-[20px]">
+                    <div className="rating h-[20px]">
                        <div>
                             <FontAwesomeIcon icon={faStar} className='text-[#e4e75c]' />
                             <FontAwesomeIcon icon={faStar} className='text-[#e4e75c]' />
@@ -46,7 +51,7 @@ function InfoSession() {
                 </div>
                 <div className="w-full rounded-3xl border-[1px] px-6 flex flex-row flex-wrap mt-16 h-[200px]">
                   
-                      <img src={Bill} alt="Bil Gates" className="w-16 mt-5 rounded-full h-16 bg-cover border-[2px] border-slate-400" />
+                      <img src={Bill} alt="Bil Gates" className="w-16 mt-5 rounded-full h-16  object-cover border-[2px] border-slate-400" />
                    
                    <p className="flex flex-row ml-2 mt-5 h-[100px] w-[470px] font-[Roboto] text-[16px]">
                      "Excelente app para organizar minhas finanças pessoais! A interface é simples e intuitiva, e o controle de gastos me ajudou a economizar bastante. Recomendo para quem quer melhorar sua gestão financeira!"

@@ -2,6 +2,7 @@ import TresCards from "./components/trescards";
 import Header from "./components/header";
 import Hero from "./components/hero";
 import InfoSession from "./components/infosession";
+import CarouselCards from "./components/carouselCards";
 
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
         <Hero />
         <TresCards />
         <InfoSession />
+        <CarouselCards />
       </>
    ) 
 
