@@ -50,14 +50,14 @@ function InfoSession() {
                  </div>
                 </div>
                 <div className="w-full rounded-3xl border-[1px] px-6 flex flex-row flex-wrap mt-16 h-[200px]">
-                  
-                      <img src={Bill} alt="Bil Gates" className="w-16 mt-5 rounded-full h-16  object-cover border-[2px] border-slate-400" />
-                   
-                   <p className="flex flex-row ml-2 mt-5 h-[100px] w-[470px] font-[Roboto] text-[16px]">
+                  <div className="h-full flex flex-col ">
+                      <img src={Bill} alt="Bil Gates" className="w-16 mt-11 ml-8 rounded-full h-16  object-cover border-[2px] border-slate-400" />
+                  </div> 
+                  <div className="flex flex-col w-[80%]] items-start justify-center">
+                   <p className="flex flex-row ml-5 mt-5 h-[100px] w-[470px] font-[Roboto] text-[16px]">
                      "Excelente app para organizar minhas finanças pessoais! A interface é simples e intuitiva, e o controle de gastos me ajudou a economizar bastante. Recomendo para quem quer melhorar sua gestão financeira!"
                    </p>
-                   <div className="flex flex-row w-full items-center justify-center">
-                     <p className="review-owner text-gray-500 text-[13px]"><span className="review-desc font-[Roboto] text-[13px] not-italic font-black ">Bill Gates </span> . CEO da Microsoft Business</p>
+                  <p className="review-owner ml-5 mt-5 text-gray-500 text-[13px]"><span className="review-desc font-[Roboto] text-[13px] not-italic font-black ">Bill Gates </span> . CEO da Microsoft Business</p>
                   </div>
                </div>
             </div>
