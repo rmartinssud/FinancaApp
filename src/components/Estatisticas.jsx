@@ -1,100 +1,55 @@
+import CountUp from "react-countup";
+import ramosDireito from "../img/ramos-direito.png";
+import ramosEsquerdo from "../img/ramos-esquerdo.png";
+import Container from "./Container.jsx";
+import { Destaque } from "./SectionTitle.jsx";
 
-import { useState } from "react"
-import ramosDireito from "../img/ramos-direito.png"
-import ramosEsquerdo from "../img/ramos-esquerdo.png"
-import CountUp from "react-countup"
-import ScrollTrigger from "react-scroll-trigger"
+// Números de exemplo (placeholder) até termos dados reais.
+// enableScrollSpy faz o número contar quando aparece na tela.
+const numeros = [
+  { rotulo: "Famílias organizadas", fim: 10, prefixo: "+", sufixo: " mil" },
+  { rotulo: "Organizados por mês", fim: 2, prefixo: "R$ ", sufixo: " mi" },
+  { rotulo: "De avaliação", fim: 4.9, decimais: 1 },
+];
 
-export default function Features1(){
-
-    const [CounterOn, setCounterOn] = useState(false);
-
-    return(
-        <>
-           <section className="flex flex-col w-[1280px] h-[471px] mx-auto mt-52">
-              <div className="flex flex-row w-full">
-                <div className="flex flex-col w-[50%] pr-20">
-                    <div className="flex flex-row items-center justify-end ">
-                      <div className="flex flex-row mr-4  h-[100px] justify-center items-center">
-                        <img className="w-[30px] h-[65px]" src={ramosEsquerdo} />
-                      </div> 
-                      <div className="flex flex-col ">
-                        <span className="flex justify-center font-[Almarai] text-zinc-500 ">CRIADA DESDE </span>
-                        <span className="flex font-extrabold text-[#2ca9bc] font-[Roboto] text-[64px] p-0 -mt-5">
-                          <ScrollTrigger onEnter={() =>setCounterOn(true)}  onExit={() => setCounterOn(false)}>
-                            {
-                               CounterOn && 
-                               <CountUp
-                                  start={0}
-                                  end={2015}
-                                  duration={2.75}
-                                  separator=""
-                                  decimals={0}
-                                  decimal=""
-                                  prefix=""
-                                  suffix=""
-                                  
-                                  >
-                                  {({ countUpRef}) => (
-                                      <span ref={countUpRef} className='p-2'/>
-                                  )}
-                               </CountUp>
-                            } 
-                          </ScrollTrigger>
-                        </span>
-                      </div>
-                      <div className="flex flex-row ml-4 h-[100px] justify-center items-center">
-                        <img className="w-[30px] h-[65px]" src={ramosDireito} />
-                      </div>
-                    </div>               
-                </div>
-                <div className="flex flex-col w-[50%] pl-20">
-                    <div className="flex flex-row items-center justify-start">
-                      <div className="flex flex-row mr-4  h-[100px] justify-center items-center">
-                        <img className="w-[30px] h-[65px]" src={ramosEsquerdo} />
-                      </div> 
-                      <div className="flex flex-col ">
-                        <span className="flex justify-center font-[Almarai] text-zinc-500 ">CLIENTES SATISFEITOS </span>
-                        <span className="flex font-extrabold text-[#2ca9bc] font-[Roboto] text-[64px] p-0 -mt-5">
-                          <ScrollTrigger onEnter={() =>setCounterOn(true)}  onExit={() => setCounterOn(false)}>
-                            {
-                               CounterOn && 
-                               <CountUp
-                                  start={0}
-                                  end={100}
-                                  duration={2.75}
-                                  separator=""
-                                  decimals={0}
-                                  decimal=""
-                                  prefix=""
-                                  suffix="M"
-                                  
-                                  >
-                                  {({ countUpRef}) => (
-                                      <span ref={countUpRef} className='p-2'/>
-                                  )}
-                               </CountUp>
-                            } +
-                          </ScrollTrigger>
-                        </span>
-                      </div>
-                      <div className="flex flex-row ml-4 h-[100px] justify-center items-center">
-                        <img className="w-[30px] h-[65px]" src={ramosDireito} />
-                      </div>
-                    </div>               
-                </div>
+function Estatisticas() {
+  return (
+    <section className="py-20 md:py-28">
+      <Container>
+        <div className="grid gap-10 sm:grid-cols-3">
+          {numeros.map((n) => (
+            <div key={n.rotulo} className="flex items-center justify-center gap-3">
+              <img className="h-[65px] w-[30px]" src={ramosEsquerdo} alt="" />
+              <div className="text-center">
+                <span className="block font-heading text-sm uppercase text-zinc-500">{n.rotulo}</span>
+                <span className="block whitespace-nowrap text-5xl font-extrabold text-accent lg:text-6xl">
+                  <CountUp
+                    end={n.fim}
+                    duration={2.5}
+                    decimals={n.decimais || 0}
+                    decimal=","
+                    prefix={n.prefixo || ""}
+                    suffix={n.sufixo || ""}
+                    enableScrollSpy
+                    scrollSpyOnce
+                  />
+                </span>
               </div>
-              <div className="flex flex-row w-full mt-5 px-10">
-                 <span className=" text-center text-5xl font-[Almarai] font-midium leading-[1.125]">We enable our customers to build great banking experiences that their customers love, in a 
-                     <span className="active relative">
-                        <span className="texto-diferente text-cyan-600 font-bold before:w-[138px] before:h-[16px] before:absolute before:bg-sky-600 before:opacity-20 before:bottom-[6px] before:left-1"> faster&nbsp;
-                        </span>
-                     </span> and
-                 more flexible about cor way than ever before.
-                
-                 </span>
-              </div>
-           </section>
-        </>
-    )
+              <img className="h-[65px] w-[30px]" src={ramosDireito} alt="" />
+            </div>
+          ))}
+        </div>
+
+        <p className="mx-auto mt-14 max-w-4xl text-center font-heading text-3xl leading-tight text-slate-900 md:text-5xl">
+          Receitas, despesas, cartões e dívidas da família em um só lugar, de um jeito{" "}
+          <strong>
+            <Destaque>simples</Destaque>
+          </strong>{" "}
+          e sem planilha.
+        </p>
+      </Container>
+    </section>
+  );
 }
+
+export default Estatisticas;

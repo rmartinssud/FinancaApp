@@ -1,16 +1,7 @@
+import Navbar from "./Navbar.jsx";
 
-import Navbar from './navbar.jsx'
-
-
-function Header (){
-    
-    return(
-        <>
-        <header>
-           <Navbar />
-        </header>
-        </>
-
-    )
+function Header() {
+  return <Navbar />;
 }
+
 export default Header;

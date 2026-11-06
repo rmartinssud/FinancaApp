@@ -1,64 +1,115 @@
-import Logo from "./logobox.jsx"
-import { FaFacebook, FaInstagram, FaSquareXTwitter, FaSquareEnvelope, FaRegComment} from "react-icons/fa6";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser,faBars } from '@fortawesome/free-solid-svg-icons'
-import ButtonArrow45 from "./buttonarrow45.jsx";
-
-
+import { useState } from "react";
+import Logo from "./Logo.jsx";
+import ButtonArrow45 from "./ButtonArrow45.jsx";
+import { linksMenu } from "../data/menu.js";
+import {
+  FaFacebook,
+  FaInstagram,
+  FaSquareXTwitter,
+  FaSquareEnvelope,
+  FaRegComment,
+  FaBars,
+  FaXmark,
+  FaUser,
+} from "react-icons/fa6";
 
 function Navbar() {
-    
+  // Controla se o menu mobile (hambúrguer) está aberto
+  const [menuAberto, setMenuAberto] = useState(false);
+  const fecharMenu = () => setMenuAberto(false);
 
-    return ( 
-        <div id='navbar-container'>
-          {/*Inicio barra superio acima da barra de menu*/}
-          <div className='bg-top-menu flex flex-row  bg-[#464fa3]'>
-            <div className='extra-menu flex justify-between items-center w-full p-20 '>
-                <div className='social-icons flex flex-row justify-between items-center text-white'>
-                   <span className="item-icons first-icon flex justify-center items-center  max-h-full h-10  w-10"><FaFacebook className='text-lg'/></span>
-                   <span className="item-icons others-icon flex justify-center items-center  max-h-full h-10  w-10"><FaInstagram className='text-lg' /></span>
-                   <span className="item-icons others-icon flex justify-center items-center  max-h-full h-10  w-10"><FaSquareXTwitter className='text-lg' /></span>
-                </div>
-                <div className='text-menu-extra text-white '><p>Cuidando de você e do seu dinheiro para uma vida melhor</p></div>
-                <div className="email-chat flex flex-row text-white">
-                    <span className='first-icon flex justify-center items-center max-h-full h-10 pr-6 pl-6'><FaSquareEnvelope className='mr-3'/><p>Email</p></span>
-                    <span className='others-icon flex justify-center items-center max-h-full h-10 pr-6 pl-6'><FaRegComment className='mr-3' />Chat</span>
-                </div>
-
-            </div>
+  return (
+    <>
+      {/* Barra superior (redes sociais e contato) */}
+      <div id="topo" className="bg-primary text-sm text-white">
+        <div className="mx-auto flex h-10 max-w-7xl items-center justify-between px-5 sm:px-8">
+          <div className="flex h-full">
+            {[FaFacebook, FaInstagram, FaSquareXTwitter].map((Icone, i) => (
+              <a
+                key={i}
+                href="#"
+                aria-label="Rede social"
+                className="flex h-full w-10 items-center justify-center border-r border-white/30 first:border-l hover:bg-white/10"
+              >
+                <Icone className="text-lg" />
+              </a>
+            ))}
           </div>
-          {/*Fim barra superio acima da barra de menu*/}
-
-          {/*Inicio barra de menu*/}
-
-         
-          <div className='bg-logo-menu bg-white flex justify-between items-center'>
-             
-             <div className='w-[100%] py-[20px] px-[20px] flex flex-row justify-between items-center'>
-               {/*Inicio menu habungue*/}
-                <div className="menu-humburgue cursor-pointer md:hidden lg:hidden">
-                  <FontAwesomeIcon icon={faBars} className='text-[#464fa3] text-xl'/>
-                </div>
-               {/*Fim menu haburgue*/}
-               <Logo style={{marginLeft:'20px'}}/>
-               <nav className='menu-principal hidden md:flex '>
-                  <ul className='flex justify-between w-80'>
-                    <li className='item active'>Sobre Nós</li>
-                    <li className='item '>Features</li>
-                    <li className='item '>Fale Conosco</li>
-                  </ul>
-                </nav>
-               <div className='avatar-getarted flex justify-end items-center w-auto '>
-                   {/*<span className="w-10"><FontAwesomeIcon icon={faSearch} className='text-[#464fa3] text-xl'/></span>-->*/}                   
-                   <span className="w-10"><FontAwesomeIcon icon={faUser} className='text-[#464fa3] text-xl'/></span>
-                   {/*<span className="w-10"><FontAwesomeIcon icon={faBagShopping} className='text-[#464fa3] text-xl'/></span>*/}
-                   <span ><ButtonArrow45 texto={'Comece Agora'} cor={'#464fa3'} altu={'4rem'} larg={'11rem'} id={'arrowNav'} /></span>
-               </div>
-            </div>
-          </div>  
-          {/*Inicio barra de menu*/}  
+          <p className="hidden lg:block">Cuidando de você e do seu dinheiro para uma vida melhor</p>
+          <div className="flex h-full">
+            <a href="#contato" className="flex items-center gap-2 border-x border-white/30 px-3 hover:bg-white/10 sm:px-6">
+              <FaSquareEnvelope /> Email
+            </a>
+            <a href="#whatsapp" className="flex items-center gap-2 border-r border-white/30 px-3 hover:bg-white/10 sm:px-6">
+              <FaRegComment /> Chat
+            </a>
+          </div>
         </div>
-     );
+      </div>
+
+      {/* Barra principal: fica fixa no topo ao rolar */}
+      <header className="sticky top-0 z-50 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+          <div className="flex items-center gap-3">
+            {/* Botão hambúrguer: só aparece em telas pequenas */}
+            <button
+              type="button"
+              className="rounded-full p-2 text-xl text-primary hover:bg-soft lg:hidden"
+              aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={menuAberto}
+              aria-controls="menu-mobile"
+              onClick={() => setMenuAberto(!menuAberto)}
+            >
+              {menuAberto ? <FaXmark /> : <FaBars />}
+            </button>
+            <Logo />
+          </div>
+
+          {/* Menu desktop */}
+          <nav className="hidden lg:block" aria-label="Menu principal">
+            <ul className="flex gap-8 font-medium text-primary">
+              {linksMenu.map((link) => (
+                <li key={link.href}>
+                  <a href={link.href} className="transition-colors hover:text-primary-light">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="flex items-center gap-4">
+            <a href="#planos" aria-label="Entrar" className="text-xl text-primary hover:text-primary-light">
+              <FaUser />
+            </a>
+            <ButtonArrow45 texto="Comece Agora" href="#planos" className="hidden sm:inline-flex" />
+          </div>
+        </div>
+
+        {/* Menu mobile: abre abaixo da barra quando menuAberto = true */}
+        {menuAberto && (
+          <nav id="menu-mobile" className="border-t border-soft bg-white lg:hidden" aria-label="Menu mobile">
+            <ul className="mx-auto flex max-w-7xl flex-col px-5 py-4 sm:px-8">
+              {linksMenu.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    onClick={fecharMenu}
+                    className="block rounded-xl px-3 py-3 font-medium text-primary hover:bg-soft"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+              <li className="mt-3 sm:hidden">
+                <ButtonArrow45 texto="Comece Agora" href="#planos" onClick={fecharMenu} className="w-full" />
+              </li>
+            </ul>
+          </nav>
+        )}
+      </header>
+    </>
+  );
 }
 
 export default Navbar;
