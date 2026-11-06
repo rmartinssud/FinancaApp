@@ -1,0 +1,43 @@
+# Sobe tudo na VPS:  docker compose up -d --build
+# Senha do banco: crie um arquivo .env na raiz com POSTGRES_PASSWORD=... (opcional, há padrão)
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-financas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financas}
+      POSTGRES_DB: ${POSTGRES_DB:-financas}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    env_file: server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+      # Aponta para o Postgres do próprio compose (sobrescreve o DATABASE_URL do server/.env)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-financas}:${POSTGRES_PASSWORD:-financas}@postgres:5432/${POSTGRES_DB:-financas}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  pgdata:

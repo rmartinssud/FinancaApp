@@ -1,0 +1,10 @@
+node_modules
+dist
+server
+.git
+.env
+.env.*
+*.log
+notas.txt
+docker-compose.yml
+Dockerfile.web
