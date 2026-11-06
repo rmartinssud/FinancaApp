@@ -30,11 +30,11 @@ const cards = [
 function TresCards() {
   return (
     <Container className="relative z-10 -mt-32 lg:-mt-40">
-      <div className="grid gap-10 rounded-3xl bg-white px-6 py-10 drop-shadow-xl sm:px-10 md:grid-cols-3 md:gap-0 md:py-14">
+      <div className="grid gap-10 rounded-3xl bg-white px-6 py-10 drop-shadow-xl sm:px-10 lg:grid-cols-3 lg:gap-0 lg:py-14">
         {cards.map(({ icone: Icone, etiqueta, titulo, texto, itens }, i) => (
           <div
             key={titulo}
-            className={`flex flex-col items-start md:px-8 ${i < cards.length - 1 ? "border-b border-slate-200 pb-10 md:border-b-0 md:border-r-2 md:pb-0" : ""} ${i === 0 ? "md:pl-0" : ""}`}
+            className={`flex h-full flex-col items-start lg:px-8 ${i < cards.length - 1 ? "border-b border-slate-200 pb-10 lg:border-b-0 lg:border-r-2 lg:pb-0" : ""} ${i === 0 ? "lg:pl-0" : ""}`}
           >
             <div className="flex items-center gap-2 text-primary">
               <Icone aria-hidden="true" />
@@ -47,7 +47,7 @@ function TresCards() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
-            <div className="mt-7">
+            <div className="mt-auto pt-7">
               <ButtonArrow45 texto="Saiba Mais" href="#funcionalidades" />
             </div>
           </div>

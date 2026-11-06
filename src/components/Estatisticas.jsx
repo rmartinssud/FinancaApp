@@ -1,11 +1,11 @@
-import CountUp from "react-countup";
 import ramosDireito from "../img/ramos-direito.png";
 import ramosEsquerdo from "../img/ramos-esquerdo.png";
 import Container from "./Container.jsx";
+import Contador from "./Contador.jsx";
 import { Destaque } from "./SectionTitle.jsx";
 
 // Números de exemplo (placeholder) até termos dados reais.
-// enableScrollSpy faz o número contar quando aparece na tela.
+// O componente Contador anima o número quando ele aparece na tela.
 const numeros = [
   { rotulo: "Famílias organizadas", fim: 10, prefixo: "+", sufixo: " mil" },
   { rotulo: "Organizados por mês", fim: 2, prefixo: "R$ ", sufixo: " mi" },
@@ -14,25 +14,16 @@ const numeros = [
 
 function Estatisticas() {
   return (
-    <section className="py-20 md:py-28">
+    <section className="pt-20 md:pt-28">
       <Container>
-        <div className="grid gap-10 sm:grid-cols-3">
+        <div className="grid gap-10 lg:grid-cols-3">
           {numeros.map((n) => (
             <div key={n.rotulo} className="flex items-center justify-center gap-3">
               <img className="h-[65px] w-[30px]" src={ramosEsquerdo} alt="" />
               <div className="text-center">
                 <span className="block font-heading text-sm uppercase text-zinc-500">{n.rotulo}</span>
                 <span className="block whitespace-nowrap text-5xl font-extrabold text-accent lg:text-6xl">
-                  <CountUp
-                    end={n.fim}
-                    duration={2.5}
-                    decimals={n.decimais || 0}
-                    decimal=","
-                    prefix={n.prefixo || ""}
-                    suffix={n.sufixo || ""}
-                    enableScrollSpy
-                    scrollSpyOnce
-                  />
+                  <Contador fim={n.fim} decimais={n.decimais} prefixo={n.prefixo} sufixo={n.sufixo} />
                 </span>
               </div>
               <img className="h-[65px] w-[30px]" src={ramosDireito} alt="" />
