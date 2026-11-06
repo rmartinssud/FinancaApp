@@ -1,176 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root{
-  --primary-color:#464fa3;
-  --secundary-color: #3f83ac;
-  --terciary-color: #8ccaee;
-  --font-family-primary: 'Roboto', sans-serif;
-  --font-family-secundary: 'Almarai', sans-serif;
-  --font-family-terciary: 'DM', sans-serif;
-  --bg-primary: linear-gradient(45deg, var(--terciary-color), #a3e3ff);
-  --img-bola: url('./img/bg-bola.png');
-}
-
-
-*{
-  margin: 0;
-  padding:0;
-  border:border-box;
-}
-
-.extra-menu{
-  display: flex;
-  justify-content: space-between;
-  width: 1760px;
-  margin:0 !important;
-  padding:0 20px !important;
-}
-
-.first-icon{
-  border-left: 1px solid rgba(228, 252, 228, 0.434);
-  border-right: 1px solid rgba(228, 252, 228, 0.434);
-}
-.others-icon{
-  border-right: 1px solid rgba(228, 252, 228, 0.434);
-}
-.text-menu-extra, .menu-principal{
-  font-family: var(--font-family-terciary);
-  font-optical-sizing: auto;
-  font-weight:500;
-  font-style: normal;
-}
-.menu-principal{
-  color: #4b56a6;
-  font-family: "Poppins", sans-serif;
-  font-weight: 500;
-}
-.menu-principal .active{
-  color:#51284f;
-  
-}
-
-.btn-top:hover{
-  background-color: #dbf2ff;
-  
-
-}
-/*Fim header e navbar*/
-
-/*Inicio hero*/
-.hero{
-  background-image: var(--bg-primary);
- 
-}
-.texts{
-  height: 800px;
-}
-.content{
-  width: 1280px !important;
-  margin: auto auto;
-  /*border:2px solid #51284f;*/
-}
-
-.hero-p{
-  font-family: var(--font-family-terciary);
-  font-weight: 600;
-  font-style: normal;
-  font-size: 16px;
-  line-height: 60px;
-  color: #0d5675;
-  text-transform: uppercase;
-}
-.btn-input-hero{
-  background-color: #8ccaee;
-  color:#ffffff;
-  font-size: 24px;
-  font-weight: 500;
-}
-.txt-span-hero{
-  font-family: var(--font-family-primary);
-  font-size: 19px;
-  font-style: normal;
-  font-weight: 500;
-  color:#464fa3;
-}
-.img{
-  
-  /*height: 800px;*/
-}
-/*fim hero*/
-/*
-Inicio 3 cards
-*/
-.c1 li::before {
-  content: "•"; 
-  color: #8dcbef;
-  font-size:25px;
-  display: inline-block; 
-  width: 1em;
-  margin-left: -1em
-}
-/*fim 3  cards*/
-/*Inicio info session*/
-.titulo-info-session{
-  font-family: var(--font-family-secundary);
-  font-weight: 800;
-  font-style: normal;
-  font-size: 60px;
-  line-height: 60px;
-  color: #FFF;
-}
-/*Carousel*/
-.wrapper{
-  
-}
-@media screen and (max-width:768px) {
- 
-   .text-menu-extra{
-    display: none;
-   }
-   .avatar-getarted{
-    width: 17%;
-   }
-   .avatar-getarted .w-10{
-     display: none;
-   } 
-   .btn-top{
-    display: flex;
-    width: 100% !important;
-    height:40px !important;
-    border-radius: 25px;
-    padding: 13px 10px !important;
-    font-size: small;
-
-   }
-   .menu-principal>ul>li{
-     font-size: 14px;
-     padding: 2px;
-     margin: 0 10px;
-   }
-   .logobox{
-    max-width: 25%;
-   }
-   
-}
-@media screen and (max-width:601px) {
-  
-  .menu-principal>ul>li{
-    font-size: 13px;
-    padding: 0 4px;
-    margin: 0 12px;
-    justify-content: center;
-    gap: 0;
+@layer base {
+  /* Rolagem suave para os links do menu (#sobre, #planos...) */
+  html {
+    scroll-behavior: smooth;
   }
-  .logobox{
-    min-width:25% !important;
+
+  body {
+    @apply font-body text-slate-800 antialiased;
+    overflow-x: hidden;
   }
- 
+
+  /* Compensa o menu fixo quando a página rola até uma seção */
+  section[id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
+@layer components {
+  /* Fundo degradê do hero */
+  .hero-bg {
+    background-image: linear-gradient(45deg, #8ccaee, #a3e3ff);
+  }
+
+  /* Marcador azul das listas dos 3 cards */
+  .lista-bolinha li::before {
+    content: "•";
+    color: #8dcbef;
+    font-size: 25px;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+  }
 }
