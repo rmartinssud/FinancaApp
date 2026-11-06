@@ -3,7 +3,7 @@ import ButtonArrow45 from "./ButtonArrow45.jsx";
 
 // Campo de email com o botão de seta "dentro" da pílula.
 // Usado no Hero e na chamada final (CTA).
-function FormularioEmail({ textoBotao = "Inscreva-se", className = "" }) {
+function FormularioEmail({ textoBotao = "Inscreva-se", placeholder = "Digite seu email", className = "" }) {
   const [enviado, setEnviado] = useState(false);
 
   const enviar = (e) => {
@@ -28,7 +28,7 @@ function FormularioEmail({ textoBotao = "Inscreva-se", className = "" }) {
         id={`email-${textoBotao}`}
         type="email"
         required
-        placeholder="Digite seu email"
+        placeholder={placeholder}
         className="min-w-0 flex-1 bg-transparent px-4 py-3 text-slate-800 outline-none placeholder:text-slate-400"
       />
       <ButtonArrow45 texto={textoBotao} type="submit" className="px-5 sm:px-6" />
