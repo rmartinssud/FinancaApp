@@ -21,8 +21,8 @@ function Estatisticas() {
             <div key={n.rotulo} className="flex items-center justify-center gap-3">
               <img className="h-[65px] w-[30px]" src={ramosEsquerdo} alt="" />
               <div className="text-center">
-                <span className="block font-heading text-sm uppercase text-zinc-500">{n.rotulo}</span>
-                <span className="block whitespace-nowrap text-5xl font-extrabold text-accent lg:text-6xl">
+                <span className="block font-heading text-sm uppercase text-zinc-600">{n.rotulo}</span>
+                <span className="block whitespace-nowrap text-5xl font-extrabold text-accent-strong lg:text-6xl">
                   <Contador fim={n.fim} decimais={n.decimais} prefixo={n.prefixo} sufixo={n.sufixo} />
                 </span>
               </div>
