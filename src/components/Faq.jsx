@@ -48,7 +48,7 @@ function Faq() {
                 <h3>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between gap-4 py-6 text-left font-heading text-lg font-bold text-slate-900"
+                    className="flex min-h-11 w-full items-center justify-between gap-4 rounded-xl py-6 text-left font-heading text-lg font-bold text-slate-900"
                     aria-expanded={estaAberta}
                     aria-controls={`faq-${i}`}
                     onClick={() => setAberta(estaAberta ? null : i)}

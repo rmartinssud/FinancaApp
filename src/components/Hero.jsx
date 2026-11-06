@@ -15,7 +15,7 @@ function Hero() {
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 bg-[url('./img/bg-bola.png')] bg-contain bg-right-top bg-no-repeat px-5 pb-48 pt-12 sm:px-8 md:pt-16 lg:grid-cols-2 lg:pb-56">
         <div className="relative z-10 min-w-0">
           <p className="text-sm font-semibold uppercase tracking-wider text-[#0d5675]">Esteja no controle</p>
-          <h1 className="mt-4 font-heading text-5xl font-extrabold leading-[1.05] text-white drop-shadow-[0_2px_10px_rgba(54,61,133,0.45)] md:text-6xl">
+          <h1 className="mt-4 font-heading text-5xl font-extrabold leading-[1.05] text-primary-dark drop-shadow-[0_2px_12px_rgba(255,255,255,0.55)] md:text-6xl">
             Melhor app de <br className="hidden sm:block" />
             finanças pessoais
           </h1>

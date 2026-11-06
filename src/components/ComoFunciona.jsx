@@ -20,7 +20,7 @@ function ComoFunciona() {
           <ol className="mx-auto mt-14 grid max-w-xl gap-6 lg:max-w-none lg:grid-cols-3">
             {passos.map((passo, i) => (
               <li key={passo.titulo} className="relative rounded-3xl bg-white p-8 drop-shadow-xl">
-                <span className="font-heading text-6xl font-extrabold text-accent">
+                <span className="font-heading text-6xl font-extrabold text-accent-strong">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <h3 className="mt-4 font-heading text-2xl font-bold text-slate-900">{passo.titulo}</h3>

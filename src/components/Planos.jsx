@@ -43,7 +43,7 @@ function Planos() {
               className={`relative flex flex-col rounded-[28px] p-8 drop-shadow-xl ${p.destaque ? "bg-primary text-white lg:-my-4 lg:py-12" : "bg-white text-slate-800"}`}
             >
               {p.destaque && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-4 py-1 text-xs font-bold uppercase tracking-wider text-white">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent-strong px-4 py-1 text-xs font-bold uppercase tracking-wider text-white">
                   Mais popular
                 </span>
               )}

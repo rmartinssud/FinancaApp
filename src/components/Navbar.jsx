@@ -22,26 +22,30 @@ function Navbar() {
     <>
       {/* Barra superior (redes sociais e contato) */}
       <div id="topo" className="bg-primary text-sm text-white">
-        <div className="mx-auto flex h-10 max-w-7xl items-center justify-between px-5 sm:px-8">
+        <div className="mx-auto flex h-11 max-w-7xl items-center justify-between px-5 sm:px-8">
           <div className="flex h-full">
-            {[FaFacebook, FaInstagram, FaSquareXTwitter].map((Icone, i) => (
+            {[
+              { icone: FaFacebook, nome: "Facebook" },
+              { icone: FaInstagram, nome: "Instagram" },
+              { icone: FaSquareXTwitter, nome: "X (Twitter)" },
+            ].map(({ icone: Icone, nome }) => (
               <a
-                key={i}
+                key={nome}
                 href="#"
-                aria-label="Rede social"
-                className="flex h-full w-10 items-center justify-center border-r border-white/30 first:border-l hover:bg-white/10"
+                aria-label={nome}
+                className="flex h-full w-11 items-center justify-center border-r border-white/30 first:border-l hover:bg-white/10"
               >
-                <Icone className="text-lg" />
+                <Icone className="text-lg" aria-hidden="true" />
               </a>
             ))}
           </div>
           <p className="hidden lg:block">Cuidando de você e do seu dinheiro para uma vida melhor</p>
           <div className="flex h-full">
             <a href="#contato" className="flex items-center gap-2 border-x border-white/30 px-3 hover:bg-white/10 sm:px-6">
-              <FaSquareEnvelope /> Email
+              <FaSquareEnvelope aria-hidden="true" /> Email
             </a>
             <a href="#whatsapp" className="flex items-center gap-2 border-r border-white/30 px-3 hover:bg-white/10 sm:px-6">
-              <FaRegComment /> Chat
+              <FaRegComment aria-hidden="true" /> Chat
             </a>
           </div>
         </div>
@@ -50,17 +54,17 @@ function Navbar() {
       {/* Barra principal: fica fixa no topo ao rolar */}
       <header className="sticky top-0 z-50 bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Botão hambúrguer: só aparece em telas pequenas */}
             <button
               type="button"
-              className="rounded-full p-2 text-xl text-primary hover:bg-soft lg:hidden"
+              className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full text-xl text-primary hover:bg-soft lg:hidden"
               aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
               aria-expanded={menuAberto}
               aria-controls="menu-mobile"
               onClick={() => setMenuAberto(!menuAberto)}
             >
-              {menuAberto ? <FaXmark /> : <FaBars />}
+              {menuAberto ? <FaXmark aria-hidden="true" /> : <FaBars aria-hidden="true" />}
             </button>
             <Logo />
           </div>
@@ -78,9 +82,13 @@ function Navbar() {
             </ul>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <a href="#planos" aria-label="Entrar" className="text-xl text-primary hover:text-primary-light">
-              <FaUser />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <a
+              href="#planos"
+              aria-label="Entrar"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-xl text-primary hover:bg-soft hover:text-primary-light"
+            >
+              <FaUser aria-hidden="true" />
             </a>
             <ButtonArrow45 texto="Comece Agora" href="#planos" className="hidden sm:inline-flex" />
           </div>

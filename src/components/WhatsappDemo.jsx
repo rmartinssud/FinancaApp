@@ -32,7 +32,7 @@ function Balao({ de, texto, hora }) {
         className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-[13px] leading-snug text-slate-800 shadow-sm ${doUsuario ? "rounded-tr-sm bg-[#d9fdd3]" : "rounded-tl-sm bg-white"}`}
       >
         {texto}
-        <span className="mt-1 block text-right text-[10px] text-slate-500">{hora}</span>
+        <span className="mt-1 block text-right text-xs text-slate-600">{hora}</span>
       </div>
     </div>
   );
@@ -56,7 +56,7 @@ function WhatsappDemo() {
                 </div>
                 <div>
                   <p className="text-sm font-bold">Assistente Finanças</p>
-                  <p className="text-[11px] text-white/80">online</p>
+                  <p className="text-xs text-white/90">online</p>
                 </div>
               </div>
               {/* Mensagens */}
