@@ -19,8 +19,9 @@ const schema = z.object({
   SMTP_FROM: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  // Limite de tentativas nas rotas de login (por IP, a cada 15 minutos)
-  AUTH_RATE_LIMIT: z.coerce.number().default(30),
+  // Limite de tentativas nas rotas de login (por IP, a cada 15 minutos).
+  // Sem valor: 30 em produção e 1000 em dev/teste (para não travar os testes locais).
+  AUTH_RATE_LIMIT: z.coerce.number().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -32,5 +33,6 @@ if (!parsed.success) {
 export const env = parsed.data;
 
 export const isProduction = env.NODE_ENV === "production";
+export const authRateLimit = env.AUTH_RATE_LIMIT ?? (isProduction ? 30 : 1000);
 export const cookieSecure = env.COOKIE_SECURE ? env.COOKIE_SECURE === "true" : isProduction;
 export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);

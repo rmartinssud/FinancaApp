@@ -4,7 +4,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth.js";
-import { env, googleEnabled } from "./env.js";
+import { env, googleEnabled, authRateLimit } from "./env.js";
 import { meRouter } from "./routes/me.js";
 import { accountsRouter } from "./routes/accounts.js";
 
@@ -20,7 +20,7 @@ export function createApp() {
   // Limita tentativas nas rotas de login para evitar ataques de força bruta
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: env.AUTH_RATE_LIMIT,
+    limit: authRateLimit,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     // Consultar a sessão não conta no limite
