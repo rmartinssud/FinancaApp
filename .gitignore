@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de ambiente (segredos). Use o .env.example como modelo
+.env
+.env.*
+!.env.example
+!server/.env.test
