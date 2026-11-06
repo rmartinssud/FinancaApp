@@ -5,7 +5,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist'] },
+  // server/ é o backend (TypeScript), tem as próprias ferramentas
+  { ignores: ['dist', 'server/**', 'server/dist/**'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
