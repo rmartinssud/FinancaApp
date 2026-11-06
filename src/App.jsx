@@ -1,6 +1,6 @@
 import TresCards from "./components/trescards";
 import Header from "./components/header";
-import Hero from "./components/hero";
+import Hero from "./components/Hero";
 import InfoSession from "./components/infosession";
 import CarouselCards from "./components/carouselCards";
 import Features1 from "./components/features1";
