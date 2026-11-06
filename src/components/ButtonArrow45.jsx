@@ -15,7 +15,7 @@ function ButtonArrow45({
   onClick,
   className = "",
 }) {
-  const classes = `group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full px-6 py-3 font-bold transition-shadow hover:shadow-lg ${variantes[variante]} ${className}`;
+  const classes = `group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full px-6 py-3 font-bold transition-shadow hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${variantes[variante]} ${className}`;
 
   const conteudo = (
     <>

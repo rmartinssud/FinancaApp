@@ -20,7 +20,7 @@ function FormularioEmail({ textoBotao = "Inscreva-se", placeholder = "Digite seu
   }
 
   return (
-    <form onSubmit={enviar} className={`flex w-full max-w-md items-center rounded-full bg-white p-1.5 shadow-lg ${className}`}>
+    <form onSubmit={enviar} className={`flex w-full max-w-md items-center rounded-full bg-white p-1.5 shadow-lg focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ${className}`}>
       <label htmlFor={`email-${textoBotao}`} className="sr-only">
         Seu email
       </label>
@@ -29,7 +29,7 @@ function FormularioEmail({ textoBotao = "Inscreva-se", placeholder = "Digite seu
         type="email"
         required
         placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent px-4 py-3 text-slate-800 outline-none placeholder:text-slate-400"
+        className="min-w-0 flex-1 bg-transparent px-4 py-3 text-slate-800 outline-none placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0"
       />
       <ButtonArrow45 texto={textoBotao} type="submit" className="px-5 sm:px-6" />
     </form>

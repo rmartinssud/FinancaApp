@@ -12,7 +12,7 @@ export default {
         },
         accent: {
           DEFAULT: "#2ca9bc", // ciano dos números
-          strong: "#0891b2", // cyan-600, palavra destacada nos títulos
+          strong: "#0e7490", // cyan-700: versão escura do ciano, passa contraste AA em texto grande
         },
         soft: "#eaedfc", // fundo claro das seções
       },

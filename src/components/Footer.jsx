@@ -50,7 +50,7 @@ function Footer() {
                   key={nome}
                   href="#"
                   aria-label={nome}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary-light"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary-light"
                 >
                   <Icone aria-hidden="true" />
                 </a>
@@ -61,10 +61,10 @@ function Footer() {
           {colunas.map((coluna) => (
             <div key={coluna.titulo}>
               <h3 className="font-heading font-bold text-slate-900">{coluna.titulo}</h3>
-              <ul className="mt-4 space-y-2">
+              <ul className="mt-3 md:mt-4 md:space-y-2">
                 {coluna.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="text-slate-600 transition-colors hover:text-primary">
+                    <a href={link.href} className="inline-flex min-h-11 items-center text-slate-600 md:min-h-0 transition-colors hover:text-primary">
                       {link.label}
                     </a>
                   </li>
@@ -74,7 +74,7 @@ function Footer() {
           ))}
         </div>
 
-        <p className="mt-14 border-t border-primary/15 py-6 text-center text-sm text-slate-500">
+        <p className="mt-14 border-t border-primary/15 py-6 text-center text-sm text-slate-600">
           © 2026 Finanças Pessoais. Todos os direitos reservados.
         </p>
       </Container>
