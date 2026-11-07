@@ -27,8 +27,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3333
-      # Aponta para o Postgres do próprio compose (sobrescreve o DATABASE_URL do server/.env)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-financas}:${POSTGRES_PASSWORD:-financas}@postgres:5432/${POSTGRES_DB:-financas}?schema=public
+      # Usa DATABASE_URL se fornecida no ambiente (ex: banco Dokploy), ou monta a URL padrão do postgres local
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-financas}:${POSTGRES_PASSWORD:-financas}@postgres:5432/${POSTGRES_DB:-financas}?schema=public}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-troque-por-um-segredo-com-pelo-menos-32-caracteres}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
