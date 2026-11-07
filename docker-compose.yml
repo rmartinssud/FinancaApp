@@ -19,12 +19,26 @@ services:
   server:
     build: ./server
     restart: unless-stopped
-    env_file: server/.env
+    env_file:
+      - path: server/.env
+        required: false
+      - path: .env
+        required: false
     environment:
       NODE_ENV: production
       PORT: 3333
       # Aponta para o Postgres do próprio compose (sobrescreve o DATABASE_URL do server/.env)
       DATABASE_URL: postgresql://${POSTGRES_USER:-financas}:${POSTGRES_PASSWORD:-financas}@postgres:5432/${POSTGRES_DB:-financas}?schema=public
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-troque-por-um-segredo-com-pelo-menos-32-caracteres}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,8 +48,10 @@ services:
       context: .
       dockerfile: Dockerfile.web
     restart: unless-stopped
+    expose:
+      - "80"
     ports:
-      - "8088:80"
+      - "${WEB_PORT:-8088}:80"
     depends_on:
       - server
 
