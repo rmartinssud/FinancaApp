@@ -4,7 +4,9 @@ import { FaPlus, FaPen, FaCreditCard } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import CartaoVisual from "./componentes/CartaoVisual.jsx";
 import FormCartao from "./componentes/FormCartao.jsx";
-import { cartao as estiloCartao, botaoIcone } from "./componentes/estilos.js";
+import FormDespesaCartao from "./componentes/FormDespesaCartao.jsx";
+import Modal from "./componentes/Modal.jsx";
+import { cartao as estiloCartao, botaoIcone, botaoSecundario } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
 import Alerta from "../auth/Alerta.jsx";
 import { api, formatarReais } from "../lib/api.js";
@@ -100,6 +102,32 @@ function ItemCartao({ c, podeEditar, onEditar }) {
   );
 }
 
+// Depois de criar um cartão: pergunta se já há parcelados em andamento nele
+function PerguntaParcelados({ cartao, onSim, onFechar }) {
+  return (
+    <Modal titulo="Já tem compras parceladas neste cartão?" onFechar={onFechar}>
+      <div className="space-y-5">
+        <p className="text-slate-700">
+          Se o <strong>{cartao.name}</strong> já tem compras parceladas sendo cobradas, lance agora as parcelas que faltam. Assim a fatura e o limite disponível
+          ficam iguais aos do banco.
+        </p>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onFechar} className={botaoSecundario}>
+            Agora não
+          </button>
+          <button
+            type="button"
+            onClick={onSim}
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 font-bold text-white transition hover:shadow-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+          >
+            Sim, lançar agora
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // Tela "Cartões de crédito": lista, cadastro, edição e arquivados
 function Cartoes() {
   const { erroMe, podeEditar } = useMe();
@@ -109,6 +137,9 @@ function Cartoes() {
   const [erro, setErro] = useState("");
   // null = fechado; "novo" = criando; objeto = editando
   const [edicao, setEdicao] = useState(busca.get("novo") ? "novo" : null);
+  // Cartão recém-criado: pergunta pelos parcelados e depois abre a compra em andamento
+  const [cartaoNovo, setCartaoNovo] = useState(null);
+  const [lancandoAndamento, setLancandoAndamento] = useState(null);
 
   const carregar = useCallback(() => {
     setErro("");
@@ -192,8 +223,32 @@ function Cartoes() {
         <FormCartao
           cartao={edicao === "novo" ? null : edicao}
           onFechar={fecharForm}
-          onSalvo={() => {
+          onSalvo={(salvo) => {
+            if (edicao === "novo" && salvo?.id) setCartaoNovo(salvo);
             fecharForm();
+            carregar();
+          }}
+        />
+      )}
+
+      {cartaoNovo && (
+        <PerguntaParcelados
+          cartao={cartaoNovo}
+          onFechar={() => setCartaoNovo(null)}
+          onSim={() => {
+            setLancandoAndamento(cartaoNovo.id);
+            setCartaoNovo(null);
+          }}
+        />
+      )}
+      {lancandoAndamento && (
+        <FormDespesaCartao
+          cartaoInicial={lancandoAndamento}
+          parcelasIniciais={2}
+          emAndamentoInicial
+          onFechar={() => setLancandoAndamento(null)}
+          onSalvo={() => {
+            setLancandoAndamento(null);
             carregar();
           }}
         />
