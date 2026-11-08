@@ -41,3 +41,13 @@ export function requireRole(...roles: MemberRole[]) {
     next();
   };
 }
+
+// Leitura liberada para todos; criar, alterar e apagar não é permitido para VIEWER.
+// Use em routers de dados depois do withHousehold.
+export function bloqueiaSomenteLeitura(req: Request, res: Response, next: NextFunction) {
+  const leitura = req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS";
+  if (!leitura && req.household?.role === "VIEWER") {
+    return res.status(403).json({ error: "Seu acesso é somente leitura." });
+  }
+  next();
+}
