@@ -25,7 +25,7 @@ function InfoSession() {
           </ul>
 
           <div className="mt-10 flex flex-wrap items-center gap-6">
-            <ButtonArrow45 texto="Começar agora" href="#planos" />
+            <ButtonArrow45 texto="Começar agora" to="/cadastro" />
             <div>
               <div className="flex items-center gap-1 text-yellow-400">
                 {[1, 2, 3, 4, 5].map((n) => (

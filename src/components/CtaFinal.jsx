@@ -12,9 +12,9 @@ function CtaFinal() {
         <div className="relative">
           <SectionTitle antes="Pronto para cuidar do" destaque="seu dinheiro" depois="em família?" claro centralizado className="max-w-3xl" />
           <p className="mx-auto mt-6 max-w-xl text-lg text-white/85">
-            Deixe seu email e seja avisado assim que o app abrir. Os primeiros cadastrados ganham 3 meses do plano Família.
+            Crie sua conta grátis em menos de 2 minutos e comece a organizar as finanças da casa hoje.
           </p>
-          <FormularioEmail textoBotao="Quero acesso" placeholder="Seu email" className="mx-auto mt-10" />
+          <FormularioEmail textoBotao="Criar conta" placeholder="Seu email" claro className="mx-auto mt-10" />
         </div>
       </div>
     </section>

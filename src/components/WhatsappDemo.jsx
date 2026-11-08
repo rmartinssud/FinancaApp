@@ -83,7 +83,7 @@ function WhatsappDemo() {
               </li>
             ))}
           </ul>
-          <ButtonArrow45 texto="Quero testar" href="#planos" className="mt-10" />
+          <ButtonArrow45 texto="Quero testar" to="/cadastro" className="mt-10" />
         </div>
       </Container>
     </section>
