@@ -97,15 +97,39 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 | Método | Rota | O que faz |
 |---|---|---|
 | GET | `/api/transactions?month=&accountId=&categoryId=&type=` | Lançamentos do mês, mais recentes primeiro, com `category` e `account`. |
-| POST | `/api/transactions` | Cria receita/despesa: `type` (`INCOME`/`EXPENSE`), `amount` > 0, `description` (1–120), `date`, `accountId`, `categoryId` (opcional, do mesmo tipo), `status` (`CONFIRMED` padrão ou `PENDING`). Transferência (`TRANSFER`) ainda não é aceita. |
-| PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima. |
-| DELETE | `/api/transactions/:id` | Apaga o lançamento (204). |
+| POST | `/api/transactions` | Cria receita/despesa: `type` (`INCOME`/`EXPENSE`), `amount` > 0, `description` (1–120), `date`, `accountId`, `categoryId` (opcional, do mesmo tipo), `status` (`CONFIRMED` padrão ou `PENDING`). Transferência: veja a Fase 3b. |
+| PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima. Compra no cartão e pagamento de fatura não se alteram por aqui (409). |
+| DELETE | `/api/transactions/:id` | Apaga o lançamento (204). Parcela de compra no cartão apaga a compra inteira; pagamento de fatura é desfeito. |
 | GET | `/api/categories?type=` | Categorias da família (`INCOME` ou `EXPENSE`). |
 | POST | `/api/categories` | Cria: `name` (1–40), `type`, `color` (`#RRGGBB`), `icon`. |
 | PATCH | `/api/categories/:id` | Altera `name`, `color` ou `icon` (o tipo não muda). |
 | DELETE | `/api/categories/:id` | Apaga; os lançamentos ficam sem categoria (204). |
-| GET | `/api/accounts?type=` | Contas com `currentBalance` = saldo inicial + receitas confirmadas − despesas confirmadas. |
+| GET | `/api/accounts?type=` | Contas com `currentBalance` = saldo inicial + receitas − despesas + transferências recebidas − enviadas (só confirmados). Compras no cartão não mexem no saldo. |
 | POST | `/api/accounts` | Cria: `name`, `type` (`WALLET`/`BANK`/`CREDIT_CARD`), `initialBalance` (padrão 0). `creditLimit`, `closingDay` e `dueDay` só para cartão. |
 | PATCH | `/api/accounts/:id` | Altera a conta. Se deixar de ser cartão, os campos de cartão são limpos. |
-| DELETE | `/api/accounts/:id` | Apaga a conta e os lançamentos dela (204). A última conta da família não pode ser apagada (409). |
-| GET | `/api/summary?month=` | Resumo do mês (só confirmados): `totals` (receitas, despesas, saldo), `byCategory` (despesas por categoria, maior primeiro) e `accounts` com saldo atual. |
+| DELETE | `/api/accounts/:id` | Apaga a conta e os lançamentos dela, inclusive transferências (204). A última conta (que não seja cartão) não pode ser apagada (409). |
+| GET | `/api/summary?month=` | Resumo do mês (só confirmados): `totals` (receitas, despesas, saldo), `byCategory` (despesas por categoria, maior primeiro) e `accounts` com saldo atual. Transferências não entram; compras no cartão contam no mês do **vencimento da fatura**. |
+
+## Transferências, cartões e faturas (Fase 3b)
+
+**Transferência** é um lançamento só (`type: "TRANSFER"`) com `accountId` (origem) e `toAccountId` (destino), as duas contas da família, diferentes e que não sejam cartão. Tira da origem, põe no destino e não conta como receita nem despesa. `description` é opcional (vira "Transferência"); não tem categoria. Editar ou apagar mexe nas duas pontas de uma vez.
+
+**Cartão de crédito** é uma conta do tipo `CREDIT_CARD` (os cartões criados na Fase 3 continuam valendo). Cada **fatura** é identificada pelo mês do **vencimento** (`AAAA-MM`). Compra feita **no dia do fechamento ou depois** vai para a fatura seguinte. Ex.: fecha dia 3 e vence dia 10 → compra em 05/11 entra na fatura que vence em 10/12 (`2026-12`).
+
+**Compra no cartão**: cada parcela é um lançamento `EXPENSE` no cartão com `invoiceMonth` (mês da fatura), `purchaseId` (igual para todas as parcelas) e `installmentNumber`/`installmentTotal` ("2/10"). O valor total é dividido; os centavos que sobram ficam na 1ª parcela. A compra conta como despesa no mês do vencimento da fatura e não mexe no saldo das contas.
+
+**Pagar fatura** cria uma transferência da conta escolhida para o cartão com `invoiceMonth`: o saldo da conta diminui e **não** conta como despesa de novo. Apagar esse pagamento desfaz o pagamento. Compras numa fatura que já tem pagamento ficam travadas (409) até o pagamento ser desfeito.
+
+| Método | Rota | O que faz |
+|---|---|---|
+| POST | `/api/transactions` | Transferência: `type: "TRANSFER"`, `amount`, `date`, `accountId` (origem), `toAccountId` (destino), `description` (opcional), `status`. |
+| GET | `/api/cards?archived=true` | Cartões ativos (ou arquivados) com `usedLimit`, `availableLimit`, `currentInvoice` (fatura aberta hoje) e `closedInvoice` (fatura anterior ainda a pagar). |
+| POST | `/api/cards` | Cria: `name`, `brand` (`VISA`/`MASTERCARD`/`ELO`/`AMEX`/`HIPERCARD`/`OTHER`), `creditLimit`, `closingDay`, `dueDay`, `color` (`#RRGGBB`), `paymentAccountId` (opcional; conta ou carteira, nunca outro cartão). |
+| GET | `/api/cards/:id` | Um cartão com limite e fatura atual. |
+| PATCH | `/api/cards/:id` | Altera os campos acima; `{ "archived": true }` arquiva e `false` reativa. |
+| GET | `/api/cards/:id/invoices/:month` | Fatura do mês (ou `atual`): `closingDate`, `dueDate`, `status` (`OPEN`/`CLOSED`/`PAID`/`OVERDUE`), `total`, `paid`, `remaining`, `purchases` e `payments`. |
+| POST | `/api/cards/:id/invoices/:month/pay` | Paga a fatura: `accountId` (padrão: conta de pagamento do cartão), `date` (padrão: agora), `amount` (padrão: o que falta). 409 se já estiver paga. |
+| POST | `/api/card-expenses` | Compra: `cardId`, `amount` (total), `description`, `categoryId` (despesa, opcional), `date` (da compra), `installments` (1–24, padrão 1). Devolve `{ purchaseId, installments }`. |
+| GET | `/api/card-expenses/:purchaseId` | A compra com todas as parcelas. |
+| PUT | `/api/card-expenses/:purchaseId` | Refaz a compra com os dados novos (troca todas as parcelas de uma vez). |
+| DELETE | `/api/card-expenses/:purchaseId` | Apaga a compra e as parcelas (204). |
