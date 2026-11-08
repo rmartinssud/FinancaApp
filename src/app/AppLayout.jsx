@@ -1,29 +1,25 @@
-import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
-import {
-  FaArrowRightFromBracket,
-  FaHouse,
-  FaRightLeft,
-  FaWallet,
-  FaTags,
-  FaShieldHalved,
-} from "react-icons/fa6";
+import { useEffect, useId, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { FaBars } from "react-icons/fa6";
 import logo from "../assets/logo-financas.webp";
 import { signOut } from "../lib/auth-client.js";
+import { useMe } from "./useMe.js";
+import MenuLateral from "./componentes/MenuLateral.jsx";
+import NovoLancamento from "./componentes/NovoLancamento.jsx";
 
-// Itens do menu do app (o mesmo menu aparece no topo no computador e embaixo no celular)
-const menu = [
-  { para: "/app", texto: "Início", Icone: FaHouse, fim: true },
-  { para: "/app/lancamentos", texto: "Lançamentos", Icone: FaRightLeft },
-  { para: "/app/contas", texto: "Contas", Icone: FaWallet },
-  { para: "/app/categorias", texto: "Categorias", Icone: FaTags },
-  { para: "/app/seguranca", texto: "Segurança", Icone: FaShieldHalved },
-];
-
-// Estrutura da área logada: barra superior com logo e Sair,
-// menu no topo (telas grandes) ou fixo embaixo (celular).
-function AppLayout({ children }) {
+// Estrutura da área logada:
+// - computador (lg+): menu fixo na lateral esquerda;
+// - celular/tablet: barra no topo com o botão ☰ que abre o menu como gaveta (da esquerda, com fundo escuro).
+// O botão redondo "+" (novo lançamento) fica no canto de baixo à direita.
+// onLancamentoSalvo: a tela recarrega os dados quando alguém salva pelo botão "+".
+function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false }) {
+  const { me, podeEditar } = useMe();
   const [saindo, setSaindo] = useState(false);
+  const [gavetaAberta, setGavetaAberta] = useState(false);
+  const botaoMenu = useRef(null);
+  const gaveta = useRef(null);
+  const idTitulo = useId();
+  const location = useLocation();
 
   async function sair() {
     setSaindo(true);
@@ -32,64 +28,88 @@ function AppLayout({ children }) {
     window.location.replace("/entrar");
   }
 
-  const itemMenu = ({ isActive }) =>
-    `inline-flex min-h-11 items-center rounded-full px-4 font-medium transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
-      isActive ? "bg-soft text-primary" : "text-slate-600 hover:text-primary"
-    }`;
+  // Fecha a gaveta ao trocar de tela
+  useEffect(() => {
+    setGavetaAberta(false);
+  }, [location.pathname]);
 
-  const itemMenuBaixo = ({ isActive }) =>
-    `flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-xs font-medium transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
-      isActive ? "bg-soft text-primary" : "text-slate-600"
-    }`;
+  // Gaveta aberta: Esc fecha, a página de trás não rola e o foco vai para dentro dela
+  useEffect(() => {
+    if (!gavetaAberta) return;
+    const aoTeclar = (e) => {
+      if (e.key === "Escape") setGavetaAberta(false);
+    };
+    document.addEventListener("keydown", aoTeclar);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    gaveta.current?.querySelector("a, button")?.focus();
+    const botao = botaoMenu.current;
+    return () => {
+      document.removeEventListener("keydown", aoTeclar);
+      document.body.style.overflow = overflow;
+      botao?.focus();
+    };
+  }, [gavetaAberta]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-soft font-body">
+    <div className="relative min-h-screen overflow-x-clip bg-soft font-body">
       <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-20 h-80 w-80 rounded-full bg-sky-300/40 blur-[100px]" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-20 bottom-0 h-80 w-96 rounded-full bg-accent/30 blur-[100px]" />
 
-      <header className="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-8 sm:py-3">
-          <Link to="/app" className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
-            <img src={logo} alt="Finanças Pessoais - início do app" className="w-28 sm:w-36" />
-          </Link>
+      {/* Computador: menu lateral fixo */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-slate-200/70 bg-white lg:block">
+        <MenuLateral me={me} onSair={sair} saindo={saindo} />
+      </aside>
 
-          <div className="flex items-center gap-1 sm:gap-3">
-            <nav aria-label="Menu do app" className="hidden gap-1 lg:flex">
-              {menu.map(({ para, texto, fim }) => (
-                <NavLink key={para} to={para} end={fim} className={itemMenu}>
-                  {texto}
-                </NavLink>
-              ))}
-            </nav>
-            <button
-              type="button"
-              onClick={sair}
-              disabled={saindo}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary/30 px-4 font-bold text-primary transition hover:bg-primary hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 disabled:opacity-60"
-            >
-              <FaArrowRightFromBracket aria-hidden="true" />
-              <span>{saindo ? "Saindo..." : "Sair"}</span>
-            </button>
-          </div>
+      {/* Celular e tablet: barra superior com o botão do menu */}
+      <header className="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur lg:hidden">
+        <div className="flex items-center gap-2 px-2 py-1.5 sm:px-4">
+          <button
+            ref={botaoMenu}
+            type="button"
+            onClick={() => setGavetaAberta(true)}
+            aria-label="Abrir menu"
+            aria-expanded={gavetaAberta}
+            aria-controls="gaveta-menu"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full text-xl text-slate-700 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+          >
+            <FaBars aria-hidden="true" />
+          </button>
+          <Link to="/app" className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
+            <img src={logo} alt="Finanças Pessoais - início do app" className="w-28" />
+          </Link>
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-40 pt-6 sm:px-8 sm:pt-10 lg:pb-32">{children}</main>
-
-      {/* Menu fixo embaixo (celular e tablet): fácil de alcançar com o polegar */}
-      <nav
-        aria-label="Menu do app"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur lg:hidden"
-      >
-        <div className="mx-auto flex max-w-xl gap-1">
-          {menu.map(({ para, texto, Icone, fim }) => (
-            <NavLink key={para} to={para} end={fim} className={itemMenuBaixo}>
-              <Icone aria-hidden="true" className="text-lg" />
-              <span>{texto}</span>
-            </NavLink>
-          ))}
+      {/* Gaveta do menu (celular/tablet) */}
+      <div className="lg:hidden">
+        <div
+          aria-hidden="true"
+          onClick={() => setGavetaAberta(false)}
+          className={`fixed inset-0 z-[60] bg-slate-900/50 transition-opacity duration-300 motion-reduce:transition-none ${
+            gavetaAberta ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        />
+        <div
+          id="gaveta-menu"
+          ref={gaveta}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={idTitulo}
+          inert={gavetaAberta ? undefined : ""}
+          className={`fixed inset-y-0 left-0 z-[61] w-[85vw] max-w-[330px] overflow-hidden rounded-r-3xl bg-white shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
+            gavetaAberta ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <MenuLateral me={me} onSair={sair} saindo={saindo} idTitulo={idTitulo} />
         </div>
-      </nav>
+      </div>
+
+      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-8 sm:pt-10 lg:ml-72 lg:mr-0 lg:max-w-none lg:px-10 xl:px-14">
+        <div className="mx-auto max-w-5xl">{children}</div>
+      </main>
+
+      {podeEditar && !semBotaoNovo && <NovoLancamento onSalvo={onLancamentoSalvo} />}
     </div>
   );
 }
