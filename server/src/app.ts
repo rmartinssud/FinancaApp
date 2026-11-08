@@ -7,6 +7,9 @@ import { auth } from "./lib/auth.js";
 import { env, googleEnabled, authRateLimit } from "./env.js";
 import { meRouter } from "./routes/me.js";
 import { accountsRouter } from "./routes/accounts.js";
+import { categoriesRouter } from "./routes/categories.js";
+import { transactionsRouter } from "./routes/transactions.js";
+import { summaryRouter } from "./routes/summary.js";
 
 export function createApp() {
   const app = express();
@@ -42,6 +45,9 @@ export function createApp() {
 
   app.use("/api/me", meRouter);
   app.use("/api/accounts", accountsRouter);
+  app.use("/api/categories", categoriesRouter);
+  app.use("/api/transactions", transactionsRouter);
+  app.use("/api/summary", summaryRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });
