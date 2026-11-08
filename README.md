@@ -82,3 +82,30 @@ Arquivos: `server/Dockerfile` (API), `Dockerfile.web` (site no Nginx), `nginx.co
 
 - **Postgres da VPS (ou outro servidor):** basta mudar o `DATABASE_URL` no `server/.env` (e remover a linha `DATABASE_URL` do `docker-compose.yml`, se não for usar o Postgres do compose). Depois: `cd server && npx prisma migrate deploy`.
 - **MySQL:** em `server/prisma/schema.prisma`, troque `provider = "postgresql"` por `provider = "mysql"`, ajuste o `DATABASE_URL` (`mysql://usuario:senha@host:3306/banco`), apague a pasta `server/prisma/migrations` e gere as migrações de novo com `npx prisma migrate dev --name init`. Revise campos com tipos específicos do Postgres antes.
+
+---
+
+## API de finanças (Fase 3)
+
+Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da família do usuário. Ids de outra família respondem **404**. Quem tem papel **VIEWER** só pode ler: `POST`, `PATCH` e `DELETE` respondem **403**.
+
+- Dinheiro vai e volta como **texto com 2 casas** (`"10.50"`). Na entrada, aceita texto ou número com até 2 casas (`"10.5"`, `10.5`).
+- Mês no formato `AAAA-MM`, sempre no horário de Brasília. Sem `month`, vale o mês atual.
+- Datas: `"2026-11-07"` (guardada às 12:00 UTC, não muda de dia) ou data/hora ISO com fuso (`"2026-11-07T14:30:00-03:00"`). Na resposta, ISO em UTC.
+- Erros de validação: `400 { "error": "Dados inválidos.", "detalhes": { "campo": ["mensagem"] } }`. Outros erros: `{ "error": "mensagem" }`.
+
+| Método | Rota | O que faz |
+|---|---|---|
+| GET | `/api/transactions?month=&accountId=&categoryId=&type=` | Lançamentos do mês, mais recentes primeiro, com `category` e `account`. |
+| POST | `/api/transactions` | Cria receita/despesa: `type` (`INCOME`/`EXPENSE`), `amount` > 0, `description` (1–120), `date`, `accountId`, `categoryId` (opcional, do mesmo tipo), `status` (`CONFIRMED` padrão ou `PENDING`). Transferência (`TRANSFER`) ainda não é aceita. |
+| PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima. |
+| DELETE | `/api/transactions/:id` | Apaga o lançamento (204). |
+| GET | `/api/categories?type=` | Categorias da família (`INCOME` ou `EXPENSE`). |
+| POST | `/api/categories` | Cria: `name` (1–40), `type`, `color` (`#RRGGBB`), `icon`. |
+| PATCH | `/api/categories/:id` | Altera `name`, `color` ou `icon` (o tipo não muda). |
+| DELETE | `/api/categories/:id` | Apaga; os lançamentos ficam sem categoria (204). |
+| GET | `/api/accounts?type=` | Contas com `currentBalance` = saldo inicial + receitas confirmadas − despesas confirmadas. |
+| POST | `/api/accounts` | Cria: `name`, `type` (`WALLET`/`BANK`/`CREDIT_CARD`), `initialBalance` (padrão 0). `creditLimit`, `closingDay` e `dueDay` só para cartão. |
+| PATCH | `/api/accounts/:id` | Altera a conta. Se deixar de ser cartão, os campos de cartão são limpos. |
+| DELETE | `/api/accounts/:id` | Apaga a conta e os lançamentos dela (204). A última conta da família não pode ser apagada (409). |
+| GET | `/api/summary?month=` | Resumo do mês (só confirmados): `totals` (receitas, despesas, saldo), `byCategory` (despesas por categoria, maior primeiro) e `accounts` com saldo atual. |

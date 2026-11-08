@@ -12,6 +12,9 @@ const RedefinirSenha = lazy(() => import("./pages/RedefinirSenha.jsx"));
 const VerificarEmail = lazy(() => import("./pages/VerificarEmail.jsx"));
 const Inicio = lazy(() => import("./app/Inicio.jsx"));
 const Seguranca = lazy(() => import("./app/Seguranca.jsx"));
+const Lancamentos = lazy(() => import("./app/Lancamentos.jsx"));
+const Contas = lazy(() => import("./app/Contas.jsx"));
+const Categorias = lazy(() => import("./app/Categorias.jsx"));
 
 function Rotas() {
   return (
@@ -30,6 +33,9 @@ function Rotas() {
 
           {/* Área logada */}
           <Route path="/app" element={<RotaProtegida><Inicio /></RotaProtegida>} />
+          <Route path="/app/lancamentos" element={<RotaProtegida><Lancamentos /></RotaProtegida>} />
+          <Route path="/app/contas" element={<RotaProtegida><Contas /></RotaProtegida>} />
+          <Route path="/app/categorias" element={<RotaProtegida><Categorias /></RotaProtegida>} />
           <Route path="/app/seguranca" element={<RotaProtegida><Seguranca /></RotaProtegida>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
