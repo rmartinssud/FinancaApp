@@ -129,7 +129,16 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 | PATCH | `/api/cards/:id` | Altera os campos acima; `{ "archived": true }` arquiva e `false` reativa. |
 | GET | `/api/cards/:id/invoices/:month` | Fatura do mês (ou `atual`): `closingDate`, `dueDate`, `status` (`OPEN`/`CLOSED`/`PAID`/`OVERDUE`), `total`, `paid`, `remaining`, `purchases` e `payments`. |
 | POST | `/api/cards/:id/invoices/:month/pay` | Paga a fatura: `accountId` (padrão: conta de pagamento do cartão), `date` (padrão: agora), `amount` (padrão: o que falta). 409 se já estiver paga. |
-| POST | `/api/card-expenses` | Compra: `cardId`, `amount` (total), `description`, `categoryId` (despesa, opcional), `date` (da compra), `installments` (1–24, padrão 1). Devolve `{ purchaseId, installments }`. |
+| POST | `/api/card-expenses` | Compra: `cardId`, `amount` (total), `description`, `categoryId` (despesa, opcional), `date` (da compra), `installments` (1–24, padrão 1), `currentInstallment` (opcional, 1 até `installments`, padrão 1: compra já em andamento, veja abaixo). Devolve `{ purchaseId, installments }`. |
 | GET | `/api/card-expenses/:purchaseId` | A compra com todas as parcelas. |
-| PUT | `/api/card-expenses/:purchaseId` | Refaz a compra com os dados novos (troca todas as parcelas de uma vez). |
+| PUT | `/api/card-expenses/:purchaseId` | Refaz a compra com os dados novos (troca todas as parcelas de uma vez). Aceita `currentInstallment` como o POST. |
 | DELETE | `/api/card-expenses/:purchaseId` | Apaga a compra e as parcelas (204). |
+
+**Compra parcelada já em andamento** (`currentInstallment` > 1): para compras que começaram antes de usar o app. `currentInstallment` é a parcela que cai na **fatura atual** do cartão (onde entraria uma compra feita hoje). Mande `amount` com o valor **total** da compra e `date` com a data **original** (não pode ser depois de hoje). O total é dividido entre todas as parcelas, como no banco, mas só são lançadas as parcelas de `currentInstallment` até o fim: a parcela atual na fatura atual e as seguintes nas próximas faturas, com os rótulos certos ("4/10" … "10/10"). A data de cada parcela é a data da compra + (parcela − 1) meses, só para exibir. Ex.: compra de R$ 1.000 em 10x feita em julho, parcela 4 na fatura atual → 7 parcelas de R$ 100, a primeira na fatura atual. Assim o limite usado e o total das faturas mostram só o que falta pagar. Ao editar, a 1ª parcela existente diz qual era a parcela atual. As regras de fatura com pagamento (409) continuam valendo.
+
+### Começando com um cartão que já está em uso
+
+1. **Cadastre o cartão** com o limite total e os dias de **fechamento** e **vencimento**. Use como fechamento o dia da **"melhor data de compra"** que o app do banco mostra (compras desse dia em diante já vão para a fatura seguinte).
+2. **Compras à vista da fatura atual**: lance cada uma com a **data real** da compra. Elas caem na fatura aberta, como no banco.
+3. **Parcelados em andamento**: logo depois de criar o cartão o app pergunta "Já tem compras parceladas neste cartão?" (ou use **Lançar compra em andamento** na fatura do cartão). Em **Despesa cartão**, escolha as parcelas, ligue **Compra já em andamento** e informe o **valor total**, a **data da compra** e a **parcela desta fatura** (ex.: 4 de 10). O app lança só as parcelas que faltam, a partir da fatura atual.
+4. **Confira com o banco**: o total da fatura atual e o **limite disponível** do app devem bater com o app do banco. Se o limite não bater, falta lançar algum parcelado (ou a fatura anterior ainda não foi paga no app).
