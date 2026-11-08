@@ -16,14 +16,14 @@ datasource db {
 // ─────────────────────────────────────────────
 
 model User {
-  id               String    @id
+  id               String   @id
   name             String
-  email            String    @unique
-  emailVerified    Boolean   @default(false)
+  email            String   @unique
+  emailVerified    Boolean  @default(false)
   image            String?
-  twoFactorEnabled Boolean?  @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  twoFactorEnabled Boolean? @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   sessions     Session[]
   accounts     Account[]
@@ -116,6 +116,16 @@ enum AccountType {
   CREDIT_CARD
 }
 
+// Bandeira do cartão de crédito
+enum CardBrand {
+  VISA
+  MASTERCARD
+  ELO
+  AMEX
+  HIPERCARD
+  OTHER
+}
+
 enum CategoryType {
   INCOME
   EXPENSE
@@ -168,19 +178,26 @@ model HouseholdMember {
 
 // Carteira, conta bancária ou cartão de crédito
 model FinancialAccount {
-  id             String      @id @default(cuid())
-  householdId    String
-  name           String
-  type           AccountType
-  initialBalance Decimal     @default(0) @db.Decimal(12, 2) // dinheiro sempre em Decimal, nunca float
-  creditLimit    Decimal?    @db.Decimal(12, 2)
-  closingDay     Int? // dia de fechamento da fatura (cartão)
-  dueDay         Int? // dia de vencimento da fatura (cartão)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id               String      @id @default(cuid())
+  householdId      String
+  name             String
+  type             AccountType
+  initialBalance   Decimal     @default(0) @db.Decimal(12, 2) // dinheiro sempre em Decimal, nunca float
+  creditLimit      Decimal?    @db.Decimal(12, 2)
+  closingDay       Int? // dia de fechamento da fatura (cartão)
+  dueDay           Int? // dia de vencimento da fatura (cartão)
+  brand            CardBrand? // bandeira (cartão)
+  color            String? // cor do cartão (#RRGGBB)
+  paymentAccountId String? // conta que paga a fatura (opcional)
+  archivedAt       DateTime? // cartão arquivado: some da lista e não recebe compras novas
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  household       Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  transfersIn     Transaction[]      @relation("TransferTo")
+  paymentAccount  FinancialAccount?  @relation("CardPayment", fields: [paymentAccountId], references: [id], onDelete: SetNull)
+  cardsPaidByThis FinancialAccount[] @relation("CardPayment")
 
   @@index([householdId])
   @@map("financial_accounts")
@@ -215,16 +232,27 @@ model Transaction {
   status            TransactionStatus @default(CONFIRMED)
   installmentNumber Int? // parcela atual (ex.: 2 de 10)
   installmentTotal  Int?
+  // Transferência: accountId = origem, toAccountId = destino
+  toAccountId       String?
+  // Cartão: mês da fatura ("AAAA-MM", mês do vencimento). Compras (EXPENSE) e
+  // pagamentos de fatura (TRANSFER para o cartão) guardam o mês aqui.
+  invoiceMonth      String?
+  // Cartão: as parcelas de uma mesma compra têm o mesmo purchaseId
+  purchaseId        String?
   source            TransactionSource @default(APP)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  household Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  account   FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  category  Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  createdBy User             @relation(fields: [createdById], references: [id])
+  household Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account   FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  toAccount FinancialAccount? @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
+  category  Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy User              @relation(fields: [createdById], references: [id])
 
   @@index([householdId, date])
   @@index([accountId])
+  @@index([toAccountId])
+  @@index([householdId, invoiceMonth])
+  @@index([purchaseId])
   @@map("transactions")
 }
