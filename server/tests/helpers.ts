@@ -29,3 +29,14 @@ export async function usuarioLogado(app: Express, nome = "Maria Souza") {
   if (res.status !== 200) throw new Error(`Login falhou: ${res.status} ${JSON.stringify(res.body)}`);
   return { agent, email };
 }
+
+// Usuário logado + dados da família dele (id, Carteira e categorias padrão)
+export async function familiaLogada(app: Express, nome = "Maria Souza") {
+  const { agent, email } = await usuarioLogado(app, nome);
+  const me = await agent.get("/api/me");
+  const householdId: string = me.body.household.id;
+  const contas = await agent.get("/api/accounts");
+  const categorias = await agent.get("/api/categories");
+  const categoria = (n: string) => categorias.body.find((c: { name: string }) => c.name === n).id as string;
+  return { agent, email, householdId, carteiraId: contas.body[0].id as string, categoria };
+}
