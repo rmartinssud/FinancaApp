@@ -10,7 +10,7 @@ function SeletorMes({ mes, onMudar, className = "" }) {
       <button type="button" onClick={() => onMudar(somarMes(mes, -1))} className={botaoIcone} aria-label={`Mês anterior (${nomeDoMes(somarMes(mes, -1))})`}>
         <FaChevronLeft aria-hidden="true" />
       </button>
-      <p className="min-w-0 flex-1 text-center font-bold capitalize text-slate-900" aria-live="polite">
+      <p className="min-w-0 flex-1 text-center font-bold text-slate-900 first-letter:uppercase" aria-live="polite">
         {nome}
       </p>
       <button type="button" onClick={() => onMudar(somarMes(mes, 1))} className={botaoIcone} aria-label={`Próximo mês (${nomeDoMes(somarMes(mes, 1))})`}>

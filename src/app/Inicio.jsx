@@ -19,15 +19,15 @@ function CartaoTotal({ titulo, valor, Icone, cor, destaque = false }) {
     <section
       className={
         destaque
-          ? "rounded-3xl bg-gradient-to-br from-primary to-primary-light p-5 text-white shadow-[0_20px_50px_-12px_rgba(70,79,163,0.35)]"
-          : "rounded-3xl bg-white p-5 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)]"
+          ? "min-w-0 rounded-3xl bg-gradient-to-br from-primary to-primary-light p-4 text-white sm:p-5 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.35)]"
+          : "min-w-0 rounded-3xl bg-white p-4 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)] sm:p-5"
       }
     >
       <div className="flex items-center gap-2">
         <Icone aria-hidden="true" className={destaque ? "text-sky-200" : cor} />
-        <h2 className={`text-sm font-bold uppercase tracking-widest ${destaque ? "text-sky-100" : "text-slate-500"}`}>{titulo}</h2>
+        <h2 className={`text-xs font-bold uppercase tracking-wider sm:text-sm sm:tracking-widest ${destaque ? "text-sky-100" : "text-slate-500"}`}>{titulo}</h2>
       </div>
-      <p className={`mt-2 font-heading text-2xl font-bold ${destaque ? "" : cor}`}>{valor === undefined ? "..." : formatarReais(valor)}</p>
+      <p className={`mt-2 font-heading font-bold [overflow-wrap:anywhere] ${destaque ? "text-2xl" : `text-lg sm:text-2xl ${cor}`}`}>{valor === undefined ? "..." : formatarReais(valor)}</p>
     </section>
   );
 }

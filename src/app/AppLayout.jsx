@@ -49,7 +49,7 @@ function AppLayout({ children }) {
 
       <header className="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-8 sm:py-3">
-          <Link to="/app" className="rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
+          <Link to="/app" className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
             <img src={logo} alt="Finanças Pessoais - início do app" className="w-28 sm:w-36" />
           </Link>
 
