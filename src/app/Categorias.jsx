@@ -4,13 +4,14 @@ import Modal from "./componentes/Modal.jsx";
 import Alternador from "./componentes/Alternador.jsx";
 import BotaoApagar from "./componentes/BotaoApagar.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
+import SeletorIcone from "./componentes/SeletorIcone.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
 import Campo from "../auth/Campo.jsx";
 import BotaoEnviar from "../auth/BotaoEnviar.jsx";
 import Alerta from "../auth/Alerta.jsx";
 import { api, enviarJson, errosPorCampo } from "../lib/api.js";
-import { CORES_CATEGORIA, ICONES_CATEGORIA } from "../lib/icones.js";
+import { CORES_CATEGORIA } from "../lib/icones.js";
 
 const tiposCategoria = [
   { valor: "EXPENSE", texto: "Despesa" },
@@ -56,8 +57,6 @@ function FormCategoria({ categoria, tipoInicial, onFechar, onSalvo }) {
   // Uma cor personalizada (fora da lista) continua disponível na edição
   const cores = CORES_CATEGORIA.map((c) => ({ valor: c.cor, nome: c.nome }));
   if (!cores.some((c) => c.valor.toLowerCase() === cor.toLowerCase())) cores.push({ valor: cor, nome: "Cor atual" });
-  const icones = Object.entries(ICONES_CATEGORIA).map(([valor, { nome: texto, Icone }]) => ({ valor, nome: texto, Icone }));
-  if (!ICONES_CATEGORIA[icone]) icones.push({ valor: icone, nome: "Ícone atual", Icone: null });
 
   async function salvar(e) {
     e.preventDefault();
@@ -117,23 +116,7 @@ function FormCategoria({ categoria, tipoInicial, onFechar, onSalvo }) {
           renderizar={(o) => <span aria-hidden="true" className="h-9 w-9 rounded-xl" style={{ backgroundColor: o.valor }} />}
         />
 
-        <GradeOpcoes
-          legenda="Ícone"
-          nome="icone-categoria"
-          opcoes={icones}
-          valor={icone}
-          onMudar={setIcone}
-          erro={erros.icon}
-          renderizar={(o, ativo) => (
-            <span
-              aria-hidden="true"
-              className={`flex h-9 w-9 items-center justify-center rounded-xl text-lg ${ativo ? "text-white" : "bg-soft text-primary"}`}
-              style={ativo ? { backgroundColor: cor } : undefined}
-            >
-              {o.Icone ? <o.Icone /> : "?"}
-            </span>
-          )}
-        />
+        <SeletorIcone valor={icone} onMudar={setIcone} cor={cor} erro={erros.icon} />
 
         <BotaoEnviar texto={editando ? "Salvar alterações" : "Criar categoria"} carregando={salvando} textoCarregando="Salvando..." className="w-full" />
 
