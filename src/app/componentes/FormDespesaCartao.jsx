@@ -4,13 +4,14 @@ import Modal from "./Modal.jsx";
 import CampoSelect from "./CampoSelect.jsx";
 import BotaoApagar from "./BotaoApagar.jsx";
 import Interruptor from "./Interruptor.jsx";
+import SeletorFatura from "./SeletorFatura.jsx";
 import Campo from "../../auth/Campo.jsx";
 import BotaoEnviar from "../../auth/BotaoEnviar.jsx";
 import Alerta from "../../auth/Alerta.jsx";
 import { api, enviarJson, errosPorCampo, formatarReais } from "../../lib/api.js";
 import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
-import { dataLocal, hoje, nomeDoMes } from "../../lib/datas.js";
-import { faturaAtual, mesDaFatura, mesesEntre, somarMesesNaData, vencimentoCurto } from "../../lib/cartoes.js";
+import { dataLocal, hoje, nomeDoMes, somarMes } from "../../lib/datas.js";
+import { faturaAtual, faturaPermitida, mesDaFatura, mesesEntre, somarMesesNaData, vencimentoCurto } from "../../lib/cartoes.js";
 
 const PARCELAS = Array.from({ length: 24 }, (_, i) => i + 1);
 
@@ -27,15 +28,23 @@ function compraOriginal(parcelasSalvas, cartao) {
   const [primeira] = parcelasSalvas;
   const n = primeira.installmentNumber ?? 1;
   const centavos = parcelasSalvas.reduce((s, p) => s + Math.round(Number(p.amount) * 100), 0);
-  if (n <= 1) return { total: centavos / 100, data: dataLocal(primeira.date), parcelaAtual: null };
+  if (n <= 1) return { total: centavos / 100, data: dataLocal(primeira.date), parcelaAtual: null, fatura: primeira.invoiceMonth };
   // Parcelas anteriores têm o mesmo valor das demais (a sobra de centavos fica só na 1ª, que não foi lançada)
   const base = Math.round(Number(parcelasSalvas.at(-1).amount) * 100);
   // Dia original: o maior dia entre as parcelas (31/07 vira 30/09, mas volta a 31 em outubro)
   const dia = Math.max(...parcelasSalvas.map((p) => Number(dataLocal(p.date).slice(8, 10))));
-  // Parcela que cai na fatura atual hoje (se o tempo passou, é uma parcela mais adiante)
+  // Parcela que cai na fatura atual hoje (se o tempo passou, é uma parcela mais adiante).
+  // Se a 1ª parcela lançada está numa fatura DEPOIS da atual, a pessoa escolheu a fatura: mantém a parcela.
   const atual = cartao?.closingDay ? faturaAtual(cartao) : primeira.invoiceMonth;
-  const parcelaAtual = Math.min(Math.max(n + mesesEntre(primeira.invoiceMonth, atual), 2), primeira.installmentTotal);
-  return { total: (centavos + base * (n - 1)) / 100, data: somarMesesNaData(dataLocal(primeira.date), -(n - 1), dia), parcelaAtual };
+  const passaram = Math.max(mesesEntre(primeira.invoiceMonth, atual), 0);
+  const parcelaAtual = Math.min(Math.max(n + passaram, 2), primeira.installmentTotal);
+  return {
+    total: (centavos + base * (n - 1)) / 100,
+    data: somarMesesNaData(dataLocal(primeira.date), -(n - 1), dia),
+    parcelaAtual,
+    // Fatura em que está a parcela atual (a mesma das parcelas já salvas)
+    fatura: somarMes(primeira.invoiceMonth, parcelaAtual - n),
+  };
 }
 
 // Compra no cartão de crédito: à vista ou parcelada (até 24x).
@@ -57,6 +66,8 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
   // Compra parcelada que começou antes de usar o app: só lança da parcela atual em diante
   const [emAndamento, setEmAndamento] = useState(emAndamentoInicial && parcelasIniciais > 1);
   const [parcelaAtual, setParcelaAtual] = useState(2);
+  // Fatura escolhida à mão (null = automática, acompanha a data e o cartão)
+  const [faturaEscolhida, setFaturaEscolhida] = useState(null);
 
   const [erros, setErros] = useState({});
   const [erro, setErro] = useState("");
@@ -80,6 +91,14 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
           setParcelas(primeira.installmentTotal ?? 1);
           setEmAndamento(Boolean(original.parcelaAtual));
           if (original.parcelaAtual) setParcelaAtual(original.parcelaAtual);
+          // Mantém a fatura em que a compra está (se for diferente da automática, vira escolha manual)
+          const cartaoDaCompra = listaCartoes.find((c) => c.id === primeira.account.id);
+          if (cartaoDaCompra?.closingDay) {
+            const automatica = original.parcelaAtual
+              ? faturaAtual(cartaoDaCompra)
+              : mesDaFatura(original.data, cartaoDaCompra.closingDay, cartaoDaCompra.dueDay);
+            if (original.fatura !== automatica && faturaPermitida(original.fatura, automatica)) setFaturaEscolhida(original.fatura);
+          }
           // Cartão arquivado continua na lista para a compra antiga
           if (!listaCartoes.some((c) => c.id === primeira.account.id)) {
             listaCartoes = [...listaCartoes, { id: primeira.account.id, name: `${primeira.account.name} (arquivado)` }];
@@ -102,6 +121,11 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
   const atual = Math.min(Math.max(parcelaAtual, 2), parcelas);
   const faturaDeHoje = cartao ? faturaAtual(cartao) : null;
   const faltam = parcelas - atual + 1;
+  // Fatura da 1ª parcela lançada: automática (pela data, ou a atual na compra em andamento) ou a escolhida.
+  // Se a data/cartão mudar e a escolhida ficar longe demais, volta para a automática.
+  const faturaAutomatica = andamento ? faturaDeHoje : fatura;
+  const faturaFinal = faturaPermitida(faturaEscolhida, faturaAutomatica) ? faturaEscolhida : faturaAutomatica;
+  const faturaManual = Boolean(faturaFinal) && faturaFinal !== faturaAutomatica;
 
   function mudarParcelas(n) {
     setParcelas(n);
@@ -128,6 +152,8 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
       date: data,
       installments: Number(parcelas),
       currentInstallment: andamento ? atual : 1,
+      // Só manda quando a pessoa escolheu outra fatura (senão o servidor calcula)
+      invoiceMonth: faturaManual ? faturaFinal : null,
     };
     setSalvando(true);
     try {
@@ -261,33 +287,48 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
         )}
 
         {/* Compra em andamento: o que vai ser lançado */}
-        {andamento && faturaDeHoje && (
-          <p className="rounded-2xl bg-soft p-4 text-sm text-primary-dark" aria-live="polite">
-            {faltam > 1 ? "Serão lançadas" : "Será lançada"}{" "}
-            <strong>
-              {faltam} {faltam > 1 ? "parcelas" : "parcela"}
-              {Number(quantia) > 0 && <> de {formatarReais(demais)}</>}
-            </strong>{" "}
-            ({faltam > 1 ? `${atual}/${parcelas} a ${parcelas}/${parcelas}` : `${atual}/${parcelas}`}), {faltam > 1 ? "a primeira na" : "na"} fatura que vence em{" "}
-            <strong>{vencimentoCurto(faturaDeHoje, cartao.dueDay)}</strong>.
-          </p>
+        {andamento && faturaFinal && (
+          <div className="space-y-3 rounded-2xl bg-soft p-4 text-sm text-primary-dark">
+            <p aria-live="polite">
+              {faltam > 1 ? "Serão lançadas" : "Será lançada"}{" "}
+              <strong>
+                {faltam} {faltam > 1 ? "parcelas" : "parcela"}
+                {Number(quantia) > 0 && <> de {formatarReais(demais)}</>}
+              </strong>{" "}
+              ({faltam > 1 ? `${atual}/${parcelas} a ${parcelas}/${parcelas}` : `${atual}/${parcelas}`}), {faltam > 1 ? "a primeira na" : "na"} fatura que vence em{" "}
+              <strong>{vencimentoCurto(faturaFinal, cartao.dueDay)}</strong>.
+            </p>
+            <SeletorFatura
+              rotulo={`Fatura da parcela ${atual}/${parcelas}`}
+              mes={faturaFinal}
+              automatica={faturaAutomatica}
+              dueDay={cartao.dueDay}
+              onMudar={setFaturaEscolhida}
+              erro={erros.invoiceMonth}
+            />
+          </div>
         )}
 
         {/* Onde a compra vai cair */}
-        {fatura && !andamento && (
-          <p className="rounded-2xl bg-soft p-4 text-sm text-primary-dark" aria-live="polite">
+        {faturaFinal && !andamento && (
+          <div className="space-y-3 rounded-2xl bg-soft p-4 text-sm text-primary-dark">
             {parcelas > 1 && Number(quantia) > 0 && (
-              <>
+              <p aria-live="polite">
                 <strong>
                   {parcelas}x de {formatarReais(demais)}
                 </strong>
-                {primeira !== demais && <> (1ª de {formatarReais(primeira)})</>}
-                .{" "}
-              </>
+                {primeira !== demais && <> (1ª de {formatarReais(primeira)})</>}. A última parcela fica na fatura de {nomeDoMes(somarMes(faturaFinal, parcelas - 1))}.
+              </p>
             )}
-            {parcelas > 1 ? "A 1ª parcela entra" : "Entra"} na fatura de <strong className="first-letter:uppercase">{nomeDoMes(fatura)}</strong>, que vence em{" "}
-            {vencimentoCurto(fatura, cartao.dueDay)}.
-          </p>
+            <SeletorFatura
+              rotulo={parcelas > 1 ? "Fatura da 1ª parcela" : "Fatura"}
+              mes={faturaFinal}
+              automatica={faturaAutomatica}
+              dueDay={cartao.dueDay}
+              onMudar={setFaturaEscolhida}
+              erro={erros.invoiceMonth}
+            />
+          </div>
         )}
 
         <BotaoEnviar texto={editando ? "Salvar alterações" : "Salvar compra"} carregando={salvando} textoCarregando="Salvando..." className="w-full" />
