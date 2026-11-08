@@ -5,7 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { validateBody } from "../middleware/validate.js";
-import { valorPositivo, dataSchema, somarMeses, partesLocais } from "../lib/money.js";
+import { valorPositivo, dataSchema, mesSchema, somarMeses, partesLocais } from "../lib/money.js";
 import { dividirParcelas, faturaAtual, mesDaFatura, somarMesesNaData } from "../services/cartoes.js";
 import { incluir, serializar, faturasComPagamento } from "../services/lancamentos.js";
 
@@ -25,6 +25,11 @@ const compra = z.object({
   installments: z.number().int().min(1, "De 1 a 24 parcelas.").max(24, "De 1 a 24 parcelas.").default(1),
   // Compra já em andamento: a parcela que cai na fatura ATUAL do cartão (1 = compra nova, padrão)
   currentInstallment: z.number().int().min(1, "A parcela desta fatura precisa ser 1 ou mais.").max(24, "De 1 a 24 parcelas.").default(1),
+  // Fatura escolhida pela pessoa ("AAAA-MM"), quando o banco lançou a compra numa fatura diferente
+  // da calculada pela data (ex.: compra perto do fechamento que o banco jogou para a fatura seguinte).
+  // Vale para a 1ª parcela lançada (a parcela 1, ou a parcela atual da compra em andamento).
+  // Sem o campo (ou null): fatura automática.
+  invoiceMonth: mesSchema.nullable().optional(),
 }).superRefine((d, ctx) => {
   if (d.currentInstallment > d.installments) {
     ctx.addIssue({
@@ -50,9 +55,34 @@ function diaLocal(data: Date) {
 }
 
 type Compra = z.infer<typeof compra>;
-type Erro = { status: number; error: string };
+type Erro = { status: number; error: string; detalhes?: Record<string, string[]> };
+type DiasCartao = { closingDay: number; dueDay: number };
 
-async function conferir(req: Request, d: Compra): Promise<Erro | { closingDay: number; dueDay: number }> {
+// Quantos meses a fatura escolhida pode ficar antes/depois da automática
+const MESES_ANTES = 1;
+const MESES_DEPOIS = 2;
+
+// Quantos meses de "de" até "ate" ("2026-11", "2027-02" → 3)
+function mesesEntre(de: string, ate: string) {
+  const [a1, m1] = de.split("-").map(Number);
+  const [a2, m2] = ate.split("-").map(Number);
+  return (a2 - a1) * 12 + (m2 - m1);
+}
+
+// Fatura da 1ª parcela lançada: a escolhida pela pessoa ou a automática.
+// Automática: pela data da compra (compra nova) ou a fatura atual (compra já em andamento).
+function faturaInicial(d: Compra, dias: DiasCartao): Erro | { mes: string } {
+  const automatica = (d.currentInstallment ?? 1) > 1 ? faturaAtual(dias) : mesDaFatura(d.date, dias);
+  if (!d.invoiceMonth) return { mes: automatica };
+  const distancia = mesesEntre(automatica, d.invoiceMonth);
+  if (distancia < -MESES_ANTES || distancia > MESES_DEPOIS) {
+    const error = "Escolha uma fatura próxima da data da compra.";
+    return { status: 400, error, detalhes: { invoiceMonth: [error] } };
+  }
+  return { mes: d.invoiceMonth };
+}
+
+async function conferir(req: Request, d: Compra): Promise<Erro | DiasCartao> {
   const cartao = await prisma.financialAccount.findFirst({ where: { id: d.cardId, type: "CREDIT_CARD", ...scope(req) } });
   if (!cartao) return { status: 404, error: "Cartão não encontrado." };
   if (cartao.archivedAt) return { status: 400, error: "Este cartão está arquivado. Reative para lançar compras." };
@@ -70,11 +100,11 @@ async function conferir(req: Request, d: Compra): Promise<Erro | { closingDay: n
 // Monta as parcelas: uma por mês, cada uma na fatura seguinte à anterior.
 // Compra já em andamento (currentInstallment > 1): divide o valor total entre todas as
 // parcelas (igual ao banco), mas só lança da parcela atual em diante; ela cai na fatura
-// atual do cartão e as seguintes nas próximas. As anteriores já foram pagas fora do app.
-function montarParcelas(req: Request, d: Compra, dias: { closingDay: number; dueDay: number }, purchaseId: string) {
+// atual do cartão (ou na escolhida) e as seguintes nas próximas. As anteriores já foram pagas fora do app.
+function montarParcelas(req: Request, d: Compra, faturaDaPrimeira: string, purchaseId: string) {
   const atual = d.currentInstallment ?? 1;
-  // Fatura em que cairia a 1ª parcela (para a parcela "atual" ficar na fatura atual)
-  const primeiraFatura = atual > 1 ? somarMeses(faturaAtual(dias), -(atual - 1)) : mesDaFatura(d.date, dias);
+  // Fatura em que cairia a 1ª parcela (para a parcela "atual" ficar na fatura escolhida)
+  const primeiraFatura = somarMeses(faturaDaPrimeira, -(atual - 1));
   const valores = dividirParcelas(d.amount, d.installments);
   const parcelado = d.installments > 1;
   const todas = valores.map((valor, i) => ({
@@ -101,7 +131,8 @@ async function devolverCompra(req: Request, purchaseId: string) {
     include: incluir,
     orderBy: { date: "asc" },
   });
-  return { purchaseId, installments: parcelas.map(serializar) };
+  // invoiceMonth: fatura da 1ª parcela lançada (o formulário usa para manter a fatura ao editar)
+  return { purchaseId, invoiceMonth: parcelas[0]?.invoiceMonth ?? null, installments: parcelas.map(serializar) };
 }
 
 // Busca a compra e confere se nenhuma parcela está numa fatura com pagamento
@@ -119,9 +150,11 @@ cardExpensesRouter.post("/", validateBody(compra), async (req, res) => {
   const d = req.body as Compra;
   const r = await conferir(req, d);
   if ("error" in r) return res.status(r.status).json({ error: r.error });
+  const fatura = faturaInicial(d, r);
+  if ("error" in fatura) return res.status(fatura.status).json({ error: fatura.error, detalhes: fatura.detalhes });
 
   const purchaseId = randomUUID();
-  await prisma.transaction.createMany({ data: montarParcelas(req, d, r, purchaseId) });
+  await prisma.transaction.createMany({ data: montarParcelas(req, d, fatura.mes, purchaseId) });
   res.status(201).json(await devolverCompra(req, purchaseId));
 });
 
@@ -139,8 +172,10 @@ cardExpensesRouter.put("/:purchaseId", validateBody(compra), async (req, res) =>
   if ("error" in atual) return res.status(atual.status).json({ error: atual.error });
   const r = await conferir(req, d);
   if ("error" in r) return res.status(r.status).json({ error: r.error });
+  const fatura = faturaInicial(d, r);
+  if ("error" in fatura) return res.status(fatura.status).json({ error: fatura.error, detalhes: fatura.detalhes });
 
-  const novas = montarParcelas(req, d, r, atual.purchaseId);
+  const novas = montarParcelas(req, d, fatura.mes, atual.purchaseId);
   const travadas = await faturasComPagamento(scope(req).householdId, d.cardId, novas.map((p) => p.invoiceMonth));
   if (travadas.length) return res.status(409).json({ error: "A compra cairia numa fatura que já tem pagamento. Desfaça o pagamento antes." });
 
