@@ -26,7 +26,8 @@ function Modal({ titulo, onFechar, children }) {
       aria-labelledby={idTitulo}
       onCancel={(e) => {
         e.preventDefault(); // Esc: quem fecha é o pai (desmontando)
-        onFechar();
+        // Com uma janela aberta por cima de outra, o Esc fecha só a de cima
+        if (e.target === ref.current) onFechar();
       }}
       onClick={(e) => {
         // Toque no fundo escuro fora da janela também fecha
