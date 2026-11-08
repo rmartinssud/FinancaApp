@@ -1,0 +1,47 @@
+import { useState } from "react";
+import { FaTrashCan } from "react-icons/fa6";
+
+// Apagar em duas etapas: o primeiro toque pede confirmação
+function BotaoApagar({ texto = "Apagar", pergunta, onConfirmar, carregando = false }) {
+  const [confirmando, setConfirmando] = useState(false);
+
+  if (!confirmando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmando(true)}
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 font-bold text-red-700 transition hover:bg-red-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300"
+      >
+        <FaTrashCan aria-hidden="true" />
+        {texto}
+      </button>
+    );
+  }
+
+  return (
+    <div role="alertdialog" aria-label="Confirmar exclusão" className="w-full rounded-2xl border border-red-200 bg-red-50 p-4">
+      <p className="text-sm font-medium text-red-800">{pergunta}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onConfirmar}
+          disabled={carregando}
+          aria-busy={carregando}
+          autoFocus
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-red-600 px-5 font-bold text-white transition hover:bg-red-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300 disabled:opacity-70"
+        >
+          {carregando ? "Apagando..." : "Sim, apagar"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirmando(false)}
+          className="inline-flex min-h-11 items-center rounded-full px-5 font-bold text-slate-700 transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default BotaoApagar;
