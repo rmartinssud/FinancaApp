@@ -80,21 +80,24 @@ accountsRouter.patch("/:id", validateBody(edicaoConta), async (req, res) => {
   }
 
   // Deixou de ser cartão: limpa os campos de cartão
-  const limpaCartao = tipoFinal !== "CREDIT_CARD" ? { creditLimit: null, closingDay: null, dueDay: null } : {};
+  const limpaCartao =
+    tipoFinal !== "CREDIT_CARD"
+      ? { creditLimit: null, closingDay: null, dueDay: null, brand: null, color: null, paymentAccountId: null, archivedAt: null }
+      : {};
 
   await prisma.financialAccount.update({ where: { id: atual.id }, data: { ...d, ...limpaCartao } });
   const [conta] = (await contasComSaldo(scope(req).householdId)).filter((c) => c.id === atual.id);
   res.json(conta);
 });
 
-// DELETE /api/accounts/:id → apaga a conta e os lançamentos dela.
-// A família precisa ficar com pelo menos uma conta.
+// DELETE /api/accounts/:id → apaga a conta e os lançamentos dela (inclusive transferências de/para ela).
+// A família precisa ficar com pelo menos uma conta que não seja cartão.
 accountsRouter.delete("/:id", async (req, res) => {
   const conta = await prisma.financialAccount.findFirst({ where: { id: String(req.params.id), ...scope(req) } });
   if (!conta) return res.status(404).json({ error: "Conta não encontrada." });
 
-  const total = await prisma.financialAccount.count({ where: scope(req) });
-  if (total <= 1) return res.status(409).json({ error: "Não é possível apagar a última conta da família." });
+  const total = await prisma.financialAccount.count({ where: { ...scope(req), type: { not: "CREDIT_CARD" } } });
+  if (conta.type !== "CREDIT_CARD" && total <= 1) return res.status(409).json({ error: "Não é possível apagar a última conta da família." });
 
   await prisma.financialAccount.delete({ where: { id: conta.id } });
   res.status(204).end();

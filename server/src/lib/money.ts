@@ -58,3 +58,30 @@ export function intervaloDoMes(mes: string) {
 export const dataSchema = z
   .union([z.iso.date(), z.iso.datetime({ offset: true })], { error: "Use uma data ISO (ex.: 2026-11-07)." })
   .transform((s) => (s.length === 10 ? new Date(`${s}T12:00:00.000Z`) : new Date(s)));
+
+// Soma (ou subtrai) meses: somarMeses("2026-01", -1) → "2025-12"
+export function somarMeses(mes: string, quantidade: number) {
+  const [ano, m] = mes.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, m - 1 + quantidade, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+// Quantos dias tem o mês "2026-02" (→ 28)
+export function diasNoMes(mes: string) {
+  const [ano, m] = mes.split("-").map(Number);
+  return new Date(Date.UTC(ano, m, 0)).getUTCDate();
+}
+
+// Ano, mês ("AAAA-MM") e dia de uma data no horário de Brasília (UTC-3 fixo)
+export function partesLocais(data: Date) {
+  const local = new Date(data.getTime() - 3 * 60 * 60 * 1000);
+  const mes = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}`;
+  return { mes, dia: local.getUTCDate() };
+}
+
+// Data (12:00 UTC = 09:00 em Brasília) de um dia do mês, sem passar do último dia.
+// diaDoMes("2026-02", 31) → 28/02/2026
+export function diaDoMes(mes: string, dia: number) {
+  const d = Math.min(dia, diasNoMes(mes));
+  return new Date(`${mes}-${String(d).padStart(2, "0")}T12:00:00.000Z`);
+}

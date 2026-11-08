@@ -10,6 +10,8 @@ import { accountsRouter } from "./routes/accounts.js";
 import { categoriesRouter } from "./routes/categories.js";
 import { transactionsRouter } from "./routes/transactions.js";
 import { summaryRouter } from "./routes/summary.js";
+import { cardsRouter } from "./routes/cards.js";
+import { cardExpensesRouter } from "./routes/cardExpenses.js";
 
 export function createApp() {
   const app = express();
@@ -48,6 +50,8 @@ export function createApp() {
   app.use("/api/categories", categoriesRouter);
   app.use("/api/transactions", transactionsRouter);
   app.use("/api/summary", summaryRouter);
+  app.use("/api/cards", cardsRouter);
+  app.use("/api/card-expenses", cardExpensesRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });
