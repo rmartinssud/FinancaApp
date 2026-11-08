@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { FaArrowLeft, FaArrowsUpDown, FaPlus, FaReceipt } from "react-icons/fa6";
+import { FaArrowLeft, FaArrowsUpDown, FaClockRotateLeft, FaPlus, FaReceipt } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import CartaoVisual from "./componentes/CartaoVisual.jsx";
@@ -116,7 +116,7 @@ function Fatura() {
   const [fatura, setFatura] = useState(null);
   const [erro, setErro] = useState("");
   const [pagando, setPagando] = useState(false);
-  const [compra, setCompra] = useState(null); // "nova" ou purchaseId
+  const [compra, setCompra] = useState(null); // "nova", "andamento" (parcelado de antes do app) ou purchaseId
   const [pagamento, setPagamento] = useState(null);
 
   const mes = busca.get("mes") ?? "atual";
@@ -235,6 +235,18 @@ function Fatura() {
                 </li>
               ))}
             </ul>
+            {podeEditar && cartao && !cartao.archived && (
+              <div className="mt-3 border-t border-slate-100 pt-3 text-center">
+                <button
+                  type="button"
+                  onClick={() => setCompra("andamento")}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold text-primary transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+                >
+                  <FaClockRotateLeft aria-hidden="true" />
+                  Lançar compra em andamento
+                </button>
+              </div>
+            )}
           </section>
 
           {faturaDoMes?.payments.length > 0 && (
@@ -281,8 +293,10 @@ function Fatura() {
       )}
       {compra && (
         <FormDespesaCartao
-          purchaseId={compra === "nova" ? null : compra}
+          purchaseId={compra === "nova" || compra === "andamento" ? null : compra}
           cartaoInicial={id}
+          parcelasIniciais={compra === "andamento" ? 2 : 1}
+          emAndamentoInicial={compra === "andamento"}
           onFechar={() => setCompra(null)}
           onSalvo={() => {
             setCompra(null);
