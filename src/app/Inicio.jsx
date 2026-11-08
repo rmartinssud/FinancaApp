@@ -1,89 +1,132 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaWallet, FaBuildingColumns, FaCreditCard, FaShieldHalved, FaUsers } from "react-icons/fa6";
+import { FaArrowTrendUp, FaArrowTrendDown, FaScaleBalanced, FaShieldHalved } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
+import SeletorMes from "./componentes/SeletorMes.jsx";
+import FormLancamento from "./componentes/FormLancamento.jsx";
+import BotaoFlutuante from "./componentes/BotaoFlutuante.jsx";
+import { LinhaConta } from "./componentes/ListaContas.jsx";
+import { cartao } from "./componentes/estilos.js";
+import { useMe } from "./useMe.js";
 import Alerta from "../auth/Alerta.jsx";
 import { Destaque } from "../components/SectionTitle.jsx";
 import { api, formatarReais } from "../lib/api.js";
+import { mesAtual } from "../lib/datas.js";
 
-// Ícone e nome de cada tipo de conta
-const tipos = {
-  WALLET: { Icone: FaWallet, nome: "Carteira" },
-  BANK: { Icone: FaBuildingColumns, nome: "Conta bancária" },
-  CREDIT_CARD: { Icone: FaCreditCard, nome: "Cartão de crédito" },
-};
+// Cartão pequeno com um total do mês (Receitas, Despesas ou Saldo)
+function CartaoTotal({ titulo, valor, Icone, cor, destaque = false }) {
+  return (
+    <section
+      className={
+        destaque
+          ? "rounded-3xl bg-gradient-to-br from-primary to-primary-light p-5 text-white shadow-[0_20px_50px_-12px_rgba(70,79,163,0.35)]"
+          : "rounded-3xl bg-white p-5 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)]"
+      }
+    >
+      <div className="flex items-center gap-2">
+        <Icone aria-hidden="true" className={destaque ? "text-sky-200" : cor} />
+        <h2 className={`text-sm font-bold uppercase tracking-widest ${destaque ? "text-sky-100" : "text-slate-500"}`}>{titulo}</h2>
+      </div>
+      <p className={`mt-2 font-heading text-2xl font-bold ${destaque ? "" : cor}`}>{valor === undefined ? "..." : formatarReais(valor)}</p>
+    </section>
+  );
+}
 
-const papeis = { OWNER: "Dono(a)", ADMIN: "Administrador(a)", MEMBER: "Membro", VIEWER: "Só visualiza" };
-
-// Painel inicial (provisório): saudação, família e lista de contas
+// Painel do mês: totais, despesas por categoria e saldo das contas
 function Inicio() {
-  const [me, setMe] = useState(null);
-  const [contas, setContas] = useState([]);
+  const { me, erroMe, podeEditar } = useMe();
+  const [mes, setMes] = useState(mesAtual);
+  const [resumo, setResumo] = useState(null);
   const [erro, setErro] = useState("");
+  const [novo, setNovo] = useState(false);
+
+  const carregar = useCallback(() => {
+    setErro("");
+    api(`/summary?month=${mes}`)
+      .then(setResumo)
+      .catch((e) => setErro(e.message));
+  }, [mes]);
 
   useEffect(() => {
-    Promise.all([api("/me"), api("/accounts")])
-      .then(([dadosMe, dadosContas]) => {
-        setMe(dadosMe);
-        setContas(dadosContas);
-      })
-      .catch((e) => setErro(e.message));
-  }, []);
+    carregar();
+  }, [carregar]);
 
   const primeiroNome = me?.user.name.split(" ")[0];
+  const totais = resumo?.month === mes ? resumo.totals : undefined;
+  const saldoNegativo = Number(totais?.balance) < 0;
+  const totalDespesas = Number(totais?.expense ?? 0);
 
   return (
     <AppLayout>
-      <Alerta>{erro}</Alerta>
+      <Alerta>{erroMe || erro}</Alerta>
 
       <section aria-labelledby="saudacao">
-        <p className="text-sm font-bold uppercase tracking-widest text-primary">Painel</p>
-        <h1 id="saudacao" className="mt-2 font-heading text-4xl font-bold text-slate-900 md:text-5xl">
+        <h1 id="saudacao" className="font-heading text-3xl font-bold text-slate-900 md:text-5xl">
           Olá, <Destaque>{primeiroNome ?? "..."}</Destaque>
         </h1>
-        <p className="mt-3 text-lg text-slate-600">Aqui fica o resumo das finanças da sua família.</p>
+        <p className="mt-2 text-slate-600">{me ? me.household.name : "Resumo das finanças da sua família."}</p>
       </section>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-3">
-        {/* Cartão da família */}
-        <section aria-labelledby="titulo-familia" className="rounded-3xl bg-gradient-to-br from-primary to-primary-light p-8 text-white shadow-[0_20px_50px_-12px_rgba(70,79,163,0.35)]">
-          <FaUsers aria-hidden="true" className="text-3xl text-sky-200" />
-          <h2 id="titulo-familia" className="mt-6 text-sm font-bold uppercase tracking-widest text-sky-200">
-            Sua família
+      <SeletorMes mes={mes} onMudar={setMes} className="mt-6 max-w-sm" />
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6">
+        <CartaoTotal titulo="Receitas" valor={totais?.income} Icone={FaArrowTrendUp} cor="text-emerald-700" />
+        <CartaoTotal titulo="Despesas" valor={totais?.expense} Icone={FaArrowTrendDown} cor="text-red-600" />
+        <div className="col-span-2 sm:col-span-1">
+          <CartaoTotal titulo="Saldo do mês" valor={totais?.balance} Icone={FaScaleBalanced} destaque />
+          {saldoNegativo && <p className="mt-2 px-2 text-sm text-red-700">Você gastou mais do que recebeu neste mês.</p>}
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {/* Despesas por categoria: barras simples (os gráficos chegam na Fase 5) */}
+        <section aria-labelledby="titulo-categorias" className={cartao}>
+          <h2 id="titulo-categorias" className="font-heading text-xl font-bold text-slate-900">
+            Despesas por categoria
           </h2>
-          <p className="mt-2 font-heading text-3xl font-bold">{me?.household.name ?? "..."}</p>
-          {me && <p className="mt-2 text-white/80">Seu papel: {papeis[me.household.role]}</p>}
+          {totais && resumo.byCategory.length === 0 && <p className="mt-4 text-slate-500">Nenhuma despesa neste mês.</p>}
+          <ul className="mt-4 space-y-4">
+            {totais &&
+              resumo.byCategory.map((c) => {
+                const parte = totalDespesas > 0 ? (Number(c.total) / totalDespesas) * 100 : 0;
+                return (
+                  <li key={c.categoryId ?? "sem"}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-2 font-medium text-slate-800">
+                        <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                        <span className="truncate">{c.name}</span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="font-bold text-slate-900">{formatarReais(c.total)}</span>
+                        <span className="ml-2 text-xs text-slate-500">{Math.round(parte)}%</span>
+                      </span>
+                    </div>
+                    <div aria-hidden="true" className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(parte, 2)}%`, backgroundColor: c.color }} />
+                    </div>
+                  </li>
+                );
+              })}
+          </ul>
         </section>
 
-        {/* Lista de contas */}
-        <section aria-labelledby="titulo-contas" className="rounded-3xl bg-white p-8 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)] lg:col-span-2">
-          <h2 id="titulo-contas" className="font-heading text-2xl font-bold text-slate-900">
-            Suas contas
-          </h2>
-          <ul className="mt-6 divide-y divide-slate-100">
-            {contas.map((conta) => {
-              const { Icone, nome } = tipos[conta.type];
-              return (
-                <li key={conta.id} className="flex items-center gap-4 py-4">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-soft text-xl text-primary">
-                    <Icone aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold text-slate-900">{conta.name}</p>
-                    <p className="text-sm text-slate-500">{nome}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-slate-500">Saldo inicial</p>
-                    <p className="font-bold text-slate-900">{formatarReais(conta.initialBalance)}</p>
-                  </div>
-                </li>
-              );
-            })}
+        {/* Saldo atual de cada conta */}
+        <section aria-labelledby="titulo-contas" className={cartao}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="titulo-contas" className="font-heading text-xl font-bold text-slate-900">
+              Suas contas
+            </h2>
+            <Link to="/app/contas" className="inline-flex min-h-11 items-center rounded-full px-3 font-bold text-primary hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
+              Ver todas
+            </Link>
+          </div>
+          <ul className="mt-2 divide-y divide-slate-100">
+            {resumo?.accounts.map((conta) => (
+              <li key={conta.id} className="flex items-center gap-3 py-3">
+                <LinhaConta conta={conta} />
+              </li>
+            ))}
           </ul>
-          {me && contas.length === 0 && <p className="mt-6 text-slate-500">Nenhuma conta ainda.</p>}
-          <p className="mt-6 rounded-2xl bg-soft p-4 text-sm text-primary-dark">
-            Em breve: cadastrar contas bancárias e cartões, lançar receitas e despesas.
-          </p>
         </section>
       </div>
 
@@ -101,6 +144,17 @@ function Inicio() {
             Ativar agora
           </Link>
         </section>
+      )}
+
+      {podeEditar && <BotaoFlutuante texto="Lançamento" onClick={() => setNovo(true)} />}
+      {novo && (
+        <FormLancamento
+          onFechar={() => setNovo(false)}
+          onSalvo={() => {
+            setNovo(false);
+            carregar();
+          }}
+        />
       )}
     </AppLayout>
   );
