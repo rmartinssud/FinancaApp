@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Logo from "./Logo.jsx";
 import ButtonArrow45 from "./ButtonArrow45.jsx";
+import { Link } from "react-router-dom";
 import { linksMenu } from "../data/menu.js";
 import {
   FaFacebook,
@@ -83,14 +84,15 @@ function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            <a
-              href="#planos"
+            <Link
+              to="/entrar"
               aria-label="Entrar"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-xl text-primary hover:bg-soft hover:text-primary-light"
+              className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-xl text-primary hover:bg-soft hover:text-primary-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <FaUser aria-hidden="true" />
-            </a>
-            <ButtonArrow45 texto="Comece Agora" href="#planos" className="hidden sm:inline-flex" />
+              <span className="hidden text-base font-bold md:inline">Entrar</span>
+            </Link>
+            <ButtonArrow45 texto="Comece Agora" to="/cadastro" className="hidden sm:inline-flex" />
           </div>
         </div>
 
@@ -109,8 +111,17 @@ function Navbar() {
                   </a>
                 </li>
               ))}
+              <li>
+                <Link
+                  to="/entrar"
+                  onClick={fecharMenu}
+                  className="block rounded-xl px-3 py-3 font-medium text-primary hover:bg-soft"
+                >
+                  Entrar
+                </Link>
+              </li>
               <li className="mt-3 sm:hidden">
-                <ButtonArrow45 texto="Comece Agora" href="#planos" onClick={fecharMenu} className="w-full" />
+                <ButtonArrow45 texto="Comece Agora" to="/cadastro" onClick={fecharMenu} className="w-full" />
               </li>
             </ul>
           </nav>

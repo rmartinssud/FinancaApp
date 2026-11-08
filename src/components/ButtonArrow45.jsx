@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { FaArrowRight } from "react-icons/fa6";
 
 // Botão "pílula" com seta. A seta começa inclinada (-45°) e gira para 0°
@@ -12,6 +13,7 @@ function ButtonArrow45({
   variante = "primary",
   type = "button",
   href,
+  to,
   onClick,
   className = "",
 }) {
@@ -26,6 +28,15 @@ function ButtonArrow45({
       />
     </>
   );
+
+  // "to" = rota do próprio app (ex.: /cadastro), sem recarregar a página
+  if (to) {
+    return (
+      <Link to={to} onClick={onClick} className={classes}>
+        {conteudo}
+      </Link>
+    );
+  }
 
   // Se receber href vira link (<a>), senão é um <button>
   if (href) {

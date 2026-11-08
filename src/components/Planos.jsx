@@ -63,7 +63,7 @@ function Planos() {
               </ul>
               <ButtonArrow45
                 texto={p.preco === "R$ 0" ? "Começar grátis" : "Assinar"}
-                href="#contato"
+                to="/cadastro"
                 variante={p.destaque ? "light" : "primary"}
                 className="mt-auto w-full"
               />
