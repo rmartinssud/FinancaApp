@@ -51,6 +51,15 @@ export function mesesEntre(de, ate) {
   return (a2 - a1) * 12 + (m2 - m1);
 }
 
+// Fatura escolhida à mão: de 1 mês antes a 2 meses depois da automática (igual ao servidor)
+export const FATURA_MESES_ANTES = 1;
+export const FATURA_MESES_DEPOIS = 2;
+export function faturaPermitida(mes, automatica) {
+  if (!mes || !automatica) return false;
+  const distancia = mesesEntre(automatica, mes);
+  return distancia >= -FATURA_MESES_ANTES && distancia <= FATURA_MESES_DEPOIS;
+}
+
 // Mesma data N meses antes/depois, sem passar do último dia do mês ("2026-07-31", 1 → "2026-08-31"; 2 → "2026-09-30")
 export function somarMesesNaData(data, meses, dia = Number(data.slice(8, 10))) {
   const mes = somarMes(data.slice(0, 7), meses);
