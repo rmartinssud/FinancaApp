@@ -5,8 +5,8 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { validateBody } from "../middleware/validate.js";
-import { valorPositivo, dataSchema, somarMeses } from "../lib/money.js";
-import { dividirParcelas, mesDaFatura, somarMesesNaData } from "../services/cartoes.js";
+import { valorPositivo, dataSchema, somarMeses, partesLocais } from "../lib/money.js";
+import { dividirParcelas, faturaAtual, mesDaFatura, somarMesesNaData } from "../services/cartoes.js";
 import { incluir, serializar, faturasComPagamento } from "../services/lancamentos.js";
 
 export const cardExpensesRouter = Router();
@@ -23,7 +23,31 @@ const compra = z.object({
   categoryId: z.string().min(1).nullable().optional(),
   date: dataSchema, // data da compra
   installments: z.number().int().min(1, "De 1 a 24 parcelas.").max(24, "De 1 a 24 parcelas.").default(1),
+  // Compra já em andamento: a parcela que cai na fatura ATUAL do cartão (1 = compra nova, padrão)
+  currentInstallment: z.number().int().min(1, "A parcela desta fatura precisa ser 1 ou mais.").max(24, "De 1 a 24 parcelas.").default(1),
+}).superRefine((d, ctx) => {
+  if (d.currentInstallment > d.installments) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["currentInstallment"],
+      message: `A parcela desta fatura não pode passar do total de parcelas (${d.installments}).`,
+    });
+  }
+  // Compra em andamento já aconteceu: a data não pode ser no futuro
+  if (d.currentInstallment > 1 && diaLocal(d.date) > diaLocal(new Date())) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["date"],
+      message: "Compra já em andamento: a data da compra não pode ser depois de hoje.",
+    });
+  }
 });
+
+// "2026-11-07" (dia em Brasília) para comparar datas sem horário
+function diaLocal(data: Date) {
+  const { mes, dia } = partesLocais(data);
+  return `${mes}-${String(dia).padStart(2, "0")}`;
+}
 
 type Compra = z.infer<typeof compra>;
 type Erro = { status: number; error: string };
@@ -43,12 +67,17 @@ async function conferir(req: Request, d: Compra): Promise<Erro | { closingDay: n
   return { closingDay: cartao.closingDay, dueDay: cartao.dueDay };
 }
 
-// Monta as parcelas: uma por mês, cada uma na fatura seguinte à anterior
+// Monta as parcelas: uma por mês, cada uma na fatura seguinte à anterior.
+// Compra já em andamento (currentInstallment > 1): divide o valor total entre todas as
+// parcelas (igual ao banco), mas só lança da parcela atual em diante; ela cai na fatura
+// atual do cartão e as seguintes nas próximas. As anteriores já foram pagas fora do app.
 function montarParcelas(req: Request, d: Compra, dias: { closingDay: number; dueDay: number }, purchaseId: string) {
-  const primeiraFatura = mesDaFatura(d.date, dias);
+  const atual = d.currentInstallment ?? 1;
+  // Fatura em que cairia a 1ª parcela (para a parcela "atual" ficar na fatura atual)
+  const primeiraFatura = atual > 1 ? somarMeses(faturaAtual(dias), -(atual - 1)) : mesDaFatura(d.date, dias);
   const valores = dividirParcelas(d.amount, d.installments);
   const parcelado = d.installments > 1;
-  return valores.map((valor, i) => ({
+  const todas = valores.map((valor, i) => ({
     ...scope(req),
     createdById: req.user!.id,
     type: "EXPENSE" as const,
@@ -63,6 +92,7 @@ function montarParcelas(req: Request, d: Compra, dias: { closingDay: number; due
     installmentNumber: parcelado ? i + 1 : null,
     installmentTotal: parcelado ? d.installments : null,
   }));
+  return todas.slice(atual - 1);
 }
 
 async function devolverCompra(req: Request, purchaseId: string) {

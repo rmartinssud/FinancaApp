@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import Modal from "./Modal.jsx";
 import CampoSelect from "./CampoSelect.jsx";
 import BotaoApagar from "./BotaoApagar.jsx";
+import Interruptor from "./Interruptor.jsx";
 import Campo from "../../auth/Campo.jsx";
 import BotaoEnviar from "../../auth/BotaoEnviar.jsx";
 import Alerta from "../../auth/Alerta.jsx";
 import { api, enviarJson, errosPorCampo, formatarReais } from "../../lib/api.js";
 import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
 import { dataLocal, hoje, nomeDoMes } from "../../lib/datas.js";
-import { mesDaFatura, vencimentoCurto } from "../../lib/cartoes.js";
+import { faturaAtual, mesDaFatura, mesesEntre, somarMesesNaData, vencimentoCurto } from "../../lib/cartoes.js";
 
 const PARCELAS = Array.from({ length: 24 }, (_, i) => i + 1);
 
@@ -20,10 +21,28 @@ function valorParcela(total, parcelas) {
   return { primeira: (base + (centavos - base * parcelas)) / 100, demais: base / 100 };
 }
 
+// Compra já em andamento: reconstrói a compra original a partir das parcelas que existem
+// (a 1ª lançada é a parcela N; as anteriores foram pagas antes de usar o app)
+function compraOriginal(parcelasSalvas, cartao) {
+  const [primeira] = parcelasSalvas;
+  const n = primeira.installmentNumber ?? 1;
+  const centavos = parcelasSalvas.reduce((s, p) => s + Math.round(Number(p.amount) * 100), 0);
+  if (n <= 1) return { total: centavos / 100, data: dataLocal(primeira.date), parcelaAtual: null };
+  // Parcelas anteriores têm o mesmo valor das demais (a sobra de centavos fica só na 1ª, que não foi lançada)
+  const base = Math.round(Number(parcelasSalvas.at(-1).amount) * 100);
+  // Dia original: o maior dia entre as parcelas (31/07 vira 30/09, mas volta a 31 em outubro)
+  const dia = Math.max(...parcelasSalvas.map((p) => Number(dataLocal(p.date).slice(8, 10))));
+  // Parcela que cai na fatura atual hoje (se o tempo passou, é uma parcela mais adiante)
+  const atual = cartao?.closingDay ? faturaAtual(cartao) : primeira.invoiceMonth;
+  const parcelaAtual = Math.min(Math.max(n + mesesEntre(primeira.invoiceMonth, atual), 2), primeira.installmentTotal);
+  return { total: (centavos + base * (n - 1)) / 100, data: somarMesesNaData(dataLocal(primeira.date), -(n - 1), dia), parcelaAtual };
+}
+
 // Compra no cartão de crédito: à vista ou parcelada (até 24x).
 // purchaseId = null cria; com purchaseId edita a compra inteira (todas as parcelas).
 // cartaoInicial: já vem escolhido (ex.: aberto pela tela da fatura).
-function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, onSalvo }) {
+// emAndamentoInicial: abre com "Compra já em andamento" ligado (parcelados de antes do app).
+function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasIniciais = 1, emAndamentoInicial = false, onFechar, onSalvo }) {
   const editando = Boolean(purchaseId);
   const [carregando, setCarregando] = useState(true);
   const [cartoes, setCartoes] = useState([]);
@@ -34,7 +53,10 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
   const [descricao, setDescricao] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
   const [data, setData] = useState(hoje());
-  const [parcelas, setParcelas] = useState(1);
+  const [parcelas, setParcelas] = useState(parcelasIniciais);
+  // Compra parcelada que começou antes de usar o app: só lança da parcela atual em diante
+  const [emAndamento, setEmAndamento] = useState(emAndamentoInicial && parcelasIniciais > 1);
+  const [parcelaAtual, setParcelaAtual] = useState(2);
 
   const [erros, setErros] = useState({});
   const [erro, setErro] = useState("");
@@ -49,13 +71,15 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
         setCategorias(listaCategorias);
         if (compra) {
           const [primeira] = compra.installments;
-          const total = compra.installments.reduce((s, p) => s + Math.round(Number(p.amount) * 100), 0) / 100;
+          const original = compraOriginal(compra.installments, listaCartoes.find((c) => c.id === primeira.account.id));
           setCartaoId(primeira.account.id);
-          setValor(paraCampo(total.toFixed(2)));
+          setValor(paraCampo(original.total.toFixed(2)));
           setDescricao(primeira.description);
           setCategoriaId(primeira.category?.id ?? "");
-          setData(dataLocal(primeira.date));
+          setData(original.data);
           setParcelas(primeira.installmentTotal ?? 1);
+          setEmAndamento(Boolean(original.parcelaAtual));
+          if (original.parcelaAtual) setParcelaAtual(original.parcelaAtual);
           // Cartão arquivado continua na lista para a compra antiga
           if (!listaCartoes.some((c) => c.id === primeira.account.id)) {
             listaCartoes = [...listaCartoes, { id: primeira.account.id, name: `${primeira.account.name} (arquivado)` }];
@@ -73,6 +97,16 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
   const fatura = cartao ? mesDaFatura(data, cartao.closingDay, cartao.dueDay) : null;
   const quantia = paraApi(valor);
   const { primeira, demais } = valorParcela(quantia, parcelas);
+  // Compra em andamento só existe com 2x ou mais; a parcela atual vai de 2 até o total
+  const andamento = emAndamento && parcelas > 1;
+  const atual = Math.min(Math.max(parcelaAtual, 2), parcelas);
+  const faturaDeHoje = cartao ? faturaAtual(cartao) : null;
+  const faltam = parcelas - atual + 1;
+
+  function mudarParcelas(n) {
+    setParcelas(n);
+    if (parcelaAtual > n) setParcelaAtual(n);
+  }
 
   async function salvar(e) {
     e.preventDefault();
@@ -81,6 +115,7 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
     if (!quantia || Number(quantia) <= 0) novosErros.amount = "Digite um valor maior que zero.";
     if (!descricao.trim()) novosErros.description = "Escreva uma descrição.";
     if (!data) novosErros.date = "Escolha a data da compra.";
+    else if (andamento && data > hoje()) novosErros.date = "A data da compra não pode ser depois de hoje.";
     setErros(novosErros);
     setErro("");
     if (Object.keys(novosErros).length) return;
@@ -92,6 +127,7 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
       categoryId: categoriaId || null,
       date: data,
       installments: Number(parcelas),
+      currentInstallment: andamento ? atual : 1,
     };
     setSalvando(true);
     try {
@@ -181,8 +217,15 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
         </CampoSelect>
 
         <div className="grid grid-cols-2 gap-3">
-          <Campo label="Data da compra" type="date" value={data} onChange={(e) => setData(e.target.value)} erro={erros.date} />
-          <CampoSelect label="Parcelas" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} erro={erros.installments}>
+          <Campo
+            label="Data da compra"
+            type="date"
+            value={data}
+            max={andamento ? hoje() : undefined}
+            onChange={(e) => setData(e.target.value)}
+            erro={erros.date}
+          />
+          <CampoSelect label="Parcelas" value={parcelas} onChange={(e) => mudarParcelas(Number(e.target.value))} erro={erros.installments}>
             {PARCELAS.map((n) => (
               <option key={n} value={n}>
                 {n === 1 ? "À vista (1x)" : `${n}x`}
@@ -191,8 +234,47 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", onFechar, on
           </CampoSelect>
         </div>
 
+        {parcelas > 1 && (
+          <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+            <Interruptor texto="Compra já em andamento" ligado={andamento} onMudar={setEmAndamento} />
+            {andamento && (
+              <>
+                <CampoSelect
+                  label="Parcela desta fatura"
+                  value={atual}
+                  onChange={(e) => setParcelaAtual(Number(e.target.value))}
+                  erro={erros.currentInstallment}
+                >
+                  {PARCELAS.slice(1, parcelas).map((n) => (
+                    <option key={n} value={n}>
+                      {n} de {parcelas}
+                    </option>
+                  ))}
+                </CampoSelect>
+                <p className="text-sm text-slate-500">
+                  Use para compras parceladas que começaram antes de você usar o app. Informe o valor total da compra e a data em que ela foi feita. Lançamos
+                  só as parcelas que ainda faltam, a partir da fatura atual.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Compra em andamento: o que vai ser lançado */}
+        {andamento && faturaDeHoje && (
+          <p className="rounded-2xl bg-soft p-4 text-sm text-primary-dark" aria-live="polite">
+            {faltam > 1 ? "Serão lançadas" : "Será lançada"}{" "}
+            <strong>
+              {faltam} {faltam > 1 ? "parcelas" : "parcela"}
+              {Number(quantia) > 0 && <> de {formatarReais(demais)}</>}
+            </strong>{" "}
+            ({faltam > 1 ? `${atual}/${parcelas} a ${parcelas}/${parcelas}` : `${atual}/${parcelas}`}), {faltam > 1 ? "a primeira na" : "na"} fatura que vence em{" "}
+            <strong>{vencimentoCurto(faturaDeHoje, cartao.dueDay)}</strong>.
+          </p>
+        )}
+
         {/* Onde a compra vai cair */}
-        {fatura && (
+        {fatura && !andamento && (
           <p className="rounded-2xl bg-soft p-4 text-sm text-primary-dark" aria-live="polite">
             {parcelas > 1 && Number(quantia) > 0 && (
               <>

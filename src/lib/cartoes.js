@@ -1,6 +1,6 @@
 // Cartões de crédito: bandeiras, cores e as mesmas regras de fatura do servidor
 // (server/src/services/cartoes.ts). A fatura é identificada pelo mês do VENCIMENTO.
-import { somarMes } from "./datas.js";
+import { hoje, somarMes } from "./datas.js";
 
 export const BANDEIRAS = {
   VISA: "Visa",
@@ -39,6 +39,22 @@ export function mesDaFatura(data, closingDay, dueDay) {
   const fecha = Math.min(closingDay, diasNoMes(mes));
   const mesFechamento = dia >= fecha ? somarMes(mes, 1) : mes;
   return dueDay > closingDay ? mesFechamento : somarMes(mesFechamento, 1);
+}
+
+// Fatura aberta hoje (onde entra uma compra feita agora)
+export const faturaAtual = (cartao) => mesDaFatura(hoje(), cartao?.closingDay, cartao?.dueDay);
+
+// Quantos meses de "de" até "ate" ("2026-11", "2027-02" → 3)
+export function mesesEntre(de, ate) {
+  const [a1, m1] = de.split("-").map(Number);
+  const [a2, m2] = ate.split("-").map(Number);
+  return (a2 - a1) * 12 + (m2 - m1);
+}
+
+// Mesma data N meses antes/depois, sem passar do último dia do mês ("2026-07-31", 1 → "2026-08-31"; 2 → "2026-09-30")
+export function somarMesesNaData(data, meses, dia = Number(data.slice(8, 10))) {
+  const mes = somarMes(data.slice(0, 7), meses);
+  return `${mes}-${String(Math.min(dia, diasNoMes(mes))).padStart(2, "0")}`;
 }
 
 // Dia do vencimento da fatura de "mes" (ex.: "2026-12", 10 → "10/12")
