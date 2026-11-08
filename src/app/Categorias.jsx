@@ -3,7 +3,6 @@ import AppLayout from "./AppLayout.jsx";
 import Modal from "./componentes/Modal.jsx";
 import Alternador from "./componentes/Alternador.jsx";
 import BotaoApagar from "./componentes/BotaoApagar.jsx";
-import BotaoFlutuante from "./componentes/BotaoFlutuante.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
@@ -229,15 +228,6 @@ function Categorias() {
         })}
       </div>
 
-      {podeEditar && (
-        <BotaoFlutuante
-          texto="Categoria"
-          onClick={() => {
-            setTipoNovo("EXPENSE");
-            setEdicao("nova");
-          }}
-        />
-      )}
       {edicao && (
         <FormCategoria
           categoria={edicao === "nova" ? null : edicao}

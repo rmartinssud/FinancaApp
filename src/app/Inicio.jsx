@@ -3,8 +3,6 @@ import { Link } from "react-router-dom";
 import { FaArrowTrendUp, FaArrowTrendDown, FaScaleBalanced, FaShieldHalved } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
-import FormLancamento from "./componentes/FormLancamento.jsx";
-import BotaoFlutuante from "./componentes/BotaoFlutuante.jsx";
 import { LinhaConta } from "./componentes/ListaContas.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
@@ -34,11 +32,10 @@ function CartaoTotal({ titulo, valor, Icone, cor, destaque = false }) {
 
 // Painel do mês: totais, despesas por categoria e saldo das contas
 function Inicio() {
-  const { me, erroMe, podeEditar } = useMe();
+  const { me, erroMe } = useMe();
   const [mes, setMes] = useState(mesAtual);
   const [resumo, setResumo] = useState(null);
   const [erro, setErro] = useState("");
-  const [novo, setNovo] = useState(false);
 
   const carregar = useCallback(() => {
     setErro("");
@@ -57,7 +54,7 @@ function Inicio() {
   const totalDespesas = Number(totais?.expense ?? 0);
 
   return (
-    <AppLayout>
+    <AppLayout onLancamentoSalvo={carregar}>
       <Alerta>{erroMe || erro}</Alerta>
 
       <section aria-labelledby="saudacao">
@@ -121,7 +118,9 @@ function Inicio() {
             </Link>
           </div>
           <ul className="mt-2 divide-y divide-slate-100">
-            {resumo?.accounts.map((conta) => (
+            {resumo?.accounts
+              .filter((conta) => conta.type !== "CREDIT_CARD")
+              .map((conta) => (
               <li key={conta.id} className="flex items-center gap-3 py-3">
                 <LinhaConta conta={conta} />
               </li>
@@ -146,16 +145,6 @@ function Inicio() {
         </section>
       )}
 
-      {podeEditar && <BotaoFlutuante texto="Lançamento" onClick={() => setNovo(true)} />}
-      {novo && (
-        <FormLancamento
-          onFechar={() => setNovo(false)}
-          onSalvo={() => {
-            setNovo(false);
-            carregar();
-          }}
-        />
-      )}
     </AppLayout>
   );
 }
