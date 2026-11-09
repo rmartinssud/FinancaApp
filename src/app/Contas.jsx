@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaPlus } from "react-icons/fa6";
+import { FaPlus, FaScaleBalanced } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import Modal from "./componentes/Modal.jsx";
 import CampoSelect from "./componentes/CampoSelect.jsx";
 import BotaoApagar from "./componentes/BotaoApagar.jsx";
+import FormAjusteSaldo from "./componentes/FormAjusteSaldo.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
 import { TIPOS_CONTA } from "../lib/contas.js";
-import { cartao } from "./componentes/estilos.js";
+import { cartao, botaoSecundario } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
 import Campo from "../auth/Campo.jsx";
 import BotaoEnviar from "../auth/BotaoEnviar.jsx";
@@ -19,7 +20,7 @@ import { mascarar, paraApi, paraCampo } from "../lib/dinheiro.js";
 const tiposConta = Object.entries(TIPOS_CONTA).filter(([valor]) => valor !== "CREDIT_CARD");
 
 // Janela para criar ou editar uma conta
-function FormConta({ conta, onFechar, onSalvo }) {
+function FormConta({ conta, onFechar, onSalvo, onAjustar }) {
   const editando = Boolean(conta);
   const [nome, setNome] = useState(conta?.name ?? "");
   const [tipo, setTipo] = useState(conta?.type ?? "BANK");
@@ -97,6 +98,18 @@ function FormConta({ conta, onFechar, onSalvo }) {
         <BotaoEnviar texto={editando ? "Salvar alterações" : "Criar conta"} carregando={salvando} textoCarregando="Salvando..." className="w-full" />
 
         {editando && (
+          <div className="rounded-2xl bg-soft p-4">
+            <p className="text-sm text-slate-700">
+              Saldo no app: <strong>{formatarReais(conta.currentBalance)}</strong>. Não bate com o {conta.type === "WALLET" ? "que você tem" : "banco"}?
+            </p>
+            <button type="button" onClick={() => onAjustar(conta)} className={`${botaoSecundario} mt-3 w-full bg-white`}>
+              <FaScaleBalanced aria-hidden="true" />
+              Ajustar saldo
+            </button>
+          </div>
+        )}
+
+        {editando && (
           <div className="flex flex-col items-center gap-3">
             <Alerta className="w-full">{erroApagar}</Alerta>
             <BotaoApagar
@@ -118,6 +131,8 @@ function Contas() {
   const [contas, setContas] = useState(null);
   const [erro, setErro] = useState("");
   const [edicao, setEdicao] = useState(null);
+  const [ajuste, setAjuste] = useState(null);
+  const [aviso, setAviso] = useState("");
 
   const carregar = useCallback(() => {
     api("/accounts")
@@ -134,6 +149,9 @@ function Contas() {
   return (
     <AppLayout onLancamentoSalvo={carregar}>
       <Alerta>{erroMe || erro}</Alerta>
+      <Alerta tipo="sucesso" className="mb-4">
+        {aviso}
+      </Alerta>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-3xl font-bold text-slate-900 md:text-4xl">Contas</h1>
@@ -189,6 +207,22 @@ function Contas() {
           onFechar={() => setEdicao(null)}
           onSalvo={() => {
             setEdicao(null);
+            carregar();
+          }}
+          onAjustar={(c) => {
+            setEdicao(null);
+            setAviso("");
+            setAjuste(c);
+          }}
+        />
+      )}
+      {ajuste && (
+        <FormAjusteSaldo
+          conta={ajuste}
+          onFechar={() => setAjuste(null)}
+          onSalvo={() => {
+            setAviso(`Saldo de ${ajuste.name} ajustado. O ajuste aparece em Lançamentos como “Ajuste de saldo”.`);
+            setAjuste(null);
             carregar();
           }}
         />

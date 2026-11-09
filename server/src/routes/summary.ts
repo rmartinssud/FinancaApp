@@ -16,7 +16,7 @@ const filtro = z.object({
 });
 
 // GET /api/summary?month=2026-11 → resumo do mês (só lançamentos confirmados).
-// Transferências (e pagamentos de fatura) não entram em receitas nem despesas.
+// Transferências (e pagamentos de fatura) e ajustes de saldo não entram em receitas nem despesas.
 // Compras no cartão contam como despesa no mês do vencimento da fatura, não no dia da compra.
 summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
   const { month } = res.locals.query as z.infer<typeof filtro>;
@@ -24,6 +24,8 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
   const doMes = {
     ...scope(req),
     status: "CONFIRMED" as const,
+    // Ajuste de saldo só acerta o saldo da conta: não é receita nem despesa
+    isAdjustment: false,
     OR: [{ invoiceMonth: null, date: intervaloDoMes(mes) }, { invoiceMonth: mes }],
   };
 

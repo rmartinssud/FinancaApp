@@ -19,6 +19,9 @@ const tiposLancamento = [
 
 const titulos = { EXPENSE: "despesa", INCOME: "receita", TRANSFER: "transferência" };
 
+// Exemplo de descrição de acordo com o tipo
+const exemplos = { EXPENSE: "Ex.: Supermercado", INCOME: "Ex.: Salário", TRANSFER: "Ex.: Reserva do mês" };
+
 // Só contas e carteiras (cartões têm a "Despesa cartão")
 const contasComuns = (lista) => lista.filter((c) => c.type !== "CREDIT_CARD");
 
@@ -66,9 +69,56 @@ function PagamentoFatura({ lancamento, onFechar, onSalvo }) {
   );
 }
 
+// Ajuste de saldo (feito em Contas → "Ajustar saldo"): não se edita, só dá para apagar
+function AjusteSaldo({ lancamento, onFechar, onSalvo }) {
+  const [erro, setErro] = useState("");
+  const [apagando, setApagando] = useState(false);
+  const entrou = lancamento.type === "INCOME";
+
+  async function apagar() {
+    setApagando(true);
+    try {
+      await api(`/transactions/${lancamento.id}`, { method: "DELETE" });
+      onSalvo(null);
+    } catch (falha) {
+      setErro(falha.message);
+      setApagando(false);
+    }
+  }
+
+  return (
+    <Modal titulo="Ajuste de saldo" onFechar={onFechar}>
+      <div className="space-y-5">
+        <Alerta>{erro}</Alerta>
+        <p className="font-heading text-3xl font-bold text-slate-900">
+          {entrou ? "+ " : "− "}
+          {formatarReais(lancamento.amount)}
+        </p>
+        <p className="text-slate-700">
+          Na conta <strong>{lancamento.account.name}</strong>, em{" "}
+          {new Date(lancamento.date).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}.
+        </p>
+        <Alerta tipo="info">
+          O ajuste acerta o saldo da conta com o do banco e não conta como receita nem despesa do mês. Para corrigir, apague e ajuste o saldo de
+          novo em Contas.
+        </Alerta>
+        <div className="flex justify-center">
+          <BotaoApagar
+            texto="Apagar ajuste"
+            pergunta="Apagar este ajuste? O saldo da conta volta a ser o de antes do ajuste."
+            onConfirmar={apagar}
+            carregando={apagando}
+          />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // Formulário de lançamento (receita, despesa ou transferência) dentro de uma janela.
 // lancamento = null cria um novo (tipoInicial escolhe o tipo); um objeto da API edita (e permite apagar).
 function FormLancamento({ lancamento = null, tipoInicial = "EXPENSE", onFechar, onSalvo }) {
+  if (lancamento?.isAdjustment) return <AjusteSaldo lancamento={lancamento} onFechar={onFechar} onSalvo={onSalvo} />;
   if (lancamento?.isInvoicePayment) return <PagamentoFatura lancamento={lancamento} onFechar={onFechar} onSalvo={onSalvo} />;
   return <FormComum lancamento={lancamento} tipoInicial={tipoInicial} onFechar={onFechar} onSalvo={onSalvo} />;
 }
@@ -229,7 +279,7 @@ function FormComum({ lancamento, tipoInicial, onFechar, onSalvo }) {
           label={transferencia ? "Descrição (opcional)" : "Descrição"}
           maxLength={120}
           autoComplete="off"
-          placeholder={transferencia ? "Ex.: Reserva do mês" : "Ex.: Supermercado"}
+          placeholder={exemplos[tipo]}
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
           erro={erros.description}

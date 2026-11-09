@@ -27,6 +27,8 @@ export function serializar(t: LancamentoCompleto) {
     toAccount: t.toAccount,
     invoiceMonth: t.invoiceMonth,
     purchaseId: t.purchaseId,
+    // Ajuste de saldo: mexe no saldo da conta, mas não é receita nem despesa do mês
+    isAdjustment: t.isAdjustment,
     // Atalhos para o app: compra no cartão ou pagamento de fatura
     isCardExpense: t.type === "EXPENSE" && t.invoiceMonth !== null,
     isInvoicePayment: t.type === "TRANSFER" && t.invoiceMonth !== null,

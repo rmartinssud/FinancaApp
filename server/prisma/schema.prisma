@@ -239,6 +239,9 @@ model Transaction {
   invoiceMonth      String?
   // Cartão: as parcelas de uma mesma compra têm o mesmo purchaseId
   purchaseId        String?
+  // Ajuste de saldo (Contas → "Ajustar saldo"): mexe no saldo da conta,
+  // mas não conta como receita nem despesa no resumo do mês.
+  isAdjustment      Boolean           @default(false)
   source            TransactionSource @default(APP)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt

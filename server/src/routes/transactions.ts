@@ -22,6 +22,8 @@ const filtro = z.object({
   accountId: z.string().min(1).optional(),
   categoryId: z.string().min(1).optional(),
   type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
+  // Forma de pagamento, tirada do tipo da conta: CREDIT_CARD = cartão, BANK = débito/Pix, WALLET = dinheiro
+  accountType: z.enum(["WALLET", "BANK", "CREDIT_CARD"], { error: "Use WALLET, BANK ou CREDIT_CARD." }).optional(),
 });
 
 const novoLancamento = z
@@ -94,8 +96,10 @@ async function conferirReferencias(
 const responderErro = (res: import("express").Response, e: Erro) =>
   res.status(e.status).json({ error: e.error, ...(e.detalhes ? { detalhes: e.detalhes } : {}) });
 
-// GET /api/transactions?month=2026-11&accountId=&categoryId=&type= → lançamentos do mês (mais recentes primeiro).
+// GET /api/transactions?month=2026-11&accountId=&categoryId=&type=&accountType= → lançamentos do mês (mais recentes primeiro).
 // Com accountId, traz também as transferências que entraram nessa conta.
+// Com accountType (forma de pagamento), a transferência aparece se a origem OU o destino for desse tipo
+// (ex.: em "Cartão" aparece o pagamento da fatura; em "Débito/Pix", o Pix da conta para a carteira).
 transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
   const f = res.locals.query as z.infer<typeof filtro>;
 
@@ -112,6 +116,9 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
           ],
         },
         ...(f.accountId ? [{ OR: [{ accountId: f.accountId }, { toAccountId: f.accountId }] }] : []),
+        ...(f.accountType
+          ? [{ OR: [{ account: { type: f.accountType } }, { type: "TRANSFER" as const, toAccount: { type: f.accountType } }] }]
+          : []),
       ],
       ...(f.categoryId ? { categoryId: f.categoryId } : {}),
       ...(f.type ? { type: f.type } : {}),
@@ -155,6 +162,10 @@ transactionsRouter.patch("/:id", validateBody(edicaoLancamento), async (req, res
   const d = req.body as z.infer<typeof edicaoLancamento>;
   const atual = await prisma.transaction.findFirst({ where: { id: String(req.params.id), ...scope(req) } });
   if (!atual) return res.status(404).json({ error: "Lançamento não encontrado." });
+
+  if (atual.isAdjustment) {
+    return res.status(409).json({ error: "Ajuste de saldo não pode ser alterado. Apague e ajuste o saldo de novo em Contas." });
+  }
 
   if (atual.invoiceMonth !== null) {
     const msg =
