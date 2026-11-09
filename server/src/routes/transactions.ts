@@ -102,8 +102,17 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
   const lancamentos = await prisma.transaction.findMany({
     where: {
       ...scope(req),
-      date: intervaloDoMes(f.month ?? mesAtual()),
-      ...(f.accountId ? { OR: [{ accountId: f.accountId }, { toAccountId: f.accountId }] } : {}),
+      // Compras no cartão aparecem no mês da fatura (invoiceMonth), como no Início e na fatura.
+      // O resto (inclusive pagamento de fatura) aparece pelo dia em que aconteceu.
+      AND: [
+        {
+          OR: [
+            { NOT: { type: "EXPENSE", invoiceMonth: { not: null } }, date: intervaloDoMes(f.month ?? mesAtual()) },
+            { type: "EXPENSE", invoiceMonth: f.month ?? mesAtual() },
+          ],
+        },
+        ...(f.accountId ? [{ OR: [{ accountId: f.accountId }, { toAccountId: f.accountId }] }] : []),
+      ],
       ...(f.categoryId ? { categoryId: f.categoryId } : {}),
       ...(f.type ? { type: f.type } : {}),
     },
