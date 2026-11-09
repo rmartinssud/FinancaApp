@@ -12,6 +12,7 @@ import { transactionsRouter } from "./routes/transactions.js";
 import { summaryRouter } from "./routes/summary.js";
 import { cardsRouter } from "./routes/cards.js";
 import { cardExpensesRouter } from "./routes/cardExpenses.js";
+import { householdsRouter, familyRouter, invitesRouter } from "./routes/familia.js";
 
 export function createApp() {
   const app = express();
@@ -52,6 +53,9 @@ export function createApp() {
   app.use("/api/summary", summaryRouter);
   app.use("/api/cards", cardsRouter);
   app.use("/api/card-expenses", cardExpensesRouter);
+  app.use("/api/households", householdsRouter);
+  app.use("/api/family", familyRouter);
+  app.use("/api/invites", invitesRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });

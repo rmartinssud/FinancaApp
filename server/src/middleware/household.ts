@@ -2,23 +2,45 @@ import type { Request, Response, NextFunction } from "express";
 import type { MemberRole } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 
-// Descobre a família (household) do usuário logado e coloca em req.household.
+// Descobre o espaço (household) ativo do usuário logado e coloca em req.household.
 // TODA rota de dados deve usar este middleware depois do requireAuth.
-// No futuro, o usuário poderá escolher a família pelo header "X-Household-Id".
+// Ordem: header "X-Household-Id" (precisa ser membro, senão 403) → último espaço usado
+// (User.lastHouseholdId) → espaço mais antigo. Sempre confere a participação no banco.
 export async function withHousehold(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user) return res.status(401).json({ error: "Você precisa entrar na sua conta." });
 
     const escolhida = req.header("x-household-id");
-    const membro = await prisma.householdMember.findFirst({
-      where: { userId: req.user.id, ...(escolhida ? { householdId: escolhida } : {}) },
-      include: { household: true },
-      orderBy: { createdAt: "asc" },
-    });
+    let membro = null;
+    if (escolhida) {
+      membro = await prisma.householdMember.findUnique({
+        where: { householdId_userId: { householdId: escolhida, userId: req.user.id } },
+        include: { household: true },
+      });
+      if (!membro) return res.status(403).json({ error: "Você não faz parte deste espaço." });
+    } else {
+      const u = await prisma.user.findUnique({ where: { id: req.user.id }, select: { lastHouseholdId: true } });
+      if (u?.lastHouseholdId) {
+        membro = await prisma.householdMember.findUnique({
+          where: { householdId_userId: { householdId: u.lastHouseholdId, userId: req.user.id } },
+          include: { household: true },
+        });
+      }
+      membro ??= await prisma.householdMember.findFirst({
+        where: { userId: req.user.id },
+        include: { household: true },
+        orderBy: { createdAt: "asc" },
+      });
+    }
 
-    if (!membro) return res.status(403).json({ error: "Você não faz parte desta família." });
+    if (!membro) return res.status(403).json({ error: "Você não faz parte deste espaço." });
 
-    req.household = { id: membro.household.id, name: membro.household.name, role: membro.role };
+    req.household = {
+      id: membro.household.id,
+      name: membro.household.name,
+      role: membro.role,
+      isPersonal: membro.household.isPersonal,
+    };
     next();
   } catch (err) {
     next(err);

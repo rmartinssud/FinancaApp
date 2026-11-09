@@ -26,6 +26,8 @@ const filtro = z.object({
   type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
   // Forma de pagamento, tirada do tipo da conta: CREDIT_CARD = cartão, BANK = débito/Pix, WALLET = dinheiro
   accountType: z.enum(["WALLET", "BANK", "CREDIT_CARD"], { error: "Use WALLET, BANK ou CREDIT_CARD." }).optional(),
+  // Quem lançou (filtro "Pessoa" no espaço da família)
+  createdById: z.string().min(1).optional(),
 });
 
 // Repetição (só receita e despesa):
@@ -153,6 +155,7 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
       ],
       ...(f.categoryId ? { categoryId: f.categoryId } : {}),
       ...(f.type ? { type: f.type } : {}),
+      ...(f.createdById ? { createdById: f.createdById } : {}),
     },
     include: incluir,
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
