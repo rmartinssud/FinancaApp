@@ -130,7 +130,8 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
   const f = res.locals.query as z.infer<typeof filtro>;
   const mes = f.month ?? mesAtual();
 
-  let comComprasDoCartao = f.accountType === "CREDIT_CARD";
+  // Filtro por pessoa: mostra as compras no cartão uma a uma (ex.: cartão adicional do filho)
+  let comComprasDoCartao = f.accountType === "CREDIT_CARD" || Boolean(f.createdById);
   if (f.accountId && !comComprasDoCartao) {
     const conta = await prisma.financialAccount.findFirst({ where: { id: f.accountId, ...scope(req) }, select: { type: true } });
     comComprasDoCartao = conta?.type === "CREDIT_CARD";

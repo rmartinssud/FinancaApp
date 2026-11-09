@@ -12,6 +12,7 @@ import FormDespesaCartao from "./componentes/FormDespesaCartao.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
 import { cartao as estiloCartao, botaoIcone, botaoSecundario } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
+import { QuemLancou } from "./componentes/Avatar.jsx";
 import Campo from "../auth/Campo.jsx";
 import BotaoEnviar from "../auth/BotaoEnviar.jsx";
 import Alerta from "../auth/Alerta.jsx";
@@ -88,7 +89,7 @@ function PagarFatura({ cartao, fatura, onFechar, onPago }) {
 }
 
 // Uma linha de compra da fatura
-function LinhaCompra({ l }) {
+function LinhaCompra({ l, mostrarQuem }) {
   const parcela = textoParcela(l);
   return (
     <>
@@ -100,6 +101,7 @@ function LinhaCompra({ l }) {
         </span>
         <span className="block truncate text-sm text-slate-500">
           {dataCurta(l.date)} · {l.category?.name ?? "Sem categoria"}
+          {mostrarQuem && <QuemLancou pessoa={l.createdBy} />}
         </span>
       </span>
       <span className="shrink-0 font-bold text-slate-900">{formatarReais(l.amount)}</span>
@@ -111,7 +113,7 @@ function LinhaCompra({ l }) {
 function Fatura() {
   const { id } = useParams();
   const [busca, setBusca] = useSearchParams();
-  const { erroMe, podeEditar } = useMe();
+  const { erroMe, podeEditar, compartilhado } = useMe();
   const [cartao, setCartao] = useState(null);
   const [fatura, setFatura] = useState(null);
   const [erro, setErro] = useState("");
@@ -225,11 +227,11 @@ function Fatura() {
                       aria-label={`Editar compra ${l.description}, ${formatarReais(l.amount)}`}
                       className={`${classeLinha} transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30`}
                     >
-                      <LinhaCompra l={l} />
+                      <LinhaCompra l={l} mostrarQuem={compartilhado} />
                     </button>
                   ) : (
                     <div className={classeLinha}>
-                      <LinhaCompra l={l} />
+                      <LinhaCompra l={l} mostrarQuem={compartilhado} />
                     </div>
                   )}
                 </li>

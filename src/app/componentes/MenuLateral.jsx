@@ -12,8 +12,11 @@ import {
   FaCalendarDays,
   FaChevronRight,
   FaArrowRightFromBracket,
+  FaUsers,
 } from "react-icons/fa6";
 import logo from "../../assets/logo-financas.webp";
+import SeletorEspaco from "./SeletorEspaco.jsx";
+import { iniciais } from "../../lib/pessoas.js";
 
 // Itens do menu. "emBreve" aparece desativado com o selo "Em breve".
 const SECOES_MENU = [
@@ -23,6 +26,7 @@ const SECOES_MENU = [
       { para: "/app/contas", texto: "Contas", Icone: FaBuildingColumns },
       { para: "/app/lancamentos", texto: "Lançamentos", Icone: FaMoneyBillTransfer },
       { para: "/app/cartoes", texto: "Cartões de crédito", Icone: FaCreditCard },
+      { para: "/app/familia", texto: "Família", Icone: FaUsers },
     ],
   },
   {
@@ -42,15 +46,6 @@ const SECOES_MENU = [
     ],
   },
 ];
-
-// "Robson Martins Dos Santos" → "RS"
-function iniciais(nome = "") {
-  const partes = nome.trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return "?";
-  const primeira = partes[0][0];
-  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : "";
-  return (primeira + ultima).toUpperCase();
-}
 
 const classeItem = "flex min-h-12 w-full items-center gap-4 rounded-full px-5 text-[15px] font-medium transition";
 
@@ -85,6 +80,11 @@ function MenuLateral({ me, onSair, saindo, idTitulo }) {
         </span>
         <FaChevronRight aria-hidden="true" className="shrink-0 text-slate-400" />
       </Link>
+
+      {/* Espaço ativo (Pessoal, Família...) e troca de espaço */}
+      <div className="mt-2">
+        <SeletorEspaco me={me} />
+      </div>
 
       <nav aria-label="Menu do app" className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
         {SECOES_MENU.map((secao, i) => (

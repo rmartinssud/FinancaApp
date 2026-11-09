@@ -165,3 +165,60 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 3. **Parcelados em andamento**: logo depois de criar o cartão o app pergunta "Já tem compras parceladas neste cartão?" (ou use **Lançar compra em andamento** na fatura do cartão). Em **Despesa cartão**, escolha as parcelas, ligue **Compra já em andamento** e informe o **valor total**, a **data da compra** e a **parcela desta fatura** (ex.: 4 de 10). O app lança só as parcelas que faltam, a partir da fatura atual.
 4. **Compra em outra fatura no banco**: se o app do banco mostra uma compra numa fatura diferente da que o app sugere (comum em compras feitas perto do fechamento, que o banco lança depois, ou quando o fechamento muda por fim de semana/feriado), troque a fatura no formulário da compra — **Fatura: ‹ outubro de 2026 (vence 30/10) ›** — para a mesma do banco. Dá para escolher de 1 mês antes a 2 meses depois da fatura automática; nos parcelados, as parcelas seguintes acompanham. Para corrigir uma compra já lançada, abra a compra na fatura e troque ali.
 5. **Confira com o banco**: o total da fatura atual e o **limite disponível** do app devem bater com o app do banco. Se o limite não bater, falta lançar algum parcelado ou as compras de uma fatura já fechada que você ainda não pagou.
+
+## Família e espaços (Fase 4)
+
+Um login pode participar de **vários espaços**. Cada espaço tem as próprias contas, cartões, categorias e lançamentos — nada passa de um para o outro.
+
+- **Pessoal**: criado no cadastro, é só seu (não pode ser apagado; pode ser renomeado).
+- **Família** (ou qualquer outro nome): você cria e convida quem vai lançar junto.
+
+### Como usar
+
+1. **Criar o espaço da família**: no menu, toque em **Espaço ▾** (abaixo do seu nome) → **Criar espaço** → ex.: "Família Martins". O espaço já vem com a Carteira e as categorias padrão, e você é o **Dono**.
+2. **Trocar de espaço**: o mesmo **Espaço ▾** lista todos os seus espaços. Ao escolher, o app recarrega com os dados daquele espaço. O servidor lembra o último espaço usado.
+3. **Convidar**: menu **Família** → **Convidar pessoa**. Escolha o papel e:
+   - **Enviar convite**: manda um email com o link;
+   - **Copiar link**: copia o link para mandar no WhatsApp.
+   O link vale por **7 dias** e só pode ser usado **uma vez**. Em **Convites pendentes** dá para **reenviar** (gera um link novo e o antigo para de valer) ou **cancelar**.
+4. **Aceitar**: quem recebe abre `/convite/…`. Sem login, entra ou cria a conta e volta para o convite; logado, vê o nome do espaço e toca em **Entrar no espaço**. A pessoa continua com o espaço Pessoal dela. O dono recebe um email quando alguém entra ou sai.
+
+### Papéis
+
+| Papel | Pode |
+|---|---|
+| **Dono** (`OWNER`) | Tudo: lançar, convidar, remover pessoas, mudar papéis, renomear e apagar o espaço. |
+| **Membro** (`MEMBER`) | Criar, editar e apagar contas, cartões, categorias e lançamentos. Não mexe nas pessoas. |
+| **Somente leitura** (`VIEWER`) | Só vê (a API responde 403 a qualquer `POST`/`PATCH`/`PUT`/`DELETE`; o app esconde o botão + e a edição). |
+
+- Quem não é o único dono pode **Sair do espaço** (menu Família). O **último dono** não pode sair, ser removido nem virar membro: passe o papel de Dono para outra pessoa antes.
+- Quem sai ou é removido perde o acesso na hora; os lançamentos que fez continuam no espaço.
+
+### Pessoal × Família (exemplo)
+
+O filho tem **cartão adicional** no cartão do pai. Ele entra na "Família Martins" como **Membro** e lança as compras do adicional **no espaço da Família**, no cartão do pai — cada lançamento mostra a bolinha com a inicial de **quem lançou** (em Lançamentos e na fatura), e em Lançamentos dá para filtrar por **Pessoa** (com o filtro ligado, as compras no cartão aparecem uma a uma). O **salário** e as contas dele ficam no espaço **Pessoal** dele, que o pai não vê.
+
+### API
+
+O espaço ativo vem do header `X-Household-Id` (se enviado: precisa ser membro, senão **403**) ou, sem header, do último espaço usado (`User.lastHouseholdId`), caindo no mais antigo. **Toda** rota de dados confere a participação no banco. Ids de outro espaço respondem 404.
+
+| Método | Rota | O que faz |
+|---|---|---|
+| GET | `/api/me` | Usuário, espaço ativo (`household`: `id`, `name`, `role`, `isPersonal`) e `households` (todos os espaços, com `memberCount` e `active`). |
+| GET | `/api/households` | Meus espaços. |
+| POST | `/api/households` | Cria espaço: `name` (1–60). Vem com Carteira e categorias padrão, você como `OWNER`, e fica ativo. |
+| POST | `/api/households/:id/activate` | Troca o espaço ativo (403 se não for membro). |
+| GET | `/api/family` | Espaço ativo, `members` (`userId`, `name`, `email`, `role`, `joinedAt`) e, para o dono, `invites` pendentes. |
+| PATCH | `/api/family` | Renomeia o espaço (dono). |
+| DELETE | `/api/family` | Apaga o espaço e todos os dados dele (dono; o Pessoal dá 409). |
+| POST | `/api/family/invites` | Convida (dono): `email` (opcional; sem email = convite por link) e `role` (`MEMBER` padrão, `VIEWER` ou `OWNER`). Devolve `{ invite, url }`; com email, envia o link. |
+| POST | `/api/family/invites/:id/resend` | Link novo (o antigo deixa de valer), mais 7 dias e reenvia o email. Devolve `{ invite, url }`. |
+| DELETE | `/api/family/invites/:id` | Cancela o convite (204). |
+| PATCH | `/api/family/members/:userId` | Muda o papel (dono). Último dono: 409. |
+| DELETE | `/api/family/members/:userId` | Remove do espaço (dono). Último dono: 409. |
+| POST | `/api/family/leave` | Sai do espaço ativo (204). Último dono: 409. |
+| GET | `/api/invites/:token` | Público: `householdName`, `invitedBy`, `role`, `expiresAt`. Expirado, usado ou cancelado: 404. |
+| POST | `/api/invites/:token/accept` | Logado: entra no espaço com o papel do convite e deixa ele ativo. |
+| GET | `/api/transactions?createdById=` | Filtro por quem lançou. Todo lançamento devolve `createdBy` (`{ id, name }`, ou `null` se a pessoa apagou a conta). Com `createdById`, as compras no cartão vêm uma a uma. |
+
+Segurança: o token do convite é aleatório (32 bytes) e só o **hash** fica no banco; o link completo aparece só na resposta de criar/reenviar e no email.

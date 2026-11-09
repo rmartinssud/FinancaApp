@@ -25,5 +25,13 @@ export function useMe() {
     };
   }, []);
 
-  return { me, erroMe: erro, podeEditar: Boolean(me) && me.household.role !== "VIEWER" };
+  // compartilhado: o espaço ativo tem mais de uma pessoa (mostra "quem lançou")
+  const ativo = me?.households?.find((h) => h.active);
+  return {
+    me,
+    erroMe: erro,
+    podeEditar: Boolean(me) && me.household.role !== "VIEWER",
+    ehDono: me?.household.role === "OWNER",
+    compartilhado: (ativo?.memberCount ?? 1) > 1,
+  };
 }

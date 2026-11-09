@@ -17,6 +17,8 @@ const Contas = lazy(() => import("./app/Contas.jsx"));
 const Categorias = lazy(() => import("./app/Categorias.jsx"));
 const Cartoes = lazy(() => import("./app/Cartoes.jsx"));
 const Fatura = lazy(() => import("./app/Fatura.jsx"));
+const Familia = lazy(() => import("./app/Familia.jsx"));
+const Convite = lazy(() => import("./pages/Convite.jsx"));
 
 function Rotas() {
   return (
@@ -32,6 +34,8 @@ function Rotas() {
           <Route path="/esqueci-senha" element={<EsqueciSenha />} />
           <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="/verificar-email" element={<VerificarEmail />} />
+          {/* Convite para um espaço: abre logado ou não */}
+          <Route path="/convite/:token" element={<Convite />} />
 
           {/* Área logada */}
           <Route path="/app" element={<RotaProtegida><Inicio /></RotaProtegida>} />
@@ -40,6 +44,7 @@ function Rotas() {
           <Route path="/app/categorias" element={<RotaProtegida><Categorias /></RotaProtegida>} />
           <Route path="/app/cartoes" element={<RotaProtegida><Cartoes /></RotaProtegida>} />
           <Route path="/app/cartoes/:id" element={<RotaProtegida><Fatura /></RotaProtegida>} />
+          <Route path="/app/familia" element={<RotaProtegida><Familia /></RotaProtegida>} />
           <Route path="/app/seguranca" element={<RotaProtegida><Seguranca /></RotaProtegida>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
