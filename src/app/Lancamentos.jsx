@@ -67,6 +67,7 @@ function ConteudoLinha({ l }) {
           {l.isCardExpense && <FaCreditCard aria-hidden="true" className="shrink-0 text-blue-700" />}
           <span className="truncate">
             {l.category?.name ?? "Sem categoria"} · {l.account.name}
+            {l.isCardExpense && l.invoiceMonth && ` · fatura de ${nomeFatura(l.invoiceMonth)}`}
             {l.status === "PENDING" && " · pendente"}
           </span>
         </span>
@@ -78,6 +79,13 @@ function ConteudoLinha({ l }) {
       </span>
     </>
   );
+}
+
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+// "2026-11" → "nov/26"
+function nomeFatura(mes) {
+  const [ano, m] = mes.split("-");
+  return `${MESES_CURTOS[Number(m) - 1]}/${ano.slice(2)}`;
 }
 
 // Lista de lançamentos do mês, agrupada por dia

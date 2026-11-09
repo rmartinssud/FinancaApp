@@ -89,7 +89,7 @@ describe("escolher a fatura da compra (invoiceMonth)", () => {
   it("compra já em andamento: a parcela atual vai para a fatura escolhida", async () => {
     const { agent, base } = await cenario("Eva Andamento");
     const atual = faturaAtual(SANTANDER);
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
     const res = await agent
       .post("/api/card-expenses")
       .send({ ...base, date: hoje, amount: "300", installments: 3, currentInstallment: 2, invoiceMonth: somarMeses(atual, 1) });
@@ -152,5 +152,23 @@ describe("escolher a fatura da compra (invoiceMonth)", () => {
     expect(naPaga.purchases).toHaveLength(1);
     const sair = await agent.put(`/api/card-expenses/${naPaga.purchases[0].purchaseId}`).send({ ...base, date: "2026-10-30", invoiceMonth: "2026-12" });
     expect(sair.status).toBe(409);
+  });
+
+  it("Lançamentos mostra a compra no mês da fatura escolhida, não no mês da data", async () => {
+    const { agent, banco, base } = await cenario("Bia Lista");
+    const res = await agent.post("/api/card-expenses").send({ ...base, description: "Ferramenta", installments: 6, invoiceMonth: "2026-11" });
+    expect(res.status).toBe(201);
+    const doMes = async (m: string) =>
+      ((await agent.get(`/api/transactions?month=${m}`)).body as { description: string; installmentNumber: number | null }[])
+        .filter((l) => l.description === "Ferramenta")
+        .map((l) => l.installmentNumber);
+    expect(await doMes("2026-10")).toEqual([]);
+    expect(await doMes("2026-11")).toEqual([1]);
+    expect(await doMes("2026-12")).toEqual([2]);
+
+    // Lançamento comum continua pelo dia
+    await agent.post("/api/transactions").send({ type: "EXPENSE", accountId: banco, amount: "10", description: "Padaria", date: "2026-10-23", categoryId: base.categoryId });
+    const out = (await agent.get(`/api/transactions?month=2026-10`)).body as { description: string }[];
+    expect(out.map((l) => l.description)).toContain("Padaria");
   });
 });
