@@ -150,7 +150,7 @@ function Fatura() {
         <Link to="/app/cartoes" className={botaoIcone} aria-label="Voltar para cartões">
           <FaArrowLeft aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 truncate font-heading text-3xl font-bold text-slate-900 md:text-4xl">{cartao ? `Fatura ${cartao.name}` : "Fatura"}</h1>
+        <h1 className="min-w-0 truncate font-heading text-2xl font-bold text-slate-900 md:text-4xl">{cartao ? `Fatura ${cartao.name}` : "Fatura"}</h1>
       </div>
 
       <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
@@ -165,7 +165,7 @@ function Fatura() {
                 <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Total da fatura</h2>
                 <SeloSituacao situacao={faturaDoMes.status} />
               </div>
-              <p className="mt-2 font-heading text-3xl font-bold text-slate-900 [overflow-wrap:anywhere]">{formatarReais(faturaDoMes.total)}</p>
+              <p className="mt-2 whitespace-nowrap font-heading text-2xl font-bold text-slate-900 md:text-3xl">{formatarReais(faturaDoMes.total)}</p>
               <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <dt className="text-slate-500">Fecha em</dt>

@@ -157,7 +157,7 @@ function Categorias() {
     <AppLayout>
       <Alerta>{erroMe || erro}</Alerta>
 
-      <h1 className="font-heading text-3xl font-bold text-slate-900 md:text-4xl">Categorias</h1>
+      <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Categorias</h1>
       {categorias === null && !erro && <p role="status" className="mt-6 text-slate-500">Carregando categorias...</p>}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

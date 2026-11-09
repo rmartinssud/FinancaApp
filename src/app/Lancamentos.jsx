@@ -252,7 +252,7 @@ function Lancamentos() {
       <header className="overflow-hidden rounded-3xl bg-primary text-white shadow-[0_20px_50px_-12px_rgba(70,79,163,0.45)]">
         <div className="flex items-end justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
           <div className="min-w-0">
-            <h1 className="font-heading text-3xl font-bold md:text-4xl">Lançamentos</h1>
+            <h1 className="font-heading text-2xl font-bold md:text-4xl">Lançamentos</h1>
             <p className="mt-1 text-sm text-white/80">{NOME_ABA[aba]}</p>
             {pessoas.length > 1 && (
               <label className="mt-2 inline-flex items-center gap-2 text-sm text-white/90">
@@ -274,7 +274,7 @@ function Lancamentos() {
           </div>
           <div className="min-w-0 text-right" aria-live="polite">
             <p className="text-xs uppercase tracking-wider text-white/75">{ROTULO_TOTAL[aba]}</p>
-            <p className="font-heading text-2xl font-bold [overflow-wrap:anywhere]">{lista === null ? "…" : formatarReais(total.toFixed(2))}</p>
+            <p className="whitespace-nowrap font-heading text-xl font-bold md:text-2xl">{lista === null ? "…" : formatarReais(total.toFixed(2))}</p>
           </div>
         </div>
         <div className="bg-primary-dark/40 px-3 py-2">

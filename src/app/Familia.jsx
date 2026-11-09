@@ -186,7 +186,7 @@ function Familia() {
       <div className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold uppercase tracking-wider text-slate-500">{dados?.members?.length > 1 ? "Espaço compartilhado" : "Seu espaço"}</p>
-          <h1 className="truncate font-heading text-3xl font-bold text-slate-900 md:text-4xl">{h?.name ?? "Família"}</h1>
+          <h1 className="truncate font-heading text-2xl font-bold text-slate-900 md:text-4xl">{h?.name ?? "Família"}</h1>
           {h && <p className="mt-1 text-slate-600">Seu papel: {NOME_PAPEL[h.role]}</p>}
         </div>
         {ehDono && (
