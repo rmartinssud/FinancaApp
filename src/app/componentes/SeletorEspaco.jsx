@@ -75,7 +75,7 @@ function SeletorEspaco({ me }) {
         aria-controls={idLista}
         className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-slate-200 px-4 text-left transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
       >
-        {ativo?.isPersonal ? <FaUser aria-hidden="true" className="text-primary" /> : <FaUsers aria-hidden="true" className="text-primary" />}
+        {(ativo?.memberCount ?? 1) <= 1 ? <FaUser aria-hidden="true" className="text-primary" /> : <FaUsers aria-hidden="true" className="text-primary" />}
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Espaço</span>
           <span className="block truncate font-bold text-slate-900">{ativo?.name ?? "..."}</span>

@@ -170,12 +170,13 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 
 Um login pode participar de **vários espaços**. Cada espaço tem as próprias contas, cartões, categorias e lançamentos — nada passa de um para o outro.
 
-- **Pessoal**: criado no cadastro, é só seu (não pode ser apagado; pode ser renomeado).
-- **Família** (ou qualquer outro nome): você cria e convida quem vai lançar junto.
+- **Seu espaço**: criado no cadastro, com tudo o que você já lançou. Você pode **convidar a família direto para ele**: quem entra vê o histórico e lança junto. Não pode ser apagado; pode ser renomeado (ex.: "Família Martins").
+- Quem é convidado continua com o **espaço pessoal dele**, que só ele vê (ex.: a filha com renda própria).
+- **Criar espaço** é opcional, só para separar algo à parte (ex.: uma empresa).
 
 ### Como usar
 
-1. **Criar o espaço da família**: no menu, toque em **Espaço ▾** (abaixo do seu nome) → **Criar espaço** → ex.: "Família Martins". O espaço já vem com a Carteira e as categorias padrão, e você é o **Dono**.
+1. **Dividir com a família**: no seu espaço, menu **Família** → **Convidar pessoa**. Se quiser, renomeie o espaço no lápis. Não precisa cadastrar nada de novo.
 2. **Trocar de espaço**: o mesmo **Espaço ▾** lista todos os seus espaços. Ao escolher, o app recarrega com os dados daquele espaço. O servidor lembra o último espaço usado.
 3. **Convidar**: menu **Família** → **Convidar pessoa**. Escolha o papel e:
    - **Enviar convite**: manda um email com o link;
