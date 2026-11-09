@@ -227,3 +227,5 @@ function Categorias() {
 }
 
 export default Categorias;
+// Usado também no formulário de lançamento (botão + ao lado da categoria)
+export { FormCategoria };

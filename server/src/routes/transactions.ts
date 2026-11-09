@@ -4,8 +4,10 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
+import { randomUUID } from "node:crypto";
 import { valorPositivo, dataSchema, mesSchema, mesAtual, intervaloDoMes } from "../lib/money.js";
 import { incluir, serializar, faturasComPagamento } from "../services/lancamentos.js";
+import { dividirParcelas, somarMesesNaData, faturasDoMes } from "../services/cartoes.js";
 
 export const transactionsRouter = Router();
 
@@ -26,6 +28,13 @@ const filtro = z.object({
   accountType: z.enum(["WALLET", "BANK", "CREDIT_CARD"], { error: "Use WALLET, BANK ou CREDIT_CARD." }).optional(),
 });
 
+// Repetição (só receita e despesa):
+// NONE = não recorrente; INSTALLMENT = parcelar (divide o valor em N meses);
+// REPEAT = repetir (o mesmo valor por N meses); FIXED = fixa mensal (12 meses, o mesmo valor).
+const repeticao = z.enum(["NONE", "INSTALLMENT", "REPEAT", "FIXED"], { error: "Use NONE, INSTALLMENT, REPEAT ou FIXED." });
+const MESES_FIXA = 12;
+const observacoes = z.string().trim().max(1000, "Até 1000 caracteres.").nullable().optional();
+
 const novoLancamento = z
   .object({
     type: tipoLancamento,
@@ -37,10 +46,20 @@ const novoLancamento = z
     toAccountId: z.string().min(1).nullable().optional(),
     categoryId: z.string().min(1).nullable().optional(),
     status: situacao.default("CONFIRMED"),
+    notes: observacoes,
+    recurrence: repeticao.default("NONE"),
+    // Quantas vezes (parcelar ou repetir): de 2 a 48
+    times: z.number().int().min(2, "De 2 a 48 vezes.").max(48, "De 2 a 48 vezes.").optional(),
   })
   .superRefine((d, ctx) => {
     if (d.type !== "TRANSFER" && !d.description) {
       ctx.addIssue({ code: "custom", path: ["description"], message: "Escreva uma descrição." });
+    }
+    if (d.type === "TRANSFER" && d.recurrence !== "NONE") {
+      ctx.addIssue({ code: "custom", path: ["recurrence"], message: "Transferência não tem repetição." });
+    }
+    if ((d.recurrence === "INSTALLMENT" || d.recurrence === "REPEAT") && !d.times) {
+      ctx.addIssue({ code: "custom", path: ["times"], message: "Diga quantas vezes (de 2 a 48)." });
     }
   });
 
@@ -53,6 +72,7 @@ const edicaoLancamento = z.object({
   toAccountId: z.string().min(1).nullable().optional(),
   categoryId: z.string().min(1).nullable().optional(),
   status: situacao.optional(),
+  notes: observacoes,
 });
 
 type Erro = { status: number; error: string; detalhes?: Record<string, string[]> };
@@ -100,8 +120,19 @@ const responderErro = (res: import("express").Response, e: Erro) =>
 // Com accountId, traz também as transferências que entraram nessa conta.
 // Com accountType (forma de pagamento), a transferência aparece se a origem OU o destino for desse tipo
 // (ex.: em "Cartão" aparece o pagamento da fatura; em "Débito/Pix", o Pix da conta para a carteira).
+//
+// Compras no cartão NÃO aparecem uma a uma: no lugar delas o app mostra uma linha por fatura
+// (GET /api/transactions/invoices). Elas só voltam quando o filtro é o próprio cartão
+// (accountId de um cartão) ou accountType=CREDIT_CARD.
 transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
   const f = res.locals.query as z.infer<typeof filtro>;
+  const mes = f.month ?? mesAtual();
+
+  let comComprasDoCartao = f.accountType === "CREDIT_CARD";
+  if (f.accountId && !comComprasDoCartao) {
+    const conta = await prisma.financialAccount.findFirst({ where: { id: f.accountId, ...scope(req) }, select: { type: true } });
+    comComprasDoCartao = conta?.type === "CREDIT_CARD";
+  }
 
   const lancamentos = await prisma.transaction.findMany({
     where: {
@@ -111,8 +142,8 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
       AND: [
         {
           OR: [
-            { NOT: { type: "EXPENSE", invoiceMonth: { not: null } }, date: intervaloDoMes(f.month ?? mesAtual()) },
-            { type: "EXPENSE", invoiceMonth: f.month ?? mesAtual() },
+            { NOT: { type: "EXPENSE", invoiceMonth: { not: null } }, date: intervaloDoMes(mes) },
+            ...(comComprasDoCartao ? [{ type: "EXPENSE" as const, invoiceMonth: mes }] : []),
           ],
         },
         ...(f.accountId ? [{ OR: [{ accountId: f.accountId }, { toAccountId: f.accountId }] }] : []),
@@ -129,7 +160,15 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
   res.json(lancamentos.map(serializar));
 });
 
-// POST /api/transactions → cria uma receita, despesa ou transferência
+// GET /api/transactions/invoices?month=2026-11 → uma linha por cartão com fatura no mês (vencimento no mês).
+// É o que a tela de Lançamentos mostra no lugar das compras no cartão.
+transactionsRouter.get("/invoices", validateQuery(z.object({ month: mesSchema.optional() })), async (req, res) => {
+  const { month } = res.locals.query as { month?: string };
+  res.json(await faturasDoMes(scope(req).householdId, month ?? mesAtual()));
+});
+
+// POST /api/transactions → cria uma receita, despesa ou transferência.
+// Com repetição, cria um lançamento por mês (mesmo groupId) e devolve o 1º com "group" (todos).
 transactionsRouter.post("/", validateBody(novoLancamento), async (req, res) => {
   const d = req.body as z.infer<typeof novoLancamento>;
   const final = {
@@ -142,19 +181,45 @@ transactionsRouter.post("/", validateBody(novoLancamento), async (req, res) => {
   const erro = await conferirReferencias(req, final);
   if (erro) return responderErro(res, erro);
 
-  const lancamento = await prisma.transaction.create({
-    data: {
-      ...final,
-      amount: d.amount,
-      description: d.description || "Transferência",
-      date: d.date,
-      status: d.status,
-      ...scope(req),
-      createdById: req.user!.id,
-    },
-    include: incluir,
-  });
-  res.status(201).json(serializar(lancamento));
+  const base = {
+    ...final,
+    description: d.description || "Transferência",
+    notes: d.notes || null,
+    ...scope(req),
+    createdById: req.user!.id,
+  };
+
+  if (d.recurrence === "NONE") {
+    const lancamento = await prisma.transaction.create({
+      data: { ...base, amount: d.amount, date: d.date, status: d.status },
+      include: incluir,
+    });
+    return res.status(201).json(serializar(lancamento));
+  }
+
+  // Repetição: um lançamento por mês. O 1º respeita "Efetivada"; os próximos ficam pendentes.
+  const vezes = d.recurrence === "FIXED" ? MESES_FIXA : d.times!;
+  const valores = d.recurrence === "INSTALLMENT" ? dividirParcelas(d.amount, vezes) : Array.from({ length: vezes }, () => d.amount);
+  const comNumero = d.recurrence !== "FIXED";
+  const groupId = randomUUID();
+  const criados = await prisma.$transaction(
+    valores.map((amount, i) =>
+      prisma.transaction.create({
+        data: {
+          ...base,
+          amount,
+          date: somarMesesNaData(d.date, i),
+          status: i === 0 ? d.status : "PENDING",
+          groupId,
+          recurrence: d.recurrence as "INSTALLMENT" | "REPEAT" | "FIXED",
+          installmentNumber: comNumero ? i + 1 : null,
+          installmentTotal: comNumero ? vezes : null,
+        },
+        include: incluir,
+      }),
+    ),
+  );
+  res.status(201).json({ ...serializar(criados[0]), group: criados.map(serializar) });
 });
 
 // PATCH /api/transactions/:id → altera o lançamento (as duas pontas da transferência mudam juntas: é um registro só)
@@ -196,6 +261,7 @@ transactionsRouter.patch("/:id", validateBody(edicaoLancamento), async (req, res
       ...d,
       ...final,
       ...(d.description === "" ? { description: "Transferência" } : {}),
+      ...(d.notes !== undefined ? { notes: d.notes || null } : {}),
     },
     include: incluir,
   });

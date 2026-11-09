@@ -12,7 +12,8 @@ import NovoLancamento from "./componentes/NovoLancamento.jsx";
 // - celular/tablet: barra no topo com o botão ☰ que abre o menu como gaveta (da esquerda, com fundo escuro).
 // O botão redondo "+" (novo lançamento) fica no canto de baixo à direita.
 // onLancamentoSalvo: a tela recarrega os dados quando alguém salva pelo botão "+".
-function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false }) {
+// barraInferior: barra fixa embaixo da tela (ex.: filtros de Lançamentos); o botão "+" sobe para ficar acima dela.
+function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInferior = null }) {
   const { me, podeEditar } = useMe();
   const [saindo, setSaindo] = useState(false);
   const [gavetaAberta, setGavetaAberta] = useState(false);
@@ -105,11 +106,13 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false }) {
         </div>
       </div>
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-8 sm:pt-10 lg:ml-72 lg:mr-0 lg:max-w-none lg:px-10 xl:px-14">
+      <main className={`relative mx-auto max-w-6xl px-4 ${barraInferior ? "pb-48" : "pb-32"} pt-6 sm:px-8 sm:pt-10 lg:ml-72 lg:mr-0 lg:max-w-none lg:px-10 xl:px-14`}>
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
 
-      {podeEditar && !semBotaoNovo && <NovoLancamento onSalvo={onLancamentoSalvo} />}
+      {barraInferior}
+
+      {podeEditar && !semBotaoNovo && <NovoLancamento onSalvo={onLancamentoSalvo} acimaDaBarra={Boolean(barraInferior)} />}
     </div>
   );
 }

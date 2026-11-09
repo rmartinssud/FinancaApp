@@ -159,7 +159,7 @@ describe("escolher a fatura da compra (invoiceMonth)", () => {
     const res = await agent.post("/api/card-expenses").send({ ...base, description: "Ferramenta", installments: 6, invoiceMonth: "2026-11" });
     expect(res.status).toBe(201);
     const doMes = async (m: string) =>
-      ((await agent.get(`/api/transactions?month=${m}`)).body as { description: string; installmentNumber: number | null }[])
+      ((await agent.get(`/api/transactions?month=${m}&accountId=${base.cardId}`)).body as { description: string; installmentNumber: number | null }[])
         .filter((l) => l.description === "Ferramenta")
         .map((l) => l.installmentNumber);
     expect(await doMes("2026-10")).toEqual([]);

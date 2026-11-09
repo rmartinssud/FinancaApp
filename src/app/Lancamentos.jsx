@@ -1,60 +1,40 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced } from "react-icons/fa6";
+import { Link } from "react-router-dom";
+import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced, FaCircleMinus, FaCirclePlus, FaListUl } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
-import FormDespesaCartao from "./componentes/FormDespesaCartao.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
 import { useMe } from "./useMe.js";
 import Alerta from "../auth/Alerta.jsx";
 import { api, formatarReais } from "../lib/api.js";
 import { dataLocal, mesAtual, nomeDoDia } from "../lib/datas.js";
-import { textoParcela } from "../lib/cartoes.js";
+import { textoParcela, dataCurta, SITUACOES, COR_PADRAO } from "../lib/cartoes.js";
 
-const filtros = [
-  { valor: "", texto: "Todos" },
-  { valor: "INCOME", texto: "Receitas" },
-  { valor: "EXPENSE", texto: "Despesas" },
-  { valor: "TRANSFER", texto: "Transferências" },
+// Abas da barra de baixo (como no app de referência). "" = Extrato (tudo).
+const ABAS = [
+  { valor: "EXPENSE", texto: "Despesas", Icone: FaCircleMinus, ativa: "text-red-600", fundo: "bg-red-100" },
+  { valor: "INCOME", texto: "Receitas", Icone: FaCirclePlus, ativa: "text-emerald-700", fundo: "bg-emerald-100" },
+  { valor: "TRANSFER", texto: "Transfs", Icone: FaArrowsUpDown, ativa: "text-amber-700", fundo: "bg-amber-100" },
+  { valor: "", texto: "Extrato", Icone: FaListUl, ativa: "text-primary", fundo: "bg-soft" },
 ];
 
-// Forma de pagamento: vem do tipo da conta (cartão de crédito, conta no banco ou carteira).
-// Transferências aparecem quando a origem ou o destino é dessa forma (ex.: pagamento da fatura em "Cartão").
-const formas = [
-  { valor: "", texto: "Todas as formas" },
-  { valor: "CREDIT_CARD", texto: "Cartão" },
-  { valor: "BANK", texto: "Débito/Pix" },
-  { valor: "WALLET", texto: "Dinheiro" },
-];
-
-// Linha de botões (chips) que rola para o lado no celular
-function Chips({ rotulo, opcoes, valor, onMudar, className = "" }) {
-  return (
-    <div role="group" aria-label={rotulo} className={`-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 ${className}`}>
-      {opcoes.map((f) => (
-        <button
-          key={f.valor}
-          type="button"
-          aria-pressed={valor === f.valor}
-          onClick={() => onMudar(f.valor)}
-          className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-5 font-bold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
-            valor === f.valor ? "bg-primary text-white shadow" : "bg-white text-slate-700 hover:text-primary"
-          }`}
-        >
-          {f.texto}
-        </button>
-      ))}
-    </div>
-  );
-}
+// Texto do total no topo, conforme a aba
+const ROTULO_TOTAL = { EXPENSE: "Total de despesas", INCOME: "Total de receitas", TRANSFER: "Total transferido", "": "Saldo do mês" };
+const NOME_ABA = { EXPENSE: "Despesas", INCOME: "Receitas", TRANSFER: "Transferências", "": "Extrato" };
+const VAZIO_ABA = { EXPENSE: "Nenhuma despesa neste mês", INCOME: "Nenhuma receita neste mês", TRANSFER: "Nenhuma transferência neste mês" };
 
 // Como ler cada lançamento (para o leitor de tela e o rótulo do botão)
 function tipoEmTexto(l) {
   if (l.isAdjustment) return "ajuste de saldo";
   if (l.isInvoicePayment) return "pagamento de fatura";
   if (l.type === "TRANSFER") return "transferência";
-  if (l.isCardExpense) return "despesa no cartão";
   return l.type === "INCOME" ? "receita" : "despesa";
+}
+
+// Selo pequeno ao lado da descrição (2/10 nas parcelas, "Fixa" na fixa mensal)
+function Selo({ children }) {
+  return <span className="ml-2 rounded-full bg-soft px-2 py-0.5 text-xs font-bold text-primary">{children}</span>;
 }
 
 // Transferência (ou pagamento de fatura): ícone âmbar e "Conta A → Conta B"
@@ -114,15 +94,12 @@ function ConteudoLinha({ l }) {
       <span className="min-w-0 flex-1 text-left">
         <span className="block truncate font-bold text-slate-900">
           {l.description}
-          {parcela && <span className="ml-2 rounded-full bg-soft px-2 py-0.5 text-xs font-bold text-primary">{parcela}</span>}
+          {parcela && <Selo>{parcela}</Selo>}
+          {l.recurrence === "FIXED" && <Selo>Fixa</Selo>}
         </span>
-        <span className="flex min-w-0 items-center gap-1.5 text-sm text-slate-500">
-          {l.isCardExpense && <FaCreditCard aria-hidden="true" className="shrink-0 text-blue-700" />}
-          <span className="truncate">
-            {l.category?.name ?? "Sem categoria"} · {l.account.name}
-            {l.isCardExpense && l.invoiceMonth && ` · fatura de ${nomeFatura(l.invoiceMonth)}`}
-            {l.status === "PENDING" && " · pendente"}
-          </span>
+        <span className="block truncate text-sm text-slate-500">
+          {l.category?.name ?? "Sem categoria"} · {l.account.name}
+          {l.status === "PENDING" && " · pendente"}
         </span>
       </span>
       <span className={`shrink-0 font-bold ${receita ? "text-emerald-700" : "text-red-600"}`}>
@@ -134,62 +111,147 @@ function ConteudoLinha({ l }) {
   );
 }
 
-const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-// "2026-11" → "nov/26"
-function nomeFatura(mes) {
-  const [ano, m] = mes.split("-");
-  return `${MESES_CURTOS[Number(m) - 1]}/${ano.slice(2)}`;
+// Fatura do cartão no mês (no lugar das compras uma a uma). Toque abre a fatura.
+function LinhaFatura({ f }) {
+  const situacao = SITUACOES[f.status];
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg text-white"
+        style={{ backgroundColor: f.color ?? COR_PADRAO }}
+      >
+        <FaCreditCard />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block truncate font-bold text-slate-900">Fatura {f.cardName}</span>
+        <span className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
+          {f.dueDate && <span className="truncate">Vence {dataCurta(f.dueDate)}</span>}
+          {situacao && <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${situacao.classe}`}>{situacao.texto}</span>}
+        </span>
+      </span>
+      <span className="shrink-0 font-bold text-red-600">
+        <span className="sr-only">Total da fatura: </span>
+        <span aria-hidden="true">− </span>
+        {formatarReais(f.total)}
+      </span>
+    </>
+  );
+}
+
+// Barra de filtros fixa embaixo da tela (Despesas · Receitas · Transfs · Extrato)
+function BarraFiltros({ aba, onMudar }) {
+  return (
+    <nav
+      aria-label="Filtrar lançamentos"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgba(70,79,163,0.25)] backdrop-blur lg:left-72"
+    >
+      <ul className="mx-auto grid h-16 max-w-xl grid-cols-4">
+        {ABAS.map(({ valor, texto, Icone, ativa, fundo }) => {
+          const atual = aba === valor;
+          return (
+            <li key={texto} className="flex">
+              <button
+                type="button"
+                aria-pressed={atual}
+                onClick={() => onMudar(valor)}
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-bold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-primary/30 ${
+                  atual ? ativa : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <span aria-hidden="true" className={`flex h-7 w-14 items-center justify-center rounded-full text-lg transition ${atual ? fundo : ""}`}>
+                  <Icone />
+                </span>
+                {texto}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 }
 
 // Lista de lançamentos do mês, agrupada por dia
 function Lancamentos() {
   const { erroMe, podeEditar } = useMe();
   const [mes, setMes] = useState(mesAtual);
-  const [tipo, setTipo] = useState("");
-  const [forma, setForma] = useState("");
+  const [aba, setAba] = useState("");
   const [lista, setLista] = useState(null);
+  const [faturas, setFaturas] = useState([]);
   const [erro, setErro] = useState("");
   // null = janela fechada; objeto = editando
   const [edicao, setEdicao] = useState(null);
 
+  const comFaturas = aba === "" || aba === "EXPENSE";
+
   const carregar = useCallback(() => {
     setErro("");
-    const filtroTipo = tipo ? `&type=${tipo}` : "";
-    const filtroForma = forma ? `&accountType=${forma}` : "";
-    api(`/transactions?month=${mes}${filtroTipo}${filtroForma}`)
-      .then(setLista)
+    const filtroTipo = aba ? `&type=${aba}` : "";
+    Promise.all([api(`/transactions?month=${mes}${filtroTipo}`), comFaturas ? api(`/transactions/invoices?month=${mes}`) : []])
+      .then(([lancamentos, listaFaturas]) => {
+        setLista(lancamentos);
+        setFaturas(listaFaturas);
+      })
       .catch((e) => setErro(e.message));
-  }, [mes, tipo, forma]);
+  }, [mes, aba, comFaturas]);
 
   useEffect(() => {
     setLista(null);
     carregar();
   }, [carregar]);
 
-  // A API já devolve do mais recente para o mais antigo; só juntamos por dia (em Brasília)
+  // Junta lançamentos e faturas por dia (em Brasília), do mais recente para o mais antigo.
+  // A fatura entra no dia do vencimento.
   const dias = useMemo(() => {
+    const itens = [
+      ...(lista ?? []).map((l) => ({ chave: l.id, dia: dataLocal(l.date), lancamento: l })),
+      ...faturas.map((f) => ({ chave: `fatura-${f.cardId}`, dia: f.dueDate ? dataLocal(f.dueDate) : `${f.month}-01`, fatura: f })),
+    ].sort((a, b) => (a.dia === b.dia ? 0 : a.dia < b.dia ? 1 : -1));
     const grupos = new Map();
-    for (const l of lista ?? []) {
-      const dia = dataLocal(l.date);
-      if (!grupos.has(dia)) grupos.set(dia, []);
-      grupos.get(dia).push(l);
+    for (const item of itens) {
+      if (!grupos.has(item.dia)) grupos.set(item.dia, []);
+      grupos.get(item.dia).push(item);
     }
     return [...grupos.entries()];
-  }, [lista]);
+  }, [lista, faturas]);
 
+  // Total da visão atual. Ajustes de saldo não contam (não são receita nem despesa).
+  const total = useMemo(() => {
+    const soma = (filtro) => (lista ?? []).filter((l) => !l.isAdjustment && filtro(l)).reduce((s, l) => s + Number(l.amount), 0);
+    const somaFaturas = faturas.reduce((s, f) => s + Number(f.total), 0);
+    const receitas = soma((l) => l.type === "INCOME");
+    const despesas = soma((l) => l.type === "EXPENSE") + somaFaturas;
+    if (aba === "EXPENSE") return despesas;
+    if (aba === "INCOME") return receitas;
+    if (aba === "TRANSFER") return soma((l) => l.type === "TRANSFER");
+    return receitas - despesas;
+  }, [lista, faturas, aba]);
+
+  const vazio = lista?.length === 0 && faturas.length === 0;
   const classeLinha = "flex w-full items-center gap-3 rounded-2xl px-2 py-3";
+  const classeBotao = `${classeLinha} transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30`;
 
   return (
-    <AppLayout onLancamentoSalvo={carregar}>
+    <AppLayout onLancamentoSalvo={carregar} barraInferior={<BarraFiltros aba={aba} onMudar={setAba} />}>
       <Alerta>{erroMe || erro}</Alerta>
 
-      <h1 className="font-heading text-3xl font-bold text-slate-900 md:text-4xl">Lançamentos</h1>
-
-      <SeletorMes mes={mes} onMudar={setMes} className="mt-5 max-w-sm" />
-
-      {/* Filtro por tipo e, embaixo, por forma de pagamento */}
-      <Chips rotulo="Filtrar por tipo" opcoes={filtros} valor={tipo} onMudar={setTipo} className="mt-4" />
-      <Chips rotulo="Filtrar por forma de pagamento" opcoes={formas} valor={forma} onMudar={setForma} className="mt-2" />
+      {/* Topo: título, total da visão e mês */}
+      <header className="overflow-hidden rounded-3xl bg-primary text-white shadow-[0_20px_50px_-12px_rgba(70,79,163,0.45)]">
+        <div className="flex items-end justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
+          <div className="min-w-0">
+            <h1 className="font-heading text-3xl font-bold md:text-4xl">Lançamentos</h1>
+            <p className="mt-1 text-sm text-white/80">{NOME_ABA[aba]}</p>
+          </div>
+          <div className="min-w-0 text-right" aria-live="polite">
+            <p className="text-xs uppercase tracking-wider text-white/75">{ROTULO_TOTAL[aba]}</p>
+            <p className="font-heading text-2xl font-bold [overflow-wrap:anywhere]">{lista === null ? "…" : formatarReais(total.toFixed(2))}</p>
+          </div>
+        </div>
+        <div className="bg-primary-dark/40 px-3 py-2">
+          <SeletorMes mes={mes} onMudar={setMes} className="mx-auto max-w-sm" />
+        </div>
+      </header>
 
       {lista === null && !erro && (
         <p role="status" className="mt-8 text-slate-500">
@@ -198,15 +260,13 @@ function Lancamentos() {
       )}
 
       {/* Nada no mês */}
-      {lista?.length === 0 && (
+      {vazio && (
         <div className="mt-8 rounded-3xl bg-white p-8 text-center shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)]">
           <FaReceipt aria-hidden="true" className="mx-auto text-4xl text-primary-light" />
-          <p className="mt-4 font-heading text-xl font-bold text-slate-900">
-            {tipo || forma ? "Nenhum lançamento com esse filtro" : "Nenhum lançamento neste mês"}
-          </p>
+          <p className="mt-4 font-heading text-xl font-bold text-slate-900">{VAZIO_ABA[aba] ?? "Nenhum lançamento neste mês"}</p>
           <p className="mt-2 text-slate-600">
-            {tipo || forma
-              ? "Escolha outro filtro ou outro mês."
+            {aba
+              ? "Escolha outra aba embaixo ou outro mês."
               : podeEditar
                 ? "Toque no botão + para registrar uma receita, despesa ou transferência."
                 : "Quando alguém da família lançar, aparece aqui."}
@@ -219,14 +279,22 @@ function Lancamentos() {
           <section key={dia} aria-label={nomeDoDia(dia)}>
             <h2 className="px-2 text-sm font-bold uppercase tracking-wider text-slate-500">{nomeDoDia(dia)}</h2>
             <ul className="mt-2 divide-y divide-slate-100 rounded-3xl bg-white p-2 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)]">
-              {itens.map((l) => (
-                <li key={l.id}>
-                  {podeEditar ? (
+              {itens.map(({ chave, lancamento: l, fatura: f }) => (
+                <li key={chave}>
+                  {f ? (
+                    <Link
+                      to={`/app/cartoes/${f.cardId}?mes=${f.month}`}
+                      aria-label={`Abrir fatura do ${f.cardName}, ${formatarReais(f.total)}`}
+                      className={classeBotao}
+                    >
+                      <LinhaFatura f={f} />
+                    </Link>
+                  ) : podeEditar ? (
                     <button
                       type="button"
                       onClick={() => setEdicao(l)}
                       aria-label={`Editar ${tipoEmTexto(l)} ${l.description}, ${formatarReais(l.amount)}`}
-                      className={`${classeLinha} transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30`}
+                      className={classeBotao}
                     >
                       <ConteudoLinha l={l} />
                     </button>
@@ -242,17 +310,7 @@ function Lancamentos() {
         ))}
       </div>
 
-      {edicao?.isCardExpense && (
-        <FormDespesaCartao
-          purchaseId={edicao.purchaseId}
-          onFechar={() => setEdicao(null)}
-          onSalvo={() => {
-            setEdicao(null);
-            carregar();
-          }}
-        />
-      )}
-      {edicao && !edicao.isCardExpense && (
+      {edicao && (
         <FormLancamento
           lancamento={edicao}
           onFechar={() => setEdicao(null)}

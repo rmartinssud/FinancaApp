@@ -29,6 +29,10 @@ export function serializar(t: LancamentoCompleto) {
     purchaseId: t.purchaseId,
     // Ajuste de saldo: mexe no saldo da conta, mas não é receita nem despesa do mês
     isAdjustment: t.isAdjustment,
+    notes: t.notes,
+    // Repetição: lançamentos do mesmo grupo (parcelar, repetir ou fixa mensal)
+    groupId: t.groupId,
+    recurrence: t.recurrence,
     // Atalhos para o app: compra no cartão ou pagamento de fatura
     isCardExpense: t.type === "EXPENSE" && t.invoiceMonth !== null,
     isInvoicePayment: t.type === "TRANSFER" && t.invoiceMonth !== null,
