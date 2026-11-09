@@ -142,3 +142,44 @@ export async function cartoesComFatura(householdId: string, filtro: Prisma.Finan
     };
   });
 }
+
+// Faturas que vencem no mês "mes", uma por cartão (só as que têm compras).
+// Na tela de Lançamentos elas aparecem no lugar das compras no cartão.
+// O total é o mesmo que entra como despesa no resumo do mês (compras com invoiceMonth = mes).
+export async function faturasDoMes(householdId: string, mes: string) {
+  const compras = await prisma.transaction.groupBy({
+    by: ["accountId"],
+    where: { householdId, type: "EXPENSE", invoiceMonth: mes, account: { type: "CREDIT_CARD" } },
+    _sum: { amount: true },
+  });
+  if (compras.length === 0) return [];
+  const ids = compras.map((c) => c.accountId);
+  const [cartoes, pagamentos] = await Promise.all([
+    prisma.financialAccount.findMany({ where: { householdId, id: { in: ids } }, orderBy: { createdAt: "asc" } }),
+    prisma.transaction.groupBy({
+      by: ["toAccountId"],
+      where: { householdId, toAccountId: { in: ids }, type: "TRANSFER", status: "CONFIRMED", invoiceMonth: mes },
+      _sum: { amount: true },
+    }),
+  ]);
+  return cartoes.map((c) => {
+    const total = compras.find((x) => x.accountId === c.id)?._sum.amount ?? ZERO;
+    const pago = pagamentos.find((x) => x.toAccountId === c.id)?._sum.amount ?? ZERO;
+    const datas = c.closingDay && c.dueDay ? datasDaFatura(mes, { closingDay: c.closingDay, dueDay: c.dueDay }) : null;
+    const status = datas ? situacaoDaFatura(total, pago, datas.closingDate, datas.dueDate) : total.gt(0) && pago.gte(total) ? "PAID" : "OPEN";
+    return {
+      cardId: c.id,
+      cardName: c.name,
+      brand: c.brand,
+      color: c.color,
+      month: mes,
+      total: total.toFixed(2),
+      paidAmount: pago.toFixed(2),
+      remaining: Decimal.max(total.minus(pago), ZERO).toFixed(2),
+      dueDate: datas?.dueDate.toISOString() ?? null,
+      closingDate: datas?.closingDate.toISOString() ?? null,
+      status,
+      paid: status === "PAID",
+    };
+  });
+}

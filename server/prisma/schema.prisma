@@ -142,6 +142,13 @@ enum TransactionStatus {
   CONFIRMED
 }
 
+// Repetição de receita/despesa comum (Lançamentos → Repetição)
+enum Recurrence {
+  INSTALLMENT // parcelado: o valor foi dividido entre as parcelas (k/N)
+  REPEAT // repetido: o mesmo valor todo mês (k/N)
+  FIXED // fixa mensal: 12 meses, o mesmo valor
+}
+
 enum TransactionSource {
   APP
   WHATSAPP
@@ -242,6 +249,12 @@ model Transaction {
   // Ajuste de saldo (Contas → "Ajustar saldo"): mexe no saldo da conta,
   // mas não conta como receita nem despesa no resumo do mês.
   isAdjustment      Boolean           @default(false)
+  // Observações livres do lançamento
+  notes             String?
+  // Receita/despesa repetida (parcelar, repetir ou fixa mensal): os lançamentos do
+  // grupo têm o mesmo groupId. Editar ou apagar mexe só no lançamento escolhido.
+  groupId           String?
+  recurrence        Recurrence?
   source            TransactionSource @default(APP)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -257,5 +270,6 @@ model Transaction {
   @@index([toAccountId])
   @@index([householdId, invoiceMonth])
   @@index([purchaseId])
+  @@index([groupId])
   @@map("transactions")
 }

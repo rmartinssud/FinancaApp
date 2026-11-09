@@ -96,10 +96,11 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 
 | Método | Rota | O que faz |
 |---|---|---|
-| GET | `/api/transactions?month=&accountId=&categoryId=&type=&accountType=` | Lançamentos do mês, mais recentes primeiro, com `category` e `account`. `accountType` (`WALLET`/`BANK`/`CREDIT_CARD`) filtra pela forma de pagamento; transferências entram se a origem ou o destino for desse tipo. |
-| POST | `/api/transactions` | Cria receita/despesa: `type` (`INCOME`/`EXPENSE`), `amount` > 0, `description` (1–120), `date`, `accountId`, `categoryId` (opcional, do mesmo tipo), `status` (`CONFIRMED` padrão ou `PENDING`). Transferência: veja a Fase 3b. |
-| PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima. Compra no cartão e pagamento de fatura não se alteram por aqui (409). |
-| DELETE | `/api/transactions/:id` | Apaga o lançamento (204). Parcela de compra no cartão apaga a compra inteira; pagamento de fatura é desfeito. |
+| GET | `/api/transactions?month=&accountId=&categoryId=&type=&accountType=` | Lançamentos do mês, mais recentes primeiro, com `category`, `account`, `notes`, `groupId` e `recurrence`. **Compras no cartão não vêm** (no lugar delas o app mostra a linha da fatura, veja `/invoices`), a não ser que `accountId` seja um cartão ou `accountType=CREDIT_CARD`. `accountType` (`WALLET`/`BANK`/`CREDIT_CARD`) filtra pela forma de pagamento (a tela não usa mais); transferências entram se a origem ou o destino for desse tipo. |
+| GET | `/api/transactions/invoices?month=` | Uma linha por cartão com fatura que **vence** no mês: `cardId`, `cardName`, `brand`, `color`, `month`, `total`, `paidAmount`, `remaining`, `dueDate`, `closingDate`, `status` (`OPEN`/`CLOSED`/`PAID`/`OVERDUE`) e `paid` (true/false). Só cartões com compras no mês. O `total` é o mesmo valor que entra como despesa no resumo do mês. |
+| POST | `/api/transactions` | Cria receita/despesa: `type` (`INCOME`/`EXPENSE`), `amount` > 0, `description` (1–120), `date`, `accountId`, `categoryId` (opcional, do mesmo tipo), `status` (`CONFIRMED` padrão ou `PENDING`), `notes` (opcional, até 1000). Repetição (opcional): `recurrence` = `NONE` (padrão), `INSTALLMENT` (parcelar: divide `amount` em `times` meses, 2–48, centavos na 1ª), `REPEAT` (repetir: o mesmo `amount` por `times` meses) ou `FIXED` (fixa mensal: 12 meses, o mesmo valor). Com repetição, cria um lançamento por mês com o mesmo `groupId`; o 1º segue o `status` e os outros ficam `PENDING`; parcelar/repetir têm `installmentNumber`/`installmentTotal` ("2/6"). A resposta é o 1º lançamento com `group` (todos). Transferência: veja a Fase 3b (sem repetição). |
+| PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima (menos a repetição), inclusive `notes` (`""` ou `null` limpa). Num lançamento de repetição, mexe **só nele**. Compra no cartão e pagamento de fatura não se alteram por aqui (409). |
+| DELETE | `/api/transactions/:id` | Apaga o lançamento (204). Parcela de compra no cartão apaga a compra inteira; pagamento de fatura é desfeito. Lançamento de repetição (parcelar/repetir/fixa): apaga **só ele**. |
 | GET | `/api/categories?type=` | Categorias da família (`INCOME` ou `EXPENSE`). |
 | POST | `/api/categories` | Cria: `name` (1–40), `type`, `color` (`#RRGGBB`), `icon`. |
 | PATCH | `/api/categories/:id` | Altera `name`, `color` ou `icon` (o tipo não muda). |
@@ -143,7 +144,19 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 3. Veja se cada receita e despesa foi lançada na **conta certa**.
 4. Se ainda houver diferença, vá em **Contas**, toque na conta e use **Ajustar saldo**: digite o saldo que aparece no banco hoje. O ajuste não conta como receita nem despesa do mês e pode ser apagado.
 
-No filtro de Lançamentos, a forma de pagamento vem do tipo da conta: Cartão (cartão de crédito), Débito/Pix (conta bancária) e Dinheiro (carteira).
+### Usando a tela de Lançamentos
+
+- **Topo**: o título, o **total da aba** (Despesas: total de despesas; Receitas: total de receitas; Transfs: total transferido; Extrato: receitas − despesas) e o mês (‹ Novembro ›). Ajustes de saldo não entram no total.
+- **Barra de baixo** com 4 abas: **Despesas**, **Receitas**, **Transfs** (transferências e pagamentos de fatura) e **Extrato** (tudo). O botão **+** fica logo acima da barra.
+- **Compras no cartão não aparecem uma a uma.** Em Despesas e no Extrato aparece **uma linha por cartão**: "Fatura Nubank", com o total da fatura que vence no mês, o dia do vencimento e a situação (aberta, fechada, paga, vencida). Toque nela para abrir a fatura do cartão naquele mês. As compras ficam em **Cartões** → cartão → fatura. O total da fatura é o mesmo que entra como despesa no Início.
+- **Nova Receita / Nova Despesa** (botão +): abre em tela cheia, com **Salvar** no canto de cima. Campos: Descrição, Valor, **Repetição**, Data (vencimento), **Efetivada** (ligado = pago/recebido; desligado = pendente, não mexe no saldo), Categoria (o **+** cria uma categoria nova), Conta e, em **Mais informações**, **Observações**.
+- **Repetição**:
+  - **Não recorrente**: um lançamento só.
+  - **Parcelar ou repetir**: diga quantas vezes (2 a 48). **Parcelar** divide o valor (R$ 300 em 3x → 3 × R$ 100, os centavos que sobram vão na 1ª); **Repetir** lança o mesmo valor todo mês. Cada um aparece no seu mês com o selo "2/3".
+  - **Fixa mensal**: lança este mês e os próximos 11 (12 no total), com o selo "Fixa".
+  - Só o 1º lançamento segue o "Efetivada"; os dos meses seguintes ficam **pendentes** até você confirmar. Alterar ou apagar um deles mexe **só naquele** lançamento.
+- Itens com o selo **Em breve** (Subcategoria, Tags, Multicategorias, Data lançamento, Encargos/Desconto, Anexo, Não efetivar automaticamente e os "Ignorar em…") ainda não funcionam.
+- **Despesa cartão** (no botão +) e **Ajuste de saldo** (em Contas) continuam como antes.
 
 ### Começando com um cartão que já está em uso
 

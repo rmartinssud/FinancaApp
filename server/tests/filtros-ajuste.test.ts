@@ -38,11 +38,12 @@ async function cenarioFormas(nome: string) {
 }
 
 describe("Lançamentos: filtro por forma de pagamento (accountType)", () => {
-  it("sem filtro traz tudo do mês", async () => {
+  it("sem filtro traz tudo do mês, menos as compras no cartão (que viram a linha da fatura)", async () => {
     const { agent } = await cenarioFormas("Bia Todas");
     const res = await agent.get("/api/transactions?month=2026-10");
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(6);
+    expect(res.body).toHaveLength(5);
+    expect(descricoes(res.body)).not.toContain("Cinema");
   });
 
   it("Cartão (CREDIT_CARD): compra no cartão e o pagamento da fatura", async () => {

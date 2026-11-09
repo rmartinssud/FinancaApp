@@ -18,7 +18,8 @@ const RECORTE_FECHADO = "inset(calc(100% - 56px) 0 0 calc(100% - 56px) round 28p
 const RECORTE_ABERTO = "inset(0 0 0 0 round 20px)";
 
 // Botão redondo "+" que vira o menu de novo lançamento (Transferência, Receita, Despesa, Despesa cartão)
-function NovoLancamento({ onSalvo }) {
+// acimaDaBarra: na tela de Lançamentos o botão sobe para não cobrir a barra de filtros de baixo.
+function NovoLancamento({ onSalvo, acimaDaBarra = false }) {
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState(null); // "TRANSFER" | "INCOME" | "EXPENSE" | "CARD"
   const botao = useRef(null);
@@ -68,7 +69,11 @@ function NovoLancamento({ onSalvo }) {
       />
 
       <div
-        className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-50 w-60 transition-[clip-path,background-color,box-shadow] lg:bottom-8 lg:right-8 ${transicao} ${
+        className={`fixed right-4 z-50 w-60 transition-[clip-path,background-color,box-shadow] lg:right-8 ${
+          acimaDaBarra
+            ? "bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(4rem+2rem)]"
+            : "bottom-[calc(1rem+env(safe-area-inset-bottom))] lg:bottom-8"
+        } ${transicao} ${
           aberto ? "bg-white shadow-2xl" : "bg-primary shadow-[0_12px_30px_-6px_rgba(70,79,163,0.7)]"
         }`}
         style={{ clipPath: aberto ? RECORTE_ABERTO : RECORTE_FECHADO }}
