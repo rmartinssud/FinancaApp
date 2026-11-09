@@ -6,6 +6,7 @@ export const incluir = {
   category: { select: { id: true, name: true, color: true, icon: true } },
   account: { select: { id: true, name: true, type: true } },
   toAccount: { select: { id: true, name: true, type: true } },
+  createdBy: { select: { id: true, name: true } },
 } satisfies Prisma.TransactionInclude;
 
 export type LancamentoCompleto = Prisma.TransactionGetPayload<{ include: typeof incluir }>;
@@ -22,6 +23,8 @@ export function serializar(t: LancamentoCompleto) {
     installmentTotal: t.installmentTotal,
     source: t.source,
     createdById: t.createdById,
+    // Quem lançou (útil no espaço da família / cartão adicional)
+    createdBy: t.createdBy,
     category: t.category,
     account: t.account,
     toAccount: t.toAccount,

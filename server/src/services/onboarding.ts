@@ -14,15 +14,10 @@ export const CATEGORIAS_PADRAO = [
   { name: "Outros", type: "INCOME", color: "#737dd9", icon: "plus" },
 ] as const;
 
-// Chamado logo após o cadastro: cria a família (dono = usuário),
-// a conta "Carteira" e as categorias padrão, tudo de uma vez.
-export async function criarFamiliaInicial(user: { id: string; name: string }) {
-  const primeiroNome = user.name.trim().split(" ")[0] || "Minha";
-
+// Cria um espaço com o usuário como dono, a conta "Carteira" e as categorias padrão.
+export async function criarEspaco(user: { id: string }, name: string, isPersonal = false) {
   return prisma.$transaction(async (tx) => {
-    const household = await tx.household.create({
-      data: { name: `Família ${primeiroNome}` },
-    });
+    const household = await tx.household.create({ data: { name, isPersonal } });
 
     await tx.householdMember.create({
       data: { householdId: household.id, userId: user.id, role: "OWNER" },
@@ -38,4 +33,9 @@ export async function criarFamiliaInicial(user: { id: string; name: string }) {
 
     return household;
   });
+}
+
+// Chamado logo após o cadastro: cria o espaço "Pessoal" da pessoa.
+export async function criarFamiliaInicial(user: { id: string; name: string }) {
+  return criarEspaco(user, "Pessoal", true);
 }

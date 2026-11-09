@@ -31,6 +31,11 @@ model User {
   memberships  HouseholdMember[]
   transactions Transaction[]
 
+  // Espaço ativo (o último usado). Se a pessoa sair dele, voltamos ao mais antigo.
+  lastHouseholdId String?
+  lastHousehold   Household?        @relation("LastHousehold", fields: [lastHouseholdId], references: [id], onDelete: SetNull)
+  invitesSent     HouseholdInvite[] @relation("InviteSentBy")
+
   @@map("users")
 }
 
@@ -154,13 +159,19 @@ enum TransactionSource {
   WHATSAPP
 }
 
-// Uma "casa": o grupo da família que compartilha as finanças
+// Um "espaço": o grupo que compartilha as finanças (Pessoal, Família Martins...).
+// Uma pessoa pode estar em vários espaços; cada um tem contas, cartões,
+// categorias e lançamentos próprios.
 model Household {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  name       String
+  // Espaço pessoal criado no cadastro: não pode ser apagado
+  isPersonal Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   members      HouseholdMember[]
+  invites      HouseholdInvite[]
+  lastUsedBy   User[]            @relation("LastHousehold")
   accounts     FinancialAccount[]
   categories   Category[]
   transactions Transaction[]
@@ -181,6 +192,28 @@ model HouseholdMember {
   @@unique([householdId, userId])
   @@index([userId])
   @@map("household_members")
+}
+
+// Convite para entrar num espaço (por email ou link para compartilhar).
+// Guardamos só o hash do token; o link completo aparece uma vez (ao criar/reenviar).
+model HouseholdInvite {
+  id          String     @id @default(cuid())
+  householdId String
+  email       String? // vazio = convite por link (WhatsApp)
+  role        MemberRole @default(MEMBER)
+  tokenHash   String     @unique
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  acceptedBy  String?
+  canceledAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("InviteSentBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@map("household_invites")
 }
 
 // Carteira, conta bancária ou cartão de crédito
@@ -231,7 +264,8 @@ model Transaction {
   householdId       String
   accountId         String
   categoryId        String?
-  createdById       String
+  // Quem lançou (vazio em lançamentos de quem apagou a conta)
+  createdById       String?
   type              TransactionType
   amount            Decimal           @db.Decimal(12, 2)
   description       String
@@ -263,7 +297,7 @@ model Transaction {
   account   FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   toAccount FinancialAccount? @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
   category  Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  createdBy User              @relation(fields: [createdById], references: [id])
+  createdBy User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([householdId, date])
   @@index([accountId])

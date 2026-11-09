@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { CHAVE_CONVITE } from "../lib/convite.js";
 import { FaBars } from "react-icons/fa6";
 import logo from "../assets/logo-financas.webp";
 import { signOut } from "../lib/auth-client.js";
@@ -21,6 +22,16 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInf
   const gaveta = useRef(null);
   const idTitulo = useId();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Abriu um convite sem estar logado: depois de entrar (ou confirmar o cadastro), volta para ele
+  useEffect(() => {
+    const token = localStorage.getItem(CHAVE_CONVITE);
+    if (token) {
+      localStorage.removeItem(CHAVE_CONVITE);
+      navigate(`/convite/${token}`, { replace: true });
+    }
+  }, [navigate]);
 
   async function sair() {
     setSaindo(true);

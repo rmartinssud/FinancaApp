@@ -21,7 +21,7 @@ describe("cadastro", () => {
 
     const { role, household } = user.memberships[0];
     expect(role).toBe("OWNER");
-    expect(household.name).toBe("Família João");
+    expect(household.name).toBe("Pessoal");
     expect(household.accounts.map((a) => a.name)).toEqual(["Carteira"]);
     expect(household.accounts[0].initialBalance.toFixed(2)).toBe("0.00");
     expect(household.categories).toHaveLength(10);
@@ -85,7 +85,7 @@ describe("GET /api/me", () => {
     const res = await agent.get("/api/me");
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe(email);
-    expect(res.body.household.name).toBe("Família Ana");
+    expect(res.body.household.name).toBe("Pessoal");
     expect(res.body.household.role).toBe("OWNER");
   });
 });

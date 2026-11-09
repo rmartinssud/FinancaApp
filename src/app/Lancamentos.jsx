@@ -6,6 +6,7 @@ import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
 import { useMe } from "./useMe.js";
+import { QuemLancou } from "./componentes/Avatar.jsx";
 import Alerta from "../auth/Alerta.jsx";
 import { api, formatarReais } from "../lib/api.js";
 import { dataLocal, mesAtual, nomeDoDia } from "../lib/datas.js";
@@ -83,7 +84,7 @@ function LinhaAjuste({ l }) {
 }
 
 // Conteúdo de uma linha da lista (ícone, descrição, conta e valor)
-function ConteudoLinha({ l }) {
+function ConteudoLinha({ l, mostrarQuem }) {
   if (l.isAdjustment) return <LinhaAjuste l={l} />;
   if (l.type === "TRANSFER") return <LinhaTransferencia l={l} />;
   const receita = l.type === "INCOME";
@@ -100,6 +101,7 @@ function ConteudoLinha({ l }) {
         <span className="block truncate text-sm text-slate-500">
           {l.category?.name ?? "Sem categoria"} · {l.account.name}
           {l.status === "PENDING" && " · pendente"}
+          {mostrarQuem && <QuemLancou pessoa={l.createdBy} />}
         </span>
       </span>
       <span className={`shrink-0 font-bold ${receita ? "text-emerald-700" : "text-red-600"}`}>
@@ -174,27 +176,37 @@ function BarraFiltros({ aba, onMudar }) {
 
 // Lista de lançamentos do mês, agrupada por dia
 function Lancamentos() {
-  const { erroMe, podeEditar } = useMe();
+  const { erroMe, podeEditar, compartilhado } = useMe();
   const [mes, setMes] = useState(mesAtual);
   const [aba, setAba] = useState("");
+  // Filtro "Pessoa" (só em espaço com mais de uma pessoa): mostra as compras no cartão uma a uma
+  const [pessoa, setPessoa] = useState("");
+  const [pessoas, setPessoas] = useState([]);
   const [lista, setLista] = useState(null);
   const [faturas, setFaturas] = useState([]);
   const [erro, setErro] = useState("");
   // null = janela fechada; objeto = editando
   const [edicao, setEdicao] = useState(null);
 
-  const comFaturas = aba === "" || aba === "EXPENSE";
+  const comFaturas = !pessoa && (aba === "" || aba === "EXPENSE");
+
+  useEffect(() => {
+    if (!compartilhado) return;
+    api("/family")
+      .then((f) => setPessoas(f.members))
+      .catch(() => setPessoas([]));
+  }, [compartilhado]);
 
   const carregar = useCallback(() => {
     setErro("");
-    const filtroTipo = aba ? `&type=${aba}` : "";
+    const filtroTipo = (aba ? `&type=${aba}` : "") + (pessoa ? `&createdById=${encodeURIComponent(pessoa)}` : "");
     Promise.all([api(`/transactions?month=${mes}${filtroTipo}`), comFaturas ? api(`/transactions/invoices?month=${mes}`) : []])
       .then(([lancamentos, listaFaturas]) => {
         setLista(lancamentos);
         setFaturas(listaFaturas);
       })
       .catch((e) => setErro(e.message));
-  }, [mes, aba, comFaturas]);
+  }, [mes, aba, pessoa, comFaturas]);
 
   useEffect(() => {
     setLista(null);
@@ -242,6 +254,23 @@ function Lancamentos() {
           <div className="min-w-0">
             <h1 className="font-heading text-3xl font-bold md:text-4xl">Lançamentos</h1>
             <p className="mt-1 text-sm text-white/80">{NOME_ABA[aba]}</p>
+            {pessoas.length > 1 && (
+              <label className="mt-2 inline-flex items-center gap-2 text-sm text-white/90">
+                <span>Pessoa</span>
+                <select
+                  value={pessoa}
+                  onChange={(e) => setPessoa(e.target.value)}
+                  className="min-h-9 max-w-40 rounded-full border border-white/30 bg-primary-dark/40 px-3 text-sm font-bold text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+                >
+                  <option value="">Todas</option>
+                  {pessoas.map((p) => (
+                    <option key={p.userId} value={p.userId}>
+                      {p.name.trim().split(/\s+/)[0]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <div className="min-w-0 text-right" aria-live="polite">
             <p className="text-xs uppercase tracking-wider text-white/75">{ROTULO_TOTAL[aba]}</p>
@@ -296,11 +325,11 @@ function Lancamentos() {
                       aria-label={`Editar ${tipoEmTexto(l)} ${l.description}, ${formatarReais(l.amount)}`}
                       className={classeBotao}
                     >
-                      <ConteudoLinha l={l} />
+                      <ConteudoLinha l={l} mostrarQuem={compartilhado} />
                     </button>
                   ) : (
                     <div className={classeLinha}>
-                      <ConteudoLinha l={l} />
+                      <ConteudoLinha l={l} mostrarQuem={compartilhado} />
                     </div>
                   )}
                 </li>
