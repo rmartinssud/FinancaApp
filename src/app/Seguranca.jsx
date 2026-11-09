@@ -101,7 +101,7 @@ function Seguranca() {
   return (
     <AppLayout>
       <p className="text-sm font-bold uppercase tracking-widest text-primary">Conta</p>
-      <h1 className="mt-2 font-heading text-4xl font-bold text-slate-900">Segurança</h1>
+      <h1 className="mt-2 font-heading text-2xl font-bold text-slate-900 md:text-4xl">Segurança</h1>
 
       <section className={`mt-8 max-w-2xl ${cartao}`} aria-labelledby="titulo-2fa">
         <div className="flex items-start gap-4">

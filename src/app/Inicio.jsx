@@ -25,7 +25,7 @@ function CartaoTotal({ titulo, valor, Icone, cor, destaque = false }) {
         <Icone aria-hidden="true" className={destaque ? "text-sky-200" : cor} />
         <h2 className={`text-xs font-bold uppercase tracking-wider sm:text-sm sm:tracking-widest ${destaque ? "text-sky-100" : "text-slate-500"}`}>{titulo}</h2>
       </div>
-      <p className={`mt-2 font-heading font-bold [overflow-wrap:anywhere] ${destaque ? "text-2xl" : `text-lg sm:text-2xl ${cor}`}`}>{valor === undefined ? "..." : formatarReais(valor)}</p>
+      <p className={`mt-2 whitespace-nowrap font-heading font-bold ${destaque ? "text-xl md:text-2xl" : `text-base sm:text-2xl ${cor}`}`}>{valor === undefined ? "..." : formatarReais(valor)}</p>
     </section>
   );
 }
@@ -58,7 +58,7 @@ function Inicio() {
       <Alerta>{erroMe || erro}</Alerta>
 
       <section aria-labelledby="saudacao">
-        <h1 id="saudacao" className="font-heading text-3xl font-bold text-slate-900 md:text-5xl">
+        <h1 id="saudacao" className="font-heading text-2xl font-bold text-slate-900 md:text-5xl">
           Olá, <Destaque>{primeiroNome ?? "..."}</Destaque>
         </h1>
         <p className="mt-2 text-slate-600">{me ? me.household.name : "Resumo das finanças da sua família."}</p>
