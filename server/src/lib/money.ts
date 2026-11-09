@@ -43,6 +43,12 @@ export function mesAtual() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: FUSO, year: "numeric", month: "2-digit" }).format(new Date());
 }
 
+// Hoje em Brasília como data de lançamento (12:00 UTC = 09:00 em Brasília, igual a uma data "AAAA-MM-DD")
+export function hojeComoData() {
+  const dia = new Intl.DateTimeFormat("en-CA", { timeZone: FUSO, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return new Date(`${dia}T12:00:00.000Z`);
+}
+
 // Início e fim do mês no horário de Brasília (UTC-3 fixo: sem horário de verão desde 2019).
 // Uso: where: { date: intervaloDoMes("2026-11") }
 export function intervaloDoMes(mes: string) {

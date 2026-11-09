@@ -96,7 +96,7 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 
 | Método | Rota | O que faz |
 |---|---|---|
-| GET | `/api/transactions?month=&accountId=&categoryId=&type=` | Lançamentos do mês, mais recentes primeiro, com `category` e `account`. |
+| GET | `/api/transactions?month=&accountId=&categoryId=&type=&accountType=` | Lançamentos do mês, mais recentes primeiro, com `category` e `account`. `accountType` (`WALLET`/`BANK`/`CREDIT_CARD`) filtra pela forma de pagamento; transferências entram se a origem ou o destino for desse tipo. |
 | POST | `/api/transactions` | Cria receita/despesa: `type` (`INCOME`/`EXPENSE`), `amount` > 0, `description` (1–120), `date`, `accountId`, `categoryId` (opcional, do mesmo tipo), `status` (`CONFIRMED` padrão ou `PENDING`). Transferência: veja a Fase 3b. |
 | PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima. Compra no cartão e pagamento de fatura não se alteram por aqui (409). |
 | DELETE | `/api/transactions/:id` | Apaga o lançamento (204). Parcela de compra no cartão apaga a compra inteira; pagamento de fatura é desfeito. |
@@ -108,7 +108,8 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 | POST | `/api/accounts` | Cria: `name`, `type` (`WALLET`/`BANK`/`CREDIT_CARD`), `initialBalance` (padrão 0). `creditLimit`, `closingDay` e `dueDay` só para cartão. |
 | PATCH | `/api/accounts/:id` | Altera a conta. Se deixar de ser cartão, os campos de cartão são limpos. |
 | DELETE | `/api/accounts/:id` | Apaga a conta e os lançamentos dela, inclusive transferências (204). A última conta (que não seja cartão) não pode ser apagada (409). |
-| GET | `/api/summary?month=` | Resumo do mês (só confirmados): `totals` (receitas, despesas, saldo), `byCategory` (despesas por categoria, maior primeiro) e `accounts` com saldo atual. Transferências não entram; compras no cartão contam no mês do **vencimento da fatura**. |
+| POST | `/api/accounts/:id/adjust` | Ajustar saldo: recebe `balance` (saldo real hoje) e lança a diferença como "Ajuste de saldo" (`isAdjustment`). Não vale para cartão (400). Se já bate, `adjustment: null`. |
+| GET | `/api/summary?month=` | Resumo do mês (só confirmados): `totals` (receitas, despesas, saldo), `byCategory` (despesas por categoria, maior primeiro) e `accounts` com saldo atual. Transferências não entram; compras no cartão contam no mês do **vencimento da fatura**. Ajustes de saldo não entram. |
 
 ## Transferências, cartões e faturas (Fase 3b)
 
@@ -135,6 +136,14 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 | DELETE | `/api/card-expenses/:purchaseId` | Apaga a compra e as parcelas (204). |
 
 **Compra parcelada já em andamento** (`currentInstallment` > 1): para compras que começaram antes de usar o app. `currentInstallment` é a parcela que cai na **fatura atual** do cartão (onde entraria uma compra feita hoje). Mande `amount` com o valor **total** da compra e `date` com a data **original** (não pode ser depois de hoje). O total é dividido entre todas as parcelas, como no banco, mas só são lançadas as parcelas de `currentInstallment` até o fim: a parcela atual na fatura atual e as seguintes nas próximas faturas, com os rótulos certos ("4/10" … "10/10"). A data de cada parcela é a data da compra + (parcela − 1) meses, só para exibir. Ex.: compra de R$ 1.000 em 10x feita em julho, parcela 4 na fatura atual → 7 parcelas de R$ 100, a primeira na fatura atual. Assim o limite usado e o total das faturas mostram só o que falta pagar. Ao editar, a 1ª parcela existente diz qual era a parcela atual. As regras de fatura com pagamento (409) continuam valendo.
+
+### Saldo não bate com o banco?
+1. Confira o **saldo inicial** da conta: ele deve ser o saldo do banco no dia em que você começou a usar o app. Não lance de novo despesas antigas que já estavam descontadas nesse saldo.
+2. Lançamentos **pendentes** não mexem no saldo até serem confirmados.
+3. Veja se cada receita e despesa foi lançada na **conta certa**.
+4. Se ainda houver diferença, vá em **Contas**, toque na conta e use **Ajustar saldo**: digite o saldo que aparece no banco hoje. O ajuste não conta como receita nem despesa do mês e pode ser apagado.
+
+No filtro de Lançamentos, a forma de pagamento vem do tipo da conta: Cartão (cartão de crédito), Débito/Pix (conta bancária) e Dinheiro (carteira).
 
 ### Começando com um cartão que já está em uso
 

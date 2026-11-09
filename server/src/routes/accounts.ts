@@ -4,8 +4,9 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
-import { valorComSinal, valorNaoNegativo } from "../lib/money.js";
+import { valorComSinal, valorNaoNegativo, hojeComoData } from "../lib/money.js";
 import { contasComSaldo, serializarConta } from "../services/saldos.js";
+import { incluir, serializar } from "../services/lancamentos.js";
 
 export const accountsRouter = Router();
 
@@ -45,6 +46,11 @@ const edicaoConta = z.object({
   creditLimit: valorNaoNegativo.nullable().optional(),
   closingDay: dia.nullable().optional(),
   dueDay: dia.nullable().optional(),
+});
+
+// Ajuste de saldo: o saldo que aparece no banco hoje (pode ser negativo)
+const ajusteSaldo = z.object({
+  balance: valorComSinal,
 });
 
 // GET /api/accounts?type=WALLET → contas da família com o saldo atual
@@ -101,4 +107,40 @@ accountsRouter.delete("/:id", async (req, res) => {
 
   await prisma.financialAccount.delete({ where: { id: conta.id } });
   res.status(204).end();
+});
+
+// POST /api/accounts/:id/adjust { balance } → acerta o saldo da conta com o do banco.
+// Cria um lançamento confirmado, com a data de hoje, pela diferença (receita se faltava, despesa se sobrava),
+// marcado como ajuste: mexe no saldo, mas não entra em receitas, despesas nem categorias do mês.
+// Se o saldo já bate, não cria nada. Cartão de crédito não tem saldo para ajustar.
+accountsRouter.post("/:id/adjust", validateBody(ajusteSaldo), async (req, res) => {
+  const { balance } = req.body as z.infer<typeof ajusteSaldo>;
+  const conta = await prisma.financialAccount.findFirst({ where: { id: String(req.params.id), ...scope(req) } });
+  if (!conta) return res.status(404).json({ error: "Conta não encontrada." });
+  if (conta.type === "CREDIT_CARD") {
+    return res.status(400).json({ error: "Cartão de crédito não tem saldo para ajustar. Confira a fatura em Cartões de crédito." });
+  }
+
+  const [atual] = (await contasComSaldo(scope(req).householdId)).filter((c) => c.id === conta.id);
+  const diferenca = balance.minus(atual.currentBalance);
+  if (diferenca.isZero()) {
+    return res.json({ adjustment: null, previousBalance: atual.currentBalance, account: atual });
+  }
+
+  const ajuste = await prisma.transaction.create({
+    data: {
+      ...scope(req),
+      accountId: conta.id,
+      createdById: req.user!.id,
+      type: diferenca.gt(0) ? "INCOME" : "EXPENSE",
+      amount: diferenca.abs(),
+      description: "Ajuste de saldo",
+      date: hojeComoData(),
+      status: "CONFIRMED",
+      isAdjustment: true,
+    },
+    include: incluir,
+  });
+  const [depois] = (await contasComSaldo(scope(req).householdId)).filter((c) => c.id === conta.id);
+  res.status(201).json({ adjustment: serializar(ajuste), previousBalance: atual.currentBalance, account: depois });
 });

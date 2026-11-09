@@ -20,7 +20,7 @@ export function serializarConta(c: FinancialAccount) {
 
 // Contas da família com o saldo atual:
 // saldo inicial + receitas − despesas + transferências recebidas − transferências enviadas
-// (só lançamentos confirmados). Compras no cartão (com invoiceMonth) não mexem em saldo de conta:
+// (só lançamentos confirmados; ajustes de saldo entram aqui como receita/despesa da conta). Compras no cartão (com invoiceMonth) não mexem em saldo de conta:
 // o dinheiro só sai da conta quando a fatura é paga (uma transferência para o cartão).
 export async function contasComSaldo(householdId: string, type?: FinancialAccount["type"]) {
   const contas = await prisma.financialAccount.findMany({

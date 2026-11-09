@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard } from "react-icons/fa6";
+import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
@@ -18,8 +18,39 @@ const filtros = [
   { valor: "TRANSFER", texto: "Transferências" },
 ];
 
+// Forma de pagamento: vem do tipo da conta (cartão de crédito, conta no banco ou carteira).
+// Transferências aparecem quando a origem ou o destino é dessa forma (ex.: pagamento da fatura em "Cartão").
+const formas = [
+  { valor: "", texto: "Todas as formas" },
+  { valor: "CREDIT_CARD", texto: "Cartão" },
+  { valor: "BANK", texto: "Débito/Pix" },
+  { valor: "WALLET", texto: "Dinheiro" },
+];
+
+// Linha de botões (chips) que rola para o lado no celular
+function Chips({ rotulo, opcoes, valor, onMudar, className = "" }) {
+  return (
+    <div role="group" aria-label={rotulo} className={`-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 ${className}`}>
+      {opcoes.map((f) => (
+        <button
+          key={f.valor}
+          type="button"
+          aria-pressed={valor === f.valor}
+          onClick={() => onMudar(f.valor)}
+          className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-5 font-bold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
+            valor === f.valor ? "bg-primary text-white shadow" : "bg-white text-slate-700 hover:text-primary"
+          }`}
+        >
+          {f.texto}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // Como ler cada lançamento (para o leitor de tela e o rótulo do botão)
 function tipoEmTexto(l) {
+  if (l.isAdjustment) return "ajuste de saldo";
   if (l.isInvoicePayment) return "pagamento de fatura";
   if (l.type === "TRANSFER") return "transferência";
   if (l.isCardExpense) return "despesa no cartão";
@@ -50,8 +81,30 @@ function LinhaTransferencia({ l }) {
   );
 }
 
+// Ajuste de saldo: visual neutro (não é receita nem despesa do mês)
+function LinhaAjuste({ l }) {
+  const entrou = l.type === "INCOME";
+  return (
+    <>
+      <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-lg text-slate-600">
+        <FaScaleBalanced />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block truncate font-bold text-slate-900">Ajuste de saldo</span>
+        <span className="block truncate text-sm text-slate-500">{l.account.name} · não conta no mês</span>
+      </span>
+      <span className="shrink-0 font-bold text-slate-600">
+        <span className="sr-only">{entrou ? "Ajuste para mais de" : "Ajuste para menos de"} </span>
+        <span aria-hidden="true">{entrou ? "+ " : "− "}</span>
+        {formatarReais(l.amount)}
+      </span>
+    </>
+  );
+}
+
 // Conteúdo de uma linha da lista (ícone, descrição, conta e valor)
 function ConteudoLinha({ l }) {
+  if (l.isAdjustment) return <LinhaAjuste l={l} />;
   if (l.type === "TRANSFER") return <LinhaTransferencia l={l} />;
   const receita = l.type === "INCOME";
   const parcela = textoParcela(l);
@@ -93,6 +146,7 @@ function Lancamentos() {
   const { erroMe, podeEditar } = useMe();
   const [mes, setMes] = useState(mesAtual);
   const [tipo, setTipo] = useState("");
+  const [forma, setForma] = useState("");
   const [lista, setLista] = useState(null);
   const [erro, setErro] = useState("");
   // null = janela fechada; objeto = editando
@@ -101,10 +155,11 @@ function Lancamentos() {
   const carregar = useCallback(() => {
     setErro("");
     const filtroTipo = tipo ? `&type=${tipo}` : "";
-    api(`/transactions?month=${mes}${filtroTipo}`)
+    const filtroForma = forma ? `&accountType=${forma}` : "";
+    api(`/transactions?month=${mes}${filtroTipo}${filtroForma}`)
       .then(setLista)
       .catch((e) => setErro(e.message));
-  }, [mes, tipo]);
+  }, [mes, tipo, forma]);
 
   useEffect(() => {
     setLista(null);
@@ -132,22 +187,9 @@ function Lancamentos() {
 
       <SeletorMes mes={mes} onMudar={setMes} className="mt-5 max-w-sm" />
 
-      {/* Filtro por tipo */}
-      <div role="group" aria-label="Filtrar por tipo" className="mt-4 flex gap-2 overflow-x-auto pb-1">
-        {filtros.map((f) => (
-          <button
-            key={f.valor}
-            type="button"
-            aria-pressed={tipo === f.valor}
-            onClick={() => setTipo(f.valor)}
-            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-5 font-bold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 ${
-              tipo === f.valor ? "bg-primary text-white shadow" : "bg-white text-slate-700 hover:text-primary"
-            }`}
-          >
-            {f.texto}
-          </button>
-        ))}
-      </div>
+      {/* Filtro por tipo e, embaixo, por forma de pagamento */}
+      <Chips rotulo="Filtrar por tipo" opcoes={filtros} valor={tipo} onMudar={setTipo} className="mt-4" />
+      <Chips rotulo="Filtrar por forma de pagamento" opcoes={formas} valor={forma} onMudar={setForma} className="mt-2" />
 
       {lista === null && !erro && (
         <p role="status" className="mt-8 text-slate-500">
@@ -159,9 +201,15 @@ function Lancamentos() {
       {lista?.length === 0 && (
         <div className="mt-8 rounded-3xl bg-white p-8 text-center shadow-[0_20px_50px_-12px_rgba(70,79,163,0.2)]">
           <FaReceipt aria-hidden="true" className="mx-auto text-4xl text-primary-light" />
-          <p className="mt-4 font-heading text-xl font-bold text-slate-900">Nenhum lançamento neste mês</p>
+          <p className="mt-4 font-heading text-xl font-bold text-slate-900">
+            {tipo || forma ? "Nenhum lançamento com esse filtro" : "Nenhum lançamento neste mês"}
+          </p>
           <p className="mt-2 text-slate-600">
-            {podeEditar ? "Toque no botão + para registrar uma receita, despesa ou transferência." : "Quando alguém da família lançar, aparece aqui."}
+            {tipo || forma
+              ? "Escolha outro filtro ou outro mês."
+              : podeEditar
+                ? "Toque no botão + para registrar uma receita, despesa ou transferência."
+                : "Quando alguém da família lançar, aparece aqui."}
           </p>
         </div>
       )}
