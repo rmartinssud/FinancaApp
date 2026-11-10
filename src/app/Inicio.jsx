@@ -5,6 +5,7 @@ import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
 import { ConteudoOrcamento } from "./componentes/CartaoOrcamento.jsx";
+import { ConteudoObjetivo } from "./componentes/CartaoObjetivo.jsx";
 import DespesasPorCategoria from "./componentes/DespesasPorCategoria.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
@@ -61,6 +62,7 @@ function Inicio() {
   const [mes, setMes] = useState(mesAtual);
   const [resumo, setResumo] = useState(null);
   const [orcamentos, setOrcamentos] = useState(null);
+  const [objetivos, setObjetivos] = useState(null);
   const [erro, setErro] = useState("");
 
   const carregar = useCallback(() => {
@@ -72,6 +74,10 @@ function Inicio() {
     api(`/budgets?month=${mes}&home=true`)
       .then(setOrcamentos)
       .catch(() => setOrcamentos(null));
+    // Objetivos ativos marcados "Exibir no Início" (até 3); sem nenhum, o cartão não aparece
+    api("/goals?home=true")
+      .then(setObjetivos)
+      .catch(() => setObjetivos(null));
   }, [mes]);
 
   useEffect(() => {
@@ -157,6 +163,36 @@ function Inicio() {
                   className="block rounded-2xl py-3 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 lg:px-2"
                 >
                   <ConteudoOrcamento orcamento={b} compacto />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Objetivos ativos (os marcados "Exibir no Início", até 3) */}
+      {objetivos?.goals.length > 0 && (
+        <section aria-labelledby="titulo-objetivos" className={`${cartao} mt-6`}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="titulo-objetivos" className="font-heading text-xl font-bold text-slate-900">
+              Objetivos
+            </h2>
+            <Link
+              to="/app/objetivos"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 font-bold text-primary hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            >
+              {objetivos.total > objetivos.goals.length ? `Ver todos (${objetivos.total})` : "Ver todos"}
+            </Link>
+          </div>
+          <ul className="mt-2 grid gap-x-6 divide-y divide-slate-100 lg:grid-cols-3 lg:divide-y-0">
+            {objetivos.goals.map((g) => (
+              <li key={g.id}>
+                <Link
+                  to={`/app/objetivos/${g.id}`}
+                  aria-label={`${g.name}: ver detalhes`}
+                  className="block rounded-2xl py-3 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 lg:px-2"
+                >
+                  <ConteudoObjetivo objetivo={g} compacto />
                 </Link>
               </li>
             ))}

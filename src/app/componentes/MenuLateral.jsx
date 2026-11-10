@@ -35,7 +35,7 @@ const SECOES_MENU = [
     titulo: "Planejar",
     itens: [
       { para: "/app/orcamentos", texto: "Orçamentos", Icone: FaPercent },
-      { texto: "Objetivos", Icone: FaBullseye, emBreve: true },
+      { para: "/app/objetivos", texto: "Objetivos", Icone: FaBullseye },
     ],
   },
   {

@@ -3,8 +3,8 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado
-relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio
+palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo
+relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos
 ---
 
 ## Por que a compra do cartão caiu na fatura seguinte?
@@ -36,6 +36,10 @@ Veja [Família e espaços](artigo:familia-e-espacos).
 É um lançamento que **ainda não foi pago ou recebido** (o **Efetivada** está desligado). Ele **não mexe no saldo** da conta até ser efetivado.
 
 Quando chega a data, o pendente vira efetivado sozinho, como um débito automático, a não ser que você tenha ligado **Não efetivar automaticamente**. Veja [Campos extras do lançamento](artigo:campos-extras-do-lancamento).
+
+## Depositar num objetivo muda o saldo da conta?
+
+Só se você quiser. Por padrão o depósito **só fica anotado no objetivo**. Se o objetivo tem uma conta vinculada, você pode ligar **Registrar também como transferência**: aí o dinheiro sai de uma conta e entra na conta do objetivo. Mesmo assim, **não conta como receita nem despesa**. Veja [Objetivos](artigo:objetivos).
 
 ## Não achei minha dúvida
 
