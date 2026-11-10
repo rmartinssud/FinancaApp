@@ -37,3 +37,10 @@ export function nomeDoDia(dia) {
   if (dia === ontem) return "Ontem";
   return formatoDia.format(new Date(Date.UTC(ano, m - 1, d, 12)));
 }
+
+// Todos os dias de um mês: diasDoMes("2026-02") -> ["2026-02-01", ..., "2026-02-28"]
+export function diasDoMes(mes) {
+  const [ano, m] = mes.split("-").map(Number);
+  const total = new Date(Date.UTC(ano, m, 0)).getUTCDate();
+  return Array.from({ length: total }, (_, i) => `${mes}-${String(i + 1).padStart(2, "0")}`);
+}

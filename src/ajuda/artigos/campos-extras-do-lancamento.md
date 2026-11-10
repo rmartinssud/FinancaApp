@@ -4,10 +4,10 @@ categoria: Lançamentos
 ordem: 5
 resumo: Subcategoria, tags, multicategorias, encargos e desconto, anexos e as opções de ignorar.
 palavras: subcategoria, tags, etiqueta, multicategorias, dividir categoria, data lançamento, encargos, juros, multa, desconto, anexo, foto, pdf, comprovante, não efetivar automaticamente, débito automático, boleto, ignorar em estatísticas, ignorar em orçamentos, ignorar em economia mensal, ignorar nos totais
-relacionados: lancamentos, categorias, orcamentos, estatisticas-e-economia
+relacionados: lancamentos, categorias, orcamentos, estatisticas-e-economia, cartoes-de-credito, relatorios, calendario
 ---
 
-> Novidade desta semana: estes campos estão chegando aos poucos no formulário de Nova Despesa e Nova Receita. Se algum ainda não aparecer para você, ele chega em breve.
+> Estes campos ficam no formulário de **Nova Despesa** e **Nova Receita**. Na **Despesa cartão** também há subcategoria, tags, data lançamento, observações, anexos e as opções de ignorar em Estatísticas, Orçamentos e Economia mensal (veja [Cartões de crédito](artigo:cartoes-de-credito)).
 
 ## Subcategoria
 
@@ -15,7 +15,7 @@ Uma divisão dentro da categoria. Ex.: categoria **Casa**, subcategoria **Luz** 
 
 ## Tags
 
-Etiquetas livres que você coloca no lançamento, quantas quiser (ex.: "viagem", "reforma"). Depois você pode filtrar por tag na tela **Lançamentos**.
+Etiquetas livres que você coloca no lançamento, quantas quiser (ex.: "viagem", "reforma"). Depois você pode filtrar por tag na tela **Lançamentos** e em [Relatórios](artigo:relatorios).
 
 ## Multicategorias
 
@@ -42,7 +42,7 @@ Toque em **Adicionar anexo** para guardar uma foto ou um PDF (ex.: o comprovante
 
 Normalmente, um lançamento **pendente** vira **efetivado sozinho** quando chega a data dele, como um débito automático.
 
-Com **Não efetivar automaticamente** ligado, ele fica pendente até você mesmo confirmar (abrir e ligar **Efetivada**). Bom para boleto, que você precisa lembrar de pagar.
+Com **Não efetivar automaticamente** ligado, ele fica pendente até você mesmo confirmar (abrir e ligar **Efetivada**, ou tocar em **Efetivar** no [Calendário](artigo:calendario)). Bom para boleto, que você precisa lembrar de pagar.
 
 ## Ignorar em…
 

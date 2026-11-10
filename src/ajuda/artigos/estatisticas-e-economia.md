@@ -4,10 +4,10 @@ categoria: Análises
 ordem: 11
 resumo: Ver seus gastos por categoria, conta, cartão e tag, e quanto sobrou em cada mês.
 palavras: estatísticas, estatisticas, gráficos, graficos, relatório, economia mensal, economizar, sobrou, receitas x despesas, evolução, tag, subcategoria, média, melhor mês, pior mês
-relacionados: inicio, campos-extras-do-lancamento, orcamentos
+relacionados: inicio, campos-extras-do-lancamento, orcamentos, relatorios
 ---
 
-> Telas novas desta semana. Elas ficam no menu lateral; se ainda não aparecerem para você, chegam em breve.
+> Elas ficam no menu lateral, em **Analisar**. Para ver a lista de lançamentos de um período com filtros e exportar para Excel ou PDF, use [Relatórios](artigo:relatorios).
 
 ## Estatísticas e Gráficos
 

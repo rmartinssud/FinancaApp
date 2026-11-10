@@ -64,17 +64,17 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInf
   }, [gavetaAberta]);
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-soft font-body">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-20 h-80 w-80 rounded-full bg-sky-300/40 blur-[100px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-20 bottom-0 h-80 w-96 rounded-full bg-accent/30 blur-[100px]" />
+    <div className="relative min-h-screen overflow-x-clip bg-soft font-body print:bg-white">
+      <div aria-hidden="true" className="pointer-events-none absolute print:hidden -left-24 top-20 h-80 w-80 rounded-full bg-sky-300/40 blur-[100px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute print:hidden -right-20 bottom-0 h-80 w-96 rounded-full bg-accent/30 blur-[100px]" />
 
       {/* Computador: menu lateral fixo */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-slate-200/70 bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 print:!hidden border-r border-slate-200/70 bg-white lg:block">
         <MenuLateral me={me} onSair={sair} saindo={saindo} />
       </aside>
 
       {/* Celular e tablet: barra superior com o botão do menu */}
-      <header className="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur lg:hidden print:hidden">
         <div className="flex items-center gap-2 px-2 py-1.5 sm:px-4">
           <button
             ref={botaoMenu}
@@ -94,7 +94,7 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInf
       </header>
 
       {/* Gaveta do menu (celular/tablet) */}
-      <div className="lg:hidden">
+      <div className="lg:hidden print:hidden">
         <div
           aria-hidden="true"
           onClick={() => setGavetaAberta(false)}
@@ -117,13 +117,15 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInf
         </div>
       </div>
 
-      <main className={`relative mx-auto max-w-6xl px-4 ${barraInferior ? "pb-48" : "pb-32"} pt-6 sm:px-8 sm:pt-10 lg:ml-72 lg:mr-0 lg:max-w-none lg:px-10 xl:px-14`}>
+      <main className={`relative mx-auto max-w-6xl px-4 ${barraInferior ? "pb-48" : "pb-32"} pt-6 sm:px-8 sm:pt-10 lg:ml-72 lg:mr-0 lg:max-w-none lg:px-10 xl:px-14 print:!m-0 print:!max-w-none print:!p-0`}>
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
 
-      {barraInferior}
+      <div className="print:hidden">
+        {barraInferior}
 
-      {podeEditar && !semBotaoNovo && <NovoLancamento onSalvo={onLancamentoSalvo} acimaDaBarra={Boolean(barraInferior)} />}
+        {podeEditar && !semBotaoNovo && <NovoLancamento onSalvo={onLancamentoSalvo} acimaDaBarra={Boolean(barraInferior)} />}
+      </div>
     </div>
   );
 }

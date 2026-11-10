@@ -17,6 +17,8 @@ import { goalsRouter } from "./routes/goals.js";
 import { tagsRouter } from "./routes/tags.js";
 import { uploadRouter, attachmentsRouter } from "./routes/attachments.js";
 import { statsRouter, savingsRouter } from "./routes/stats.js";
+import { reportsRouter } from "./routes/reports.js";
+import { calendarRouter } from "./routes/calendar.js";
 import { householdsRouter, familyRouter, invitesRouter } from "./routes/familia.js";
 
 export function createApp() {
@@ -67,6 +69,8 @@ export function createApp() {
   app.use("/api/attachments", attachmentsRouter);
   app.use("/api/stats", statsRouter);
   app.use("/api/savings", savingsRouter);
+  app.use("/api/reports", reportsRouter);
+  app.use("/api/calendar", calendarRouter);
   app.use("/api/households", householdsRouter);
   app.use("/api/family", familyRouter);
   app.use("/api/invites", invitesRouter);
