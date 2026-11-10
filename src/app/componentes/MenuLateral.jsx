@@ -43,9 +43,9 @@ const SECOES_MENU = [
     itens: [
       { para: "/app/estatisticas", texto: "Estatísticas e Gráficos", Icone: FaChartPie },
       { para: "/app/economia", texto: "Economia mensal", Icone: FaPiggyBank },
-      { texto: "Relatórios", Icone: FaMagnifyingGlassChart, emBreve: true },
+      { para: "/app/relatorios", texto: "Relatórios", Icone: FaMagnifyingGlassChart },
       { para: "/app/categorias", texto: "Categorias", Icone: FaShapes },
-      { texto: "Calendário", Icone: FaCalendarDays, emBreve: true },
+      { para: "/app/calendario", texto: "Calendário", Icone: FaCalendarDays },
     ],
   },
   {

@@ -8,6 +8,8 @@ import { validateBody } from "../middleware/validate.js";
 import { valorPositivo, dataSchema, mesSchema, somarMeses, partesLocais } from "../lib/money.js";
 import { dividirParcelas, faturaAtual, mesDaFatura, somarMesesNaData } from "../services/cartoes.js";
 import { incluir, serializar, faturasComPagamento } from "../services/lancamentos.js";
+import { apagarArquivos } from "../services/armazenamento.js";
+import type { Prisma } from "@prisma/client";
 
 export const cardExpensesRouter = Router();
 
@@ -30,6 +32,14 @@ const compra = z.object({
   // Vale para a 1ª parcela lançada (a parcela 1, ou a parcela atual da compra em andamento).
   // Sem o campo (ou null): fatura automática.
   invoiceMonth: mesSchema.nullable().optional(),
+  // Campos extras (os mesmos do formulário de lançamento que fazem sentido no cartão).
+  // Valem para todas as parcelas. Multicategorias e encargos/desconto ficam de fora (ver Central de Ajuda).
+  notes: z.string().trim().max(1000, "Até 1000 caracteres.").nullable().optional(),
+  launchDate: dataSchema.nullable().optional(),
+  tagIds: z.array(z.string().min(1)).max(20, "Até 20 tags.").optional(),
+  ignoreInStatistics: z.boolean().optional(),
+  ignoreInBudgets: z.boolean().optional(),
+  ignoreInMonthlySavings: z.boolean().optional(),
 }).superRefine((d, ctx) => {
   if (d.currentInstallment > d.installments) {
     ctx.addIssue({
@@ -94,6 +104,11 @@ async function conferir(req: Request, d: Compra): Promise<Erro | DiasCartao> {
     if (!categoria) return { status: 404, error: "Categoria não encontrada." };
     if (categoria.type !== "EXPENSE") return { status: 400, error: "Use uma categoria de despesa." };
   }
+  const tagIds = [...new Set(d.tagIds ?? [])];
+  if (tagIds.length) {
+    const n = await prisma.tag.count({ where: { id: { in: tagIds }, ...scope(req) } });
+    if (n !== tagIds.length) return { status: 404, error: "Tag não encontrada." };
+  }
   return { closingDay: cartao.closingDay, dueDay: cartao.dueDay };
 }
 
@@ -121,8 +136,29 @@ function montarParcelas(req: Request, d: Compra, faturaDaPrimeira: string, purch
     purchaseId,
     installmentNumber: parcelado ? i + 1 : null,
     installmentTotal: parcelado ? d.installments : null,
+    notes: d.notes || null,
+    launchDate: d.launchDate ?? null,
+    ignoreInStatistics: d.ignoreInStatistics ?? false,
+    ignoreInBudgets: d.ignoreInBudgets ?? false,
+    ignoreInMonthlySavings: d.ignoreInMonthlySavings ?? false,
   }));
   return todas.slice(atual - 1);
+}
+
+type Parcela = ReturnType<typeof montarParcelas>[number];
+type Anexo = { originalName: string; mime: string; size: number; storageKey: string; createdAt: Date };
+
+// Cria as parcelas (com as tags em cada uma). Os anexos ficam na 1ª parcela lançada.
+async function criarParcelas(tx: Prisma.TransactionClient, parcelas: Parcela[], tagIds: string[], anexos: Anexo[] = []) {
+  for (const [i, p] of parcelas.entries()) {
+    await tx.transaction.create({
+      data: {
+        ...p,
+        ...(tagIds.length ? { tags: { create: tagIds.map((tagId) => ({ tagId })) } } : {}),
+        ...(i === 0 && anexos.length ? { attachments: { create: anexos } } : {}),
+      },
+    });
+  }
 }
 
 async function devolverCompra(req: Request, purchaseId: string) {
@@ -154,7 +190,8 @@ cardExpensesRouter.post("/", validateBody(compra), async (req, res) => {
   if ("error" in fatura) return res.status(fatura.status).json({ error: fatura.error, detalhes: fatura.detalhes });
 
   const purchaseId = randomUUID();
-  await prisma.transaction.createMany({ data: montarParcelas(req, d, fatura.mes, purchaseId) });
+  const parcelas = montarParcelas(req, d, fatura.mes, purchaseId);
+  await prisma.$transaction((tx) => criarParcelas(tx, parcelas, [...new Set(d.tagIds ?? [])]));
   res.status(201).json(await devolverCompra(req, purchaseId));
 });
 
@@ -179,10 +216,18 @@ cardExpensesRouter.put("/:purchaseId", validateBody(compra), async (req, res) =>
   const travadas = await faturasComPagamento(scope(req).householdId, d.cardId, novas.map((p) => p.invoiceMonth));
   if (travadas.length) return res.status(409).json({ error: "A compra cairia numa fatura que já tem pagamento. Desfaça o pagamento antes." });
 
-  await prisma.$transaction([
-    prisma.transaction.deleteMany({ where: { ...scope(req), purchaseId: atual.purchaseId } }),
-    prisma.transaction.createMany({ data: novas }),
-  ]);
+  // Anexos continuam (passam para a 1ª parcela nova; o arquivo é o mesmo). Tags: sem o campo, mantém as de antes.
+  await prisma.$transaction(async (tx) => {
+    const antigas = await tx.transaction.findMany({
+      where: { ...scope(req), purchaseId: atual.purchaseId },
+      select: { tags: { select: { tagId: true } }, attachments: { select: { originalName: true, mime: true, size: true, storageKey: true, createdAt: true } } },
+      orderBy: { date: "asc" },
+    });
+    const anexos = antigas.flatMap((p) => p.attachments);
+    const tagIds = d.tagIds ? [...new Set(d.tagIds)] : (antigas[0]?.tags.map((t) => t.tagId) ?? []);
+    await tx.transaction.deleteMany({ where: { ...scope(req), purchaseId: atual.purchaseId } });
+    await criarParcelas(tx, novas, tagIds, anexos);
+  });
   res.json(await devolverCompra(req, atual.purchaseId));
 });
 
@@ -190,6 +235,11 @@ cardExpensesRouter.put("/:purchaseId", validateBody(compra), async (req, res) =>
 cardExpensesRouter.delete("/:purchaseId", async (req, res) => {
   const atual = await compraEditavel(req);
   if ("error" in atual) return res.status(atual.status).json({ error: atual.error });
+  const anexos = await prisma.transactionAttachment.findMany({
+    where: { transaction: { ...scope(req), purchaseId: atual.purchaseId } },
+    select: { storageKey: true },
+  });
   await prisma.transaction.deleteMany({ where: { ...scope(req), purchaseId: atual.purchaseId } });
+  await apagarArquivos(anexos.map((a) => a.storageKey));
   res.status(204).end();
 });

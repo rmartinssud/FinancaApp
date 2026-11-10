@@ -3,8 +3,8 @@ titulo: Cartões de crédito
 categoria: Cartões de crédito
 ordem: 7
 resumo: Fechamento, vencimento, em qual fatura cai cada compra, parcelas e como pagar a fatura.
-palavras: cartão, cartao de credito, fatura, limite, fechamento, vencimento, melhor dia de compra, parcela, parcelado, compra em andamento, pagar fatura, desfazer pagamento, despesa cartão
-relacionados: lancamentos, transferencias, perguntas-frequentes, orcamentos
+palavras: cartão, cartao de credito, fatura, limite, fechamento, vencimento, melhor dia de compra, parcela, parcelado, compra em andamento, pagar fatura, desfazer pagamento, despesa cartão, subcategoria, tags, observações, anexo, ignorar
+relacionados: lancamentos, transferencias, perguntas-frequentes, orcamentos, campos-extras-do-lancamento, calendario
 ---
 
 ## Cadastrar um cartão
@@ -32,6 +32,21 @@ Se precisar, você pode **escolher a fatura manualmente** no formulário da comp
 4. Toque em **Salvar compra**.
 
 Nas parcelas, se a divisão não for exata, os centavos extras vão na **1ª parcela**. Cada parcela aparece como **"k/total"** (ex.: 2/10).
+
+## Mais campos da compra no cartão
+
+Além da **Categoria**, a compra tem **Subcategoria** e **Tags**. Em **Mais informações**:
+
+- **Data lançamento** (só informativa);
+- **Observações**;
+- **Anexos** (foto ou PDF, até 3 MB cada). Ficam na 1ª parcela e continuam lá se você editar a compra;
+- **Ignorar em Estatísticas e Gráficos**, **Ignorar em Orçamentos** e **Ignorar em Economia mensal**.
+
+Tags, observações e as opções de ignorar valem para **todas as parcelas**. Veja o que cada campo faz em [Campos extras do lançamento](artigo:campos-extras-do-lancamento).
+
+> A compra no cartão **não tem** multicategorias nem encargos/desconto: o valor é dividido igualmente entre as parcelas, como no banco. Juros do cartão, lance como outra compra (ex.: "Juros do cartão"). Também não tem "Ignorar nos totais" nem "Não efetivar automaticamente".
+
+A fatura aparece no [Calendário](artigo:calendario) no dia do vencimento.
 
 ## Compra parcelada que já estava em andamento
 

@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
+import { FaChevronDown, FaChevronRight, FaTags } from "react-icons/fa6";
 import Modal from "./Modal.jsx";
 import CampoSelect from "./CampoSelect.jsx";
 import BotaoApagar from "./BotaoApagar.jsx";
 import Interruptor from "./Interruptor.jsx";
 import SeletorFatura from "./SeletorFatura.jsx";
+import SeletorTags, { ChipsTags } from "./SeletorTags.jsx";
+import CampoAnexos from "./CampoAnexos.jsx";
 import Campo from "../../auth/Campo.jsx";
 import BotaoEnviar from "../../auth/BotaoEnviar.jsx";
 import Alerta from "../../auth/Alerta.jsx";
@@ -12,7 +15,8 @@ import { api, enviarJson, errosPorCampo, formatarReais } from "../../lib/api.js"
 import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
 import { dataLocal, hoje, nomeDoMes, somarMes } from "../../lib/datas.js";
 import { faturaAtual, faturaPermitida, mesDaFatura, mesesEntre, somarMesesNaData, vencimentoCurto } from "../../lib/cartoes.js";
-import { comSubcategorias } from "../../lib/categorias.js";
+import { principais, filhasDe } from "../../lib/categorias.js";
+import { enviarAnexo } from "../../lib/anexos.js";
 
 const PARCELAS = Array.from({ length: 24 }, (_, i) => i + 1);
 
@@ -62,6 +66,18 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
   const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  const [subcategoriaId, setSubcategoriaId] = useState("");
+  // Campos extras (valem para todas as parcelas). Multicategorias e encargos/desconto não existem na compra no cartão.
+  const ids = useId();
+  const [tags, setTags] = useState([]);
+  const [tagIds, setTagIds] = useState([]);
+  const [escolhendoTags, setEscolhendoTags] = useState(false);
+  const [notas, setNotas] = useState("");
+  const [dataLancamento, setDataLancamento] = useState(editando ? "" : hoje());
+  const [anexosSalvos, setAnexosSalvos] = useState([]);
+  const [anexosNovos, setAnexosNovos] = useState([]);
+  const [ignorar, setIgnorar] = useState({ ignoreInStatistics: false, ignoreInBudgets: false, ignoreInMonthlySavings: false });
+  const [maisInfo, setMaisInfo] = useState(false);
   const [data, setData] = useState(hoje());
   const [parcelas, setParcelas] = useState(parcelasIniciais);
   // Compra parcelada que começou antes de usar o app: só lança da parcela atual em diante
@@ -76,18 +92,32 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
   const [apagando, setApagando] = useState(false);
 
   useEffect(() => {
-    const pedidos = [api("/cards"), api("/categories?type=EXPENSE")];
+    const pedidos = [api("/cards"), api("/categories?type=EXPENSE"), api("/tags")];
     if (purchaseId) pedidos.push(api(`/card-expenses/${purchaseId}`));
     Promise.all(pedidos)
-      .then(([listaCartoes, listaCategorias, compra]) => {
+      .then(([listaCartoes, listaCategorias, listaTags, compra]) => {
         setCategorias(listaCategorias);
+        setTags(listaTags);
         if (compra) {
           const [primeira] = compra.installments;
           const original = compraOriginal(compra.installments, listaCartoes.find((c) => c.id === primeira.account.id));
           setCartaoId(primeira.account.id);
           setValor(paraCampo(original.total.toFixed(2)));
           setDescricao(primeira.description);
-          setCategoriaId(primeira.category?.id ?? "");
+          // Subcategoria: na API a categoria é a filha (com parentId); no formulário são dois campos
+          setCategoriaId(primeira.category?.parentId ?? primeira.category?.id ?? "");
+          setSubcategoriaId(primeira.category?.parentId ? primeira.category.id : "");
+          setTagIds((primeira.tags ?? []).map((t) => t.id));
+          setNotas(primeira.notes ?? "");
+          setDataLancamento(primeira.launchDate ? dataLocal(primeira.launchDate) : "");
+          setAnexosSalvos(compra.installments.flatMap((p) => p.attachments ?? []));
+          const flags = {
+            ignoreInStatistics: Boolean(primeira.ignoreInStatistics),
+            ignoreInBudgets: Boolean(primeira.ignoreInBudgets),
+            ignoreInMonthlySavings: Boolean(primeira.ignoreInMonthlySavings),
+          };
+          setIgnorar(flags);
+          setMaisInfo(Boolean(primeira.notes || compra.installments.some((p) => p.attachments?.length) || Object.values(flags).some(Boolean)));
           setData(original.data);
           setParcelas(primeira.installmentTotal ?? 1);
           setEmAndamento(Boolean(original.parcelaAtual));
@@ -114,6 +144,9 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
   }, [purchaseId]);
 
   const cartao = cartoes.find((c) => c.id === cartaoId);
+  const subcategorias = filhasDe(categorias, categoriaId);
+  const tagsEscolhidas = tags.filter((t) => tagIds.includes(t.id));
+  const mudarIgnorar = (campo) => (v) => setIgnorar((atual) => ({ ...atual, [campo]: v }));
   const fatura = cartao ? mesDaFatura(data, cartao.closingDay, cartao.dueDay) : null;
   const quantia = paraApi(valor);
   const { primeira, demais } = valorParcela(quantia, parcelas);
@@ -149,8 +182,12 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
       cardId: cartaoId,
       amount: quantia,
       description: descricao.trim(),
-      categoryId: categoriaId || null,
+      categoryId: subcategoriaId || categoriaId || null,
       date: data,
+      tagIds,
+      notes: notas.trim() || null,
+      launchDate: dataLancamento || null,
+      ...ignorar,
       installments: Number(parcelas),
       currentInstallment: andamento ? atual : 1,
       // Só manda quando a pessoa escolheu outra fatura (senão o servidor calcula)
@@ -161,11 +198,31 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
       const salvo = editando
         ? await api(`/card-expenses/${purchaseId}`, enviarJson("PUT", corpo))
         : await api("/card-expenses", enviarJson("POST", corpo));
+      // Anexos novos vão para a 1ª parcela lançada (depois que a compra existe)
+      const falhas = [];
+      for (const arquivo of anexosNovos) {
+        try {
+          await enviarAnexo(salvo.installments[0].id, arquivo);
+        } catch (falha) {
+          falhas.push(`${arquivo.name}: ${falha.message}`);
+        }
+      }
+      if (falhas.length) window.alert(`A compra foi salva, mas alguns anexos não foram enviados:\n${falhas.join("\n")}`);
       onSalvo(salvo);
     } catch (falha) {
       setErros(errosPorCampo(falha));
       setErro(falha.message);
       setSalvando(false);
+    }
+  }
+
+  async function removerAnexoSalvo(anexo) {
+    if (!window.confirm(`Remover o anexo “${anexo.originalName}”?`)) return;
+    try {
+      await api(`/attachments/${anexo.id}`, { method: "DELETE" });
+      setAnexosSalvos((lista) => lista.filter((a) => a.id !== anexo.id));
+    } catch (falha) {
+      setErro(falha.message);
     }
   }
 
@@ -234,14 +291,53 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
           erro={erros.description}
         />
 
-        <CampoSelect label="Categoria" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} erro={erros.categoryId}>
-          <option value="">Sem categoria</option>
-          {comSubcategorias(categorias).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.rotulo}
-            </option>
-          ))}
-        </CampoSelect>
+        <div className="grid grid-cols-2 gap-3">
+          <CampoSelect
+            label="Categoria"
+            value={categoriaId}
+            onChange={(e) => {
+              setCategoriaId(e.target.value);
+              setSubcategoriaId("");
+            }}
+            erro={erros.categoryId}
+          >
+            <option value="">Sem categoria</option>
+            {principais(categorias, "EXPENSE").map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </CampoSelect>
+          <CampoSelect
+            label="Subcategoria"
+            value={subcategoriaId}
+            disabled={subcategorias.length === 0}
+            onChange={(e) => setSubcategoriaId(e.target.value)}
+          >
+            <option value="">{subcategorias.length ? "Nenhuma" : "Sem subcategorias"}</option>
+            {subcategorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </CampoSelect>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            onClick={() => setEscolhendoTags(true)}
+            className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-slate-300 px-4 text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            aria-label={`Tags: ${tagsEscolhidas.length ? tagsEscolhidas.map((t) => t.name).join(", ") : "nenhuma"}. Escolher tags`}
+          >
+            <FaTags aria-hidden="true" className="shrink-0 text-slate-500" />
+            <span className="min-w-0 flex-1">
+              {tagsEscolhidas.length ? <ChipsTags tags={tagsEscolhidas} /> : <span className="text-slate-500">Tags (nenhuma)</span>}
+            </span>
+            <FaChevronRight aria-hidden="true" className="shrink-0 text-sm text-slate-500" />
+          </button>
+          {erros.tagIds && <p className="mt-2 text-sm text-red-600">{erros.tagIds}</p>}
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Campo
@@ -332,6 +428,50 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
           </div>
         )}
 
+        <div>
+          <button
+            type="button"
+            onClick={() => setMaisInfo((v) => !v)}
+            aria-expanded={maisInfo}
+            aria-controls={`${ids}-mais`}
+            className="mx-auto flex min-h-11 items-center gap-2 rounded-full px-5 font-bold text-primary transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+          >
+            Mais informações
+            <FaChevronDown aria-hidden="true" className={`text-sm transition-transform ${maisInfo ? "rotate-180" : ""}`} />
+          </button>
+          <div id={`${ids}-mais`} hidden={!maisInfo} className="mt-3 space-y-4">
+            <Campo label="Data lançamento" type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} erro={erros.launchDate} />
+            <div>
+              <label htmlFor={`${ids}-notas`} className="mb-2 block font-medium text-slate-800">
+                Observações
+              </label>
+              <textarea
+                id={`${ids}-notas`}
+                rows={3}
+                maxLength={1000}
+                placeholder="Escreva um detalhe, se quiser"
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                className="w-full resize-y rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20"
+              />
+              {erros.notes && <p className="mt-2 text-sm text-red-600">{erros.notes}</p>}
+            </div>
+            <div className="-mx-5 border-t border-slate-100">
+              <CampoAnexos
+                salvos={anexosSalvos}
+                novos={anexosNovos}
+                onAdicionar={(arquivos) => setAnexosNovos((lista) => [...lista, ...arquivos])}
+                onRemoverNovo={(i) => setAnexosNovos((lista) => lista.filter((_, j) => j !== i))}
+                onRemoverSalvo={removerAnexoSalvo}
+              />
+            </div>
+            <Interruptor texto="Ignorar em Estatísticas e Gráficos" ligado={ignorar.ignoreInStatistics} onMudar={mudarIgnorar("ignoreInStatistics")} />
+            <Interruptor texto="Ignorar em Orçamentos" ligado={ignorar.ignoreInBudgets} onMudar={mudarIgnorar("ignoreInBudgets")} />
+            <Interruptor texto="Ignorar em Economia mensal" ligado={ignorar.ignoreInMonthlySavings} onMudar={mudarIgnorar("ignoreInMonthlySavings")} />
+            {parcelas > 1 && <p className="text-sm text-slate-500">Tags, observações e as opções de ignorar valem para todas as parcelas. Os anexos ficam na 1ª parcela.</p>}
+          </div>
+        </div>
+
         <BotaoEnviar texto={editando ? "Salvar alterações" : "Salvar compra"} carregando={salvando} textoCarregando="Salvando..." className="w-full" />
 
         {editando && (
@@ -345,6 +485,15 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
           </div>
         )}
       </form>
+      {escolhendoTags && (
+        <SeletorTags
+          tags={tags}
+          escolhidas={tagIds}
+          onMudar={setTagIds}
+          onCriada={(nova) => setTags((lista) => [...lista, nova].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")))}
+          onFechar={() => setEscolhendoTags(false)}
+        />
+      )}
     </Modal>
   );
 }
