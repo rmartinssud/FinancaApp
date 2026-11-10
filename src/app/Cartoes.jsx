@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FaPlus, FaPen, FaCreditCard } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
+import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import CartaoVisual from "./componentes/CartaoVisual.jsx";
 import FormCartao from "./componentes/FormCartao.jsx";
 import FormDespesaCartao from "./componentes/FormDespesaCartao.jsx";
@@ -163,7 +164,10 @@ function Cartoes() {
       <Alerta>{erroMe || erro}</Alerta>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Cartões de crédito</h1>
+        <div className="flex items-center gap-1">
+          <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Cartões de crédito</h1>
+          <BotaoAjuda artigo="cartoes-de-credito" assunto="cartões de crédito" />
+        </div>
         {podeEditar && (
           <button
             type="button"

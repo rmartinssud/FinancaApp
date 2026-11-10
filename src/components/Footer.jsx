@@ -17,6 +17,7 @@ const colunas = [
     links: [
       { label: "Sobre Nós", href: "#sobre" },
       { label: "Dúvidas", href: "#faq" },
+      { label: "Central de Ajuda", href: "/ajuda" },
       { label: "Fale Conosco", href: "#contato" },
     ],
   },

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced, FaCircleMinus, FaCirclePlus, FaListUl, FaXmark } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
+import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
@@ -295,7 +296,10 @@ function Lancamentos() {
       <header className="overflow-hidden rounded-3xl bg-primary text-white shadow-[0_20px_50px_-12px_rgba(70,79,163,0.45)]">
         <div className="flex items-end justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
           <div className="min-w-0">
-            <h1 className="font-heading text-2xl font-bold md:text-4xl">Lançamentos</h1>
+            <div className="flex items-center gap-1">
+              <h1 className="font-heading text-2xl font-bold md:text-4xl">Lançamentos</h1>
+              <BotaoAjuda artigo="lancamentos" assunto="lançamentos" claro />
+            </div>
             <p className="mt-1 text-sm text-white/80">{NOME_ABA[aba]}</p>
             {categoria && (
               <p className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full bg-white/15 py-0.5 pl-3 pr-1 text-sm font-bold text-white">

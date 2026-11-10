@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FaEnvelope, FaLink, FaRotateRight, FaXmark, FaPen, FaArrowRightFromBracket } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
+import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import Modal from "./componentes/Modal.jsx";
 import Avatar from "./componentes/Avatar.jsx";
 import BotaoApagar from "./componentes/BotaoApagar.jsx";
@@ -237,7 +238,10 @@ function Familia() {
       <div className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold uppercase tracking-wider text-slate-500">{dados?.members?.length > 1 ? "Espaço compartilhado" : "Seu espaço"}</p>
-          <h1 className="truncate font-heading text-2xl font-bold text-slate-900 md:text-4xl">{h?.name ?? "Família"}</h1>
+          <div className="flex items-center gap-1">
+            <h1 className="min-w-0 truncate font-heading text-2xl font-bold text-slate-900 md:text-4xl">{h?.name ?? "Família"}</h1>
+            <BotaoAjuda artigo="familia-e-espacos" assunto="família e espaços" />
+          </div>
           {h && <p className="mt-1 text-slate-600">Seu papel: {NOME_PAPEL[h.role]}</p>}
         </div>
         {ehDono && (
