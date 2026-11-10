@@ -63,6 +63,7 @@ Sem SMTP configurado, os links de verificação e de troca de senha aparecem no 
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Login com Google (opcional). O botão só aparece com os dois preenchidos. URL de retorno no Google Cloud: `<BETTER_AUTH_URL>/api/auth/callback/google`. |
 | `AUTH_RATE_LIMIT` | Tentativas de login por IP a cada 15 min (padrão: 30 em produção, 1000 em dev/teste). |
 | `NODE_ENV` | `development`, `test` ou `production` (o Docker já define `production`). |
+| `UPLOADS_DIR` | Pasta onde ficam os anexos dos lançamentos (padrão `/data/anexos`). Em produção precisa ser um **volume persistente**. |
 
 ### Deploy na VPS (Contabo) com Docker
 
@@ -102,9 +103,9 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
 | PATCH | `/api/transactions/:id` | Altera qualquer um dos campos acima (menos a repetição), inclusive `notes` (`""` ou `null` limpa). Num lançamento de repetição, mexe **só nele**. Compra no cartão e pagamento de fatura não se alteram por aqui (409). |
 | DELETE | `/api/transactions/:id` | Apaga o lançamento (204). Parcela de compra no cartão apaga a compra inteira; pagamento de fatura é desfeito. Lançamento de repetição (parcelar/repetir/fixa): apaga **só ele**. |
 | GET | `/api/categories?type=` | Categorias da família (`INCOME` ou `EXPENSE`). |
-| POST | `/api/categories` | Cria: `name` (1–40), `type`, `color` (`#RRGGBB`), `icon`. |
-| PATCH | `/api/categories/:id` | Altera `name`, `color` ou `icon` (o tipo não muda). |
-| DELETE | `/api/categories/:id` | Apaga; os lançamentos ficam sem categoria (204). |
+| POST | `/api/categories` | Cria: `name` (1–40), `type`, `color` (`#RRGGBB`), `icon` e, para subcategoria, `parentId` (categoria principal do mesmo tipo; um nível só). |
+| PATCH | `/api/categories/:id` | Altera `name`, `color`, `icon` ou `parentId` (o tipo não muda). |
+| DELETE | `/api/categories/:id` | Apaga (e as subcategorias); os lançamentos ficam sem categoria (204). |
 | GET | `/api/accounts?type=` | Contas com `currentBalance` = saldo inicial + receitas − despesas + transferências recebidas − enviadas (só confirmados). Compras no cartão não mexem no saldo. |
 | POST | `/api/accounts` | Cria: `name`, `type` (`WALLET`/`BANK`/`CREDIT_CARD`), `initialBalance` (padrão 0). `creditLimit`, `closingDay` e `dueDay` só para cartão. |
 | PATCH | `/api/accounts/:id` | Altera a conta. Se deixar de ser cartão, os campos de cartão são limpos. |
@@ -154,8 +155,8 @@ Todas as rotas exigem login (cookie da sessão) e trabalham só com os dados da 
   - **Não recorrente**: um lançamento só.
   - **Parcelar ou repetir**: diga quantas vezes (2 a 48). **Parcelar** divide o valor (R$ 300 em 3x → 3 × R$ 100, os centavos que sobram vão na 1ª); **Repetir** lança o mesmo valor todo mês. Cada um aparece no seu mês com o selo "2/3".
   - **Fixa mensal**: lança este mês e os próximos 11 (12 no total), com o selo "Fixa".
-  - Só o 1º lançamento segue o "Efetivada"; os dos meses seguintes ficam **pendentes** até você confirmar. Alterar ou apagar um deles mexe **só naquele** lançamento.
-- Itens com o selo **Em breve** (Subcategoria, Tags, Multicategorias, Data lançamento, Encargos/Desconto, Anexo, Não efetivar automaticamente e os "Ignorar em…") ainda não funcionam.
+  - Só o 1º lançamento segue o "Efetivada"; os dos meses seguintes ficam **pendentes** e são efetivados automaticamente quando a data chega (a não ser que **Não efetivar automaticamente** esteja ligado). Alterar ou apagar um deles mexe **só naquele** lançamento.
+- Os campos de **Mais informações** (Subcategoria, Tags, Multicategorias, Data lançamento, Encargos/Desconto, Anexo, Não efetivar automaticamente e os "Ignorar em…") estão explicados em [Campos extras do lançamento](#campos-extras-do-lançamento).
 - **Despesa cartão** (no botão +) e **Ajuste de saldo** (em Contas) continuam como antes.
 
 ### Começando com um cartão que já está em uso
@@ -365,3 +366,51 @@ e datas `AAAA-MM-DD` no horário de Brasília.
 No banco: `budgets`, `budget_categories` e `budget_accounts` (filtros; somem junto com a categoria/conta),
 `budget_group_items` (agrupados) e `budget_goals` (histórico da meta: `fromMonth`, `amount`, `onlyMonth`; as
 transferências são linhas `isTransfer` somadas só naquele mês). Migration `20261111000000_orcamentos`.
+
+
+## Campos extras do lançamento, Estatísticas e Economia mensal
+
+### Campos extras do lançamento
+
+- **Subcategoria**: em **Categorias**, o botão **+ Sub** cria uma subcategoria dentro de uma categoria (um nível só, mesmo tipo). No formulário, escolha a categoria e depois a subcategoria (o campo fica desligado quando a categoria não tem filhas). O lançamento guarda a subcategoria; o Início ("Despesas por categoria"), as Estatísticas e o histórico da categoria **somam na categoria principal**, e um orçamento filtrado por uma categoria conta também as subcategorias dela. Apagar a principal apaga as subcategorias (os lançamentos ficam sem categoria).
+- **Tags**: várias por lançamento, por espaço. A linha **Tags** abre a escolha com "criar tag nova" na hora. Em **Lançamentos** há o filtro **Tag**; em **Categorias → Tags** dá para renomear, trocar a cor e apagar.
+- **Multicategorias**: divide o valor entre várias categorias (linhas categoria + valor). A soma tem que bater com o **valor final** (o servidor também confere). Resumo, gráfico por categoria, orçamentos e estatísticas usam a divisão. Não vale para **Parcelar**.
+- **Data lançamento**: dia em que você registrou / fez a compra (padrão hoje). Só informativa: o mês do lançamento continua sendo o da **Data (vencimento)**.
+- **Encargos / Desconto**: juros/multa somam e desconto subtrai. O **valor final** (valor + encargos − desconto) é o que conta em saldos, resumo, orçamentos e estatísticas; o formulário mostra o detalhamento. Não vale para **Parcelar**.
+- **Adicionar anexo**: fotos (JPG, PNG, WEBP, HEIC) ou PDF, até **3 MB** cada e até 10 por lançamento. O servidor confere o tipo pelo conteúdo do arquivo. Só quem é do espaço abre o anexo. Apagar o lançamento apaga os anexos.
+- **Não efetivar automaticamente**: receitas e despesas **pendentes** cuja data já chegou são efetivadas sozinhas (o servidor confere no início e a cada hora). Ligado, o lançamento fica pendente até você confirmar, mesmo depois da data. Compras no cartão, transferências e ajustes nunca são efetivados automaticamente. **Os pendentes que já existiam antes desta versão começaram com o interruptor ligado**, para nada mudar de surpresa.
+- **Ignorar em…** (cada um só tira o lançamento do seu lugar):
+  - **Estatísticas e Gráficos**: fora das telas de estatísticas e do gráfico "Despesas por categoria" do Início.
+  - **Orçamentos**: não conta em nenhum orçamento.
+  - **Economia mensal**: fora da tela Economia mensal.
+  - **Ignorar nos totais**: fora das somas de **Receitas/Despesas/Saldo do mês** no Início (como no Mobills). O **saldo da conta continua real**, considerando o lançamento.
+- Quem tem acesso **somente leitura** toca no lançamento e vê os detalhes (com anexos), sem editar.
+
+### Estatísticas e Gráficos (menu → Analisar)
+
+Mês e período (só o mês, ou os últimos 3, 6 ou 12 meses até ele), abas **Despesas/Receitas** e **Incluir pendentes** (padrão: só efetivados). Mostra: rosca **por categoria** (toque numa categoria com subcategorias para ver a divisão delas), **por conta e cartão**, **por tag** (um lançamento com duas tags conta nas duas) e **receitas × despesas** dos últimos 6 ou 12 meses com o saldo. Transferências, pagamentos de fatura e ajustes ficam de fora; compras no cartão contam no mês da fatura.
+
+### Economia mensal (menu → Analisar)
+
+Para cada mês: receitas − despesas = economia, em valor e em % da receita; gráfico dos últimos 12 meses, média, total, melhor e pior mês (a média considera só os meses com lançamentos). Ficam de fora: transferências, ajustes, contas/cartões com "Ignorar nos totais" e lançamentos com "Ignorar em Economia mensal".
+
+### Anexos em produção (volume persistente)
+
+Os arquivos ficam no disco do servidor, na pasta `UPLOADS_DIR` (padrão `/data/anexos`), com nome aleatório; o banco guarda só os metadados. O acesso passa por uma camada pequena (`server/src/services/armazenamento.ts`: salvar / ler / apagar): para mudar de VPS basta **copiar a pasta**; para usar S3 no futuro, troca-se só essa camada.
+
+- **Docker Compose**: já vem com o volume `anexos` montado em `/data/anexos`.
+- **Coolify**: no serviço **server**, crie um volume persistente (Persistent Storage → Volume) com destino **`/data/anexos`** e faça o redeploy. Sem o volume, os anexos **somem a cada deploy**. A variável `UPLOADS_DIR` é opcional (o Dockerfile já define `/data/anexos`).
+- O Nginx do site aceita corpo de até 4 MB em `/api/` (`client_max_body_size 4m`).
+
+### API
+
+| Rota | O que faz |
+|---|---|
+| `POST/PATCH /api/transactions` | Aceitam também `launchDate`, `fees`, `discount`, `noAutoConfirm`, `ignoreInStatistics`, `ignoreInBudgets`, `ignoreInMonthlySavings`, `ignoreInTotals`, `tagIds` e `splits` (`[{ categoryId, amount }]`, soma = valor final). `amount` é o valor digitado; o salvo/devolvido em `amount` é o valor final (`baseAmount` traz o digitado). |
+| `GET /api/transactions?tagId=` | Filtro por tag. `categoryId` agora traz também as subcategorias e as partes de multicategorias. |
+| `GET/POST/PATCH/DELETE /api/tags` | Tags do espaço (com `usage`). |
+| `POST /api/transactions/:id/attachments` | Envia um anexo: o arquivo é o corpo, `Content-Type` com o tipo e `X-File-Name` com o nome (encodeURIComponent). 413 acima de 3 MB, 400 para tipo não aceito. |
+| `GET/DELETE /api/attachments/:id` | Abre (`?download=1` baixa) ou apaga um anexo. |
+| `GET /api/stats?from=&to=&type=&includePending=&categoryId=` | Total e divisões por categoria, subcategoria, conta e tag. |
+| `GET /api/stats/evolution?month=&months=&includePending=` | Receitas × despesas mês a mês, saldo e acumulado. |
+| `GET /api/savings?month=&months=&includePending=` | Economia mensal, média, melhor e pior mês. |

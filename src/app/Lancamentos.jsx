@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced, FaCircleMinus, FaCirclePlus, FaListUl, FaXmark } from "react-icons/fa6";
+import {
+  FaReceipt,
+  FaArrowsUpDown,
+  FaArrowRight,
+  FaCreditCard,
+  FaScaleBalanced,
+  FaCircleMinus,
+  FaCirclePlus,
+  FaListUl,
+  FaXmark,
+  FaPaperclip,
+  FaLayerGroup,
+} from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
+import DetalhesLancamento from "./componentes/DetalhesLancamento.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
 import LogoConta from "./componentes/LogoConta.jsx";
 import { useMe } from "./useMe.js";
@@ -12,6 +25,7 @@ import Alerta from "../auth/Alerta.jsx";
 import { api, formatarReais } from "../lib/api.js";
 import { dataLocal, mesAtual, nomeDoDia } from "../lib/datas.js";
 import { textoParcela, dataCurta, SITUACOES, COR_PADRAO } from "../lib/cartoes.js";
+import { nomeCategoria } from "../lib/categorias.js";
 
 // Abas da barra de baixo (como no app de referência). "" = Extrato (tudo).
 const ABAS = [
@@ -100,9 +114,16 @@ function ConteudoLinha({ l, mostrarQuem }) {
   if (l.type === "TRANSFER") return <LinhaTransferencia l={l} />;
   const receita = l.type === "INCOME";
   const parcela = textoParcela(l);
+  const multi = l.splits?.length > 0;
   return (
     <>
-      <IconeCategoria categoria={l.category} />
+      {multi ? (
+        <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg text-white">
+          <FaLayerGroup />
+        </span>
+      ) : (
+        <IconeCategoria categoria={l.category} />
+      )}
       <span className="min-w-0 flex-1 text-left">
         <span className="block truncate font-bold text-slate-900">
           {l.description}
@@ -110,7 +131,8 @@ function ConteudoLinha({ l, mostrarQuem }) {
           {l.recurrence === "FIXED" && <Selo>Fixa</Selo>}
         </span>
         <span className="flex min-w-0 items-center gap-1 truncate text-sm text-slate-500">
-          <span className="truncate">{l.category?.name ?? "Sem categoria"} ·</span> <ChipConta conta={l.account} />
+          <span className="truncate">{multi ? `Multicategorias (${l.splits.length})` : nomeCategoria(l.category)} ·</span> <ChipConta conta={l.account} />
+          {l.attachments?.length > 0 && <FaPaperclip aria-label="com anexo" className="shrink-0 text-xs" />}
           {l.status === "PENDING" && " · pendente"}
           {mostrarQuem && <QuemLancou pessoa={l.createdBy} />}
         </span>
@@ -196,6 +218,9 @@ function Lancamentos() {
   const [aba, setAba] = useState(() => (ABAS.some((a) => a.valor === busca.get("aba")) ? busca.get("aba") : ""));
   // Filtro por categoria (mostra as compras no cartão uma a uma, como o filtro "Pessoa")
   const categoria = busca.get("categoria") ?? "";
+  // Filtro por tag (?tag=<id>): também mostra as compras no cartão uma a uma
+  const tag = busca.get("tag") ?? "";
+  const [tags, setTags] = useState([]);
   const [nomeCategoria, setNomeCategoria] = useState("");
   // Filtro "Pessoa" (só em espaço com mais de uma pessoa): mostra as compras no cartão uma a uma
   const [pessoa, setPessoa] = useState("");
@@ -205,8 +230,23 @@ function Lancamentos() {
   const [erro, setErro] = useState("");
   // null = janela fechada; objeto = editando
   const [edicao, setEdicao] = useState(null);
+  // Somente leitura: tocar abre os detalhes (sem editar)
+  const [detalhe, setDetalhe] = useState(null);
 
-  const comFaturas = !pessoa && !categoria && (aba === "" || aba === "EXPENSE");
+  const comFaturas = !pessoa && !categoria && !tag && (aba === "" || aba === "EXPENSE");
+
+  useEffect(() => {
+    api("/tags")
+      .then(setTags)
+      .catch(() => setTags([]));
+  }, []);
+
+  const mudarTag = (valor) => {
+    const nova = new URLSearchParams(busca);
+    if (valor) nova.set("tag", valor);
+    else nova.delete("tag");
+    setBusca(nova, { replace: true });
+  };
 
   // Nome da categoria do filtro (para o selo no topo)
   useEffect(() => {
@@ -242,14 +282,15 @@ function Lancamentos() {
     const filtroTipo =
       (aba ? `&type=${aba}` : "") +
       (pessoa ? `&createdById=${encodeURIComponent(pessoa)}` : "") +
-      (categoria ? `&categoryId=${encodeURIComponent(categoria)}` : "");
+      (categoria ? `&categoryId=${encodeURIComponent(categoria)}` : "") +
+      (tag ? `&tagId=${encodeURIComponent(tag)}` : "");
     Promise.all([api(`/transactions?month=${mes}${filtroTipo}`), comFaturas ? api(`/transactions/invoices?month=${mes}`) : []])
       .then(([lancamentos, listaFaturas]) => {
         setLista(lancamentos);
         setFaturas(listaFaturas);
       })
       .catch((e) => setErro(e.message));
-  }, [mes, aba, pessoa, categoria, comFaturas]);
+  }, [mes, aba, pessoa, categoria, tag, comFaturas]);
 
   useEffect(() => {
     setLista(null);
@@ -309,6 +350,23 @@ function Lancamentos() {
                   <FaXmark aria-hidden="true" />
                 </button>
               </p>
+            )}
+            {(tags.length > 0 || tag) && (
+              <label className="mt-2 mr-3 inline-flex items-center gap-2 text-sm text-white/90">
+                <span>Tag</span>
+                <select
+                  value={tag}
+                  onChange={(e) => mudarTag(e.target.value)}
+                  className="min-h-9 max-w-40 rounded-full border border-white/30 bg-primary-dark/40 px-3 text-sm font-bold text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+                >
+                  <option value="">Todas</option>
+                  {tags.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
             {pessoas.length > 1 && (
               <label className="mt-2 inline-flex items-center gap-2 text-sm text-white/90">
@@ -384,9 +442,14 @@ function Lancamentos() {
                       <ConteudoLinha l={l} mostrarQuem={compartilhado} />
                     </button>
                   ) : (
-                    <div className={classeLinha}>
+                    <button
+                      type="button"
+                      onClick={() => setDetalhe(l)}
+                      aria-label={`Ver ${tipoEmTexto(l)} ${l.description}, ${formatarReais(l.amount)}`}
+                      className={classeBotao}
+                    >
                       <ConteudoLinha l={l} mostrarQuem={compartilhado} />
-                    </div>
+                    </button>
                   )}
                 </li>
               ))}
@@ -395,6 +458,7 @@ function Lancamentos() {
         ))}
       </div>
 
+      {detalhe && <DetalhesLancamento lancamento={detalhe} onFechar={() => setDetalhe(null)} />}
       {edicao && (
         <FormLancamento
           lancamento={edicao}

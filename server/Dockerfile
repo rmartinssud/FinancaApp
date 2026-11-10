@@ -25,7 +25,6 @@ COPY package.json ./
 # (no Coolify: Storages → Volume, destino /data/anexos). Sem volume, os anexos somem a cada deploy.
 ENV UPLOADS_DIR=/data/anexos
 RUN mkdir -p /data/anexos && chown -R node:node /data
-VOLUME ["/data/anexos"]
 USER node
 EXPOSE 3333
 # Aplica as migrações pendentes e sobe a API

@@ -12,6 +12,7 @@ import { api, enviarJson, errosPorCampo, formatarReais } from "../../lib/api.js"
 import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
 import { dataLocal, hoje, nomeDoMes, somarMes } from "../../lib/datas.js";
 import { faturaAtual, faturaPermitida, mesDaFatura, mesesEntre, somarMesesNaData, vencimentoCurto } from "../../lib/cartoes.js";
+import { comSubcategorias } from "../../lib/categorias.js";
 
 const PARCELAS = Array.from({ length: 24 }, (_, i) => i + 1);
 
@@ -235,9 +236,9 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
 
         <CampoSelect label="Categoria" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} erro={erros.categoryId}>
           <option value="">Sem categoria</option>
-          {categorias.map((c) => (
+          {comSubcategorias(categorias).map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {c.rotulo}
             </option>
           ))}
         </CampoSelect>
