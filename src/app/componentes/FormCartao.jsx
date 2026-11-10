@@ -9,12 +9,14 @@ import { api, enviarJson, errosPorCampo } from "../../lib/api.js";
 import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
 import { BANDEIRAS, CORES_CARTAO, COR_PADRAO } from "../../lib/cartoes.js";
 import { botaoSecundario } from "./estilos.js";
+import CampoLogo from "./CampoLogo.jsx";
 
 const NOVA_CONTA = "__nova";
 
 const tiposConta = [
   { valor: "BANK", texto: "Conta bancária" },
   { valor: "WALLET", texto: "Carteira" },
+  { valor: "INVESTMENT", texto: "Investimento" },
 ];
 
 // Janelinha por cima do formulário do cartão para criar a conta de pagamento sem sair dele
@@ -83,6 +85,7 @@ function FormCartao({ cartao = null, onFechar, onSalvo }) {
   const [fechamento, setFechamento] = useState(cartao?.closingDay?.toString() ?? "");
   const [vencimento, setVencimento] = useState(cartao?.dueDay?.toString() ?? "");
   const [cor, setCor] = useState(cartao?.color ?? COR_PADRAO);
+  const [logo, setLogo] = useState(cartao?.bankLogo ?? null);
   const [contaPagamento, setContaPagamento] = useState(cartao?.paymentAccount?.id ?? "");
   const [contas, setContas] = useState(null);
   const [criandoConta, setCriandoConta] = useState(false);
@@ -125,6 +128,7 @@ function FormCartao({ cartao = null, onFechar, onSalvo }) {
       dueDay: paraDia(vencimento),
       color: cor,
       paymentAccountId: contaPagamento || null,
+      bankLogo: logo,
     };
     setSalvando(true);
     try {
@@ -213,6 +217,8 @@ function FormCartao({ cartao = null, onFechar, onSalvo }) {
           ))}
           <option value={NOVA_CONTA}>+ Criar nova conta</option>
         </CampoSelect>
+
+        <CampoLogo valor={logo} onMudar={setLogo} tipo="CREDIT_CARD" erro={erros.bankLogo} />
 
         <fieldset>
           <legend className="mb-2 block font-medium text-slate-800">Cor</legend>

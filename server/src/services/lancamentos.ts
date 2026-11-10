@@ -4,8 +4,8 @@ import { prisma } from "../lib/prisma.js";
 // Junta categoria, conta (e conta de destino, na transferência) em todo lançamento devolvido
 export const incluir = {
   category: { select: { id: true, name: true, color: true, icon: true } },
-  account: { select: { id: true, name: true, type: true } },
-  toAccount: { select: { id: true, name: true, type: true } },
+  account: { select: { id: true, name: true, type: true, bankLogo: true } },
+  toAccount: { select: { id: true, name: true, type: true, bankLogo: true } },
   createdBy: { select: { id: true, name: true } },
 } satisfies Prisma.TransactionInclude;
 

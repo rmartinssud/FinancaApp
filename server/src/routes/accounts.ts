@@ -5,20 +5,23 @@ import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
 import { valorComSinal, valorNaoNegativo, hojeComoData } from "../lib/money.js";
-import { contasComSaldo, serializarConta } from "../services/saldos.js";
+import { contasComSaldo, serializarConta, saldoEDisponivel } from "../services/saldos.js";
 import { incluir, serializar } from "../services/lancamentos.js";
+import { logoBanco } from "../lib/bancos.js";
 
 export const accountsRouter = Router();
 
 // Todas as rotas daqui exigem login e família. VIEWER só lê.
 accountsRouter.use(requireAuth, withHousehold, bloqueiaSomenteLeitura);
 
-const tipoConta = z.enum(["WALLET", "BANK", "CREDIT_CARD"]);
+const tipoConta = z.enum(["WALLET", "BANK", "CREDIT_CARD", "INVESTMENT"]);
 const dia = z.number().int().min(1).max(31);
 
 const filtro = z.object({
   type: tipoConta.optional(),
 });
+
+const SO_CONTA_BANCARIA = "Cheque especial só para conta bancária.";
 
 // Campos que só fazem sentido para cartão de crédito
 const camposCartao = ["creditLimit", "closingDay", "dueDay"] as const;
@@ -31,8 +34,13 @@ const novaConta = z
     creditLimit: valorNaoNegativo.nullable().optional(),
     closingDay: dia.nullable().optional(),
     dueDay: dia.nullable().optional(),
+    overdraftLimit: valorNaoNegativo.nullable().optional(),
+    bankLogo: logoBanco.nullable().optional(),
   })
   .superRefine((d, ctx) => {
+    if (d.type !== "BANK" && d.overdraftLimit != null && !d.overdraftLimit.isZero()) {
+      ctx.addIssue({ code: "custom", path: ["overdraftLimit"], message: SO_CONTA_BANCARIA });
+    }
     if (d.type === "CREDIT_CARD") return;
     for (const campo of camposCartao) {
       if (d[campo] != null) ctx.addIssue({ code: "custom", path: [campo], message: "Só para cartão de crédito." });
@@ -46,6 +54,8 @@ const edicaoConta = z.object({
   creditLimit: valorNaoNegativo.nullable().optional(),
   closingDay: dia.nullable().optional(),
   dueDay: dia.nullable().optional(),
+  overdraftLimit: valorNaoNegativo.nullable().optional(),
+  bankLogo: logoBanco.nullable().optional(),
 });
 
 // Ajuste de saldo: o saldo que aparece no banco hoje (pode ser negativo)
@@ -59,13 +69,18 @@ accountsRouter.get("/", validateQuery(filtro), async (req, res) => {
   res.json(await contasComSaldo(scope(req).householdId, type));
 });
 
-// POST /api/accounts → cria carteira, conta bancária ou cartão
+// POST /api/accounts → cria carteira, conta bancária, investimento ou cartão
 accountsRouter.post("/", validateBody(novaConta), async (req, res) => {
   const d = req.body as z.infer<typeof novaConta>;
   const conta = await prisma.financialAccount.create({
-    data: { ...scope(req), ...d, initialBalance: d.initialBalance ?? 0 },
+    data: {
+      ...scope(req),
+      ...d,
+      initialBalance: d.initialBalance ?? 0,
+      overdraftLimit: d.type === "BANK" && d.overdraftLimit && !d.overdraftLimit.isZero() ? d.overdraftLimit : null,
+    },
   });
-  res.status(201).json({ ...serializarConta(conta), currentBalance: conta.initialBalance.toFixed(2) });
+  res.status(201).json({ ...serializarConta(conta), ...saldoEDisponivel(conta, conta.initialBalance) });
 });
 
 // PATCH /api/accounts/:id → altera os dados da conta
@@ -85,13 +100,20 @@ accountsRouter.patch("/:id", validateBody(edicaoConta), async (req, res) => {
     }
   }
 
+  if (tipoFinal !== "BANK" && d.overdraftLimit != null && !d.overdraftLimit.isZero()) {
+    return res.status(400).json({ error: "Dados inválidos.", detalhes: { overdraftLimit: [SO_CONTA_BANCARIA] } });
+  }
+  // Limite zero = sem cheque especial; deixou de ser conta bancária: tira o cheque especial
+  const cheque =
+    tipoFinal !== "BANK" ? { overdraftLimit: null } : d.overdraftLimit !== undefined ? { overdraftLimit: d.overdraftLimit?.isZero() ? null : d.overdraftLimit } : {};
+
   // Deixou de ser cartão: limpa os campos de cartão
   const limpaCartao =
     tipoFinal !== "CREDIT_CARD"
       ? { creditLimit: null, closingDay: null, dueDay: null, brand: null, color: null, paymentAccountId: null, archivedAt: null }
       : {};
 
-  await prisma.financialAccount.update({ where: { id: atual.id }, data: { ...d, ...limpaCartao } });
+  await prisma.financialAccount.update({ where: { id: atual.id }, data: { ...d, ...limpaCartao, ...cheque } });
   const [conta] = (await contasComSaldo(scope(req).householdId)).filter((c) => c.id === atual.id);
   res.json(conta);
 });

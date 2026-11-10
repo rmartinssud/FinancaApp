@@ -223,3 +223,35 @@ O espaço ativo vem do header `X-Household-Id` (se enviado: precisa ser membro, 
 | GET | `/api/transactions?createdById=` | Filtro por quem lançou. Todo lançamento devolve `createdBy` (`{ id, name }`, ou `null` se a pessoa apagou a conta). Com `createdById`, as compras no cartão vêm uma a uma. |
 
 Segurança: o token do convite é aleatório (32 bytes) e só o **hash** fica no banco; o link completo aparece só na resposta de criar/reenviar e no email.
+
+## Contas: cheque especial, investimento e logos dos bancos
+
+### Cheque especial
+Em **Contas → editar conta bancária**, preencha **Cheque especial (limite)**. A conta pode ficar negativa:
+a lista mostra **"Usando R$ X do cheque especial"** (em vermelho) e **"Disponível R$ Y"** (saldo + limite).
+Deixe vazio (ou 0) para tirar. Só vale para **Conta bancária** — carteira, investimento e cartão não têm cheque especial.
+Na API: `overdraftLimit` (texto, ≥ 0) em `POST/PATCH /api/accounts`; as contas devolvem também `availableBalance`.
+
+### Conta de investimento
+Crie uma conta do tipo **Investimento** (corretora, CDB, poupança...). Funciona como as outras contas:
+transfira para ela (aporte) e dela (resgate) em Lançamentos, e use **Ajustar saldo** para lançar o rendimento.
+Ela aparece num grupo próprio em Contas, entra no **Total** do Início e tem a linha **Investimentos R$ X**.
+Na API: `type: "INVESTMENT"`.
+
+### Logo do banco
+No formulário da conta ou do cartão, toque em **Logo do banco** e busque pelo nome (ou escolha **Sem logo**).
+O logo aparece em Contas, no Início, no desenho do cartão e nos lançamentos. Na API: `bankLogo` (slug ou `null`).
+
+Para adicionar um logo: coloque o SVG em `public/bancos/<slug>.svg` e o slug em
+`src/app/dados/bancos.js` **e** em `server/src/lib/bancos.ts` (o servidor só aceita slugs da lista).
+
+**Créditos:** a maior parte dos logos vem do repositório público [Tgentil/Bancos-em-SVG](https://github.com/Tgentil/Bancos-em-SVG).
+Os demais (todos otimizados com svgo):
+- [Wikimedia Commons](https://commons.wikimedia.org/) (arquivos de logo em domínio público): Agibank, Ágora Investimentos
+  (só o símbolo), Banco Modal, Binance, Digio, Genial Investimentos, Mercado Bitcoin, Nomad, Warren Investimentos e Will Bank;
+- [simple-icons](https://simpleicons.org/) (CC0, com a cor da marca do próprio simple-icons): Wise;
+- sites oficiais das marcas: Avenue (avenue.us), Foxbit (foxbit.com.br), Guide Investimentos (guide.com.br, ícone com a
+  cor declarada pelo site), Kinvo (kinvo.com.br), Next (next.me, símbolo), NuInvest (nuinvest.com.br) e Toro Investimentos
+  (toroinvestimentos.com.br, só o símbolo).
+
+Os logos são marcas registradas dos seus respectivos donos e são usados aqui só para identificar a conta do usuário.

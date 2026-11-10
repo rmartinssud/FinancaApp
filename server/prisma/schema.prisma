@@ -119,6 +119,7 @@ enum AccountType {
   WALLET
   BANK
   CREDIT_CARD
+  INVESTMENT // conta de investimento (corretora, CDB, poupança...)
 }
 
 // Bandeira do cartão de crédito
@@ -216,7 +217,7 @@ model HouseholdInvite {
   @@map("household_invites")
 }
 
-// Carteira, conta bancária ou cartão de crédito
+// Carteira, conta bancária, investimento ou cartão de crédito
 model FinancialAccount {
   id               String      @id @default(cuid())
   householdId      String
@@ -224,6 +225,8 @@ model FinancialAccount {
   type             AccountType
   initialBalance   Decimal     @default(0) @db.Decimal(12, 2) // dinheiro sempre em Decimal, nunca float
   creditLimit      Decimal?    @db.Decimal(12, 2)
+  overdraftLimit   Decimal?    @db.Decimal(12, 2) // cheque especial (só conta bancária)
+  bankLogo         String? // slug do logo do banco (public/bancos/<slug>.svg)
   closingDay       Int? // dia de fechamento da fatura (cartão)
   dueDay           Int? // dia de vencimento da fatura (cartão)
   brand            CardBrand? // bandeira (cartão)

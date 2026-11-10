@@ -5,6 +5,7 @@ import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
+import LogoConta from "./componentes/LogoConta.jsx";
 import { useMe } from "./useMe.js";
 import { QuemLancou } from "./componentes/Avatar.jsx";
 import Alerta from "../auth/Alerta.jsx";
@@ -38,6 +39,16 @@ function Selo({ children }) {
   return <span className="ml-2 rounded-full bg-soft px-2 py-0.5 text-xs font-bold text-primary">{children}</span>;
 }
 
+// Nome da conta com o logo do banco pequeno na frente (se tiver logo)
+function ChipConta({ conta }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      {conta.bankLogo && <LogoConta conta={conta} tamanho="xs" />}
+      <span className="truncate">{conta.name}</span>
+    </span>
+  );
+}
+
 // Transferência (ou pagamento de fatura): ícone âmbar e "Conta A → Conta B"
 function LinhaTransferencia({ l }) {
   return (
@@ -48,9 +59,9 @@ function LinhaTransferencia({ l }) {
       <span className="min-w-0 flex-1 text-left">
         <span className="block truncate font-bold text-slate-900">{l.description}</span>
         <span className="flex min-w-0 items-center gap-1.5 text-sm text-slate-500">
-          <span className="truncate">{l.account.name}</span>
+          <ChipConta conta={l.account} />
           <FaArrowRight aria-label="para" className="shrink-0 text-xs text-amber-600" />
-          <span className="truncate">{l.toAccount?.name}</span>
+          {l.toAccount && <ChipConta conta={l.toAccount} />}
           {l.status === "PENDING" && <span className="shrink-0"> · pendente</span>}
         </span>
       </span>
@@ -98,8 +109,8 @@ function ConteudoLinha({ l, mostrarQuem }) {
           {parcela && <Selo>{parcela}</Selo>}
           {l.recurrence === "FIXED" && <Selo>Fixa</Selo>}
         </span>
-        <span className="block truncate text-sm text-slate-500">
-          {l.category?.name ?? "Sem categoria"} · {l.account.name}
+        <span className="flex min-w-0 items-center gap-1 truncate text-sm text-slate-500">
+          <span className="truncate">{l.category?.name ?? "Sem categoria"} ·</span> <ChipConta conta={l.account} />
           {l.status === "PENDING" && " · pendente"}
           {mostrarQuem && <QuemLancou pessoa={l.createdBy} />}
         </span>
