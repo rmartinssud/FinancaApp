@@ -14,6 +14,7 @@ import {
   FaArrowRightFromBracket,
   FaUsers,
   FaPiggyBank,
+  FaCircleQuestion,
 } from "react-icons/fa6";
 import logo from "../../assets/logo-financas.webp";
 import SeletorEspaco from "./SeletorEspaco.jsx";
@@ -46,6 +47,10 @@ const SECOES_MENU = [
       { para: "/app/categorias", texto: "Categorias", Icone: FaShapes },
       { texto: "Calendário", Icone: FaCalendarDays, emBreve: true },
     ],
+  },
+  {
+    titulo: "Suporte",
+    itens: [{ para: "/app/ajuda", texto: "Ajuda", Icone: FaCircleQuestion }],
   },
 ];
 

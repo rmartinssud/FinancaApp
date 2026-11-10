@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FaPlus, FaChevronDown, FaLayerGroup, FaBullseye, FaWandMagicSparkles } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
+import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import Alternador from "./componentes/Alternador.jsx";
 import Modal from "./componentes/Modal.jsx";
@@ -126,7 +127,10 @@ function Orcamentos() {
     <AppLayout semBotaoNovo>
       <Alerta>{erroMe || erro}</Alerta>
 
-      <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Orçamentos</h1>
+      <div className="flex items-center gap-1">
+        <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Orçamentos</h1>
+        <BotaoAjuda artigo="orcamentos" assunto="orçamentos" />
+      </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
         <SeletorMes mes={mes} onMudar={(m) => mudar({ mes: m })} />
