@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced, FaCircleMinus, FaCirclePlus, FaListUl } from "react-icons/fa6";
+import { Link, useSearchParams } from "react-router-dom";
+import { FaReceipt, FaArrowsUpDown, FaArrowRight, FaCreditCard, FaScaleBalanced, FaCircleMinus, FaCirclePlus, FaListUl, FaXmark } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
@@ -185,11 +185,18 @@ function BarraFiltros({ aba, onMudar }) {
   );
 }
 
-// Lista de lançamentos do mês, agrupada por dia
+const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+// Lista de lançamentos do mês, agrupada por dia.
+// Aceita na URL (ex.: vindo do Início): ?mes=2026-11&aba=EXPENSE&categoria=<id ou "none" = sem categoria>
 function Lancamentos() {
   const { erroMe, podeEditar, compartilhado } = useMe();
-  const [mes, setMes] = useState(mesAtual);
-  const [aba, setAba] = useState("");
+  const [busca, setBusca] = useSearchParams();
+  const [mes, setMes] = useState(() => (MES_VALIDO.test(busca.get("mes") ?? "") ? busca.get("mes") : mesAtual()));
+  const [aba, setAba] = useState(() => (ABAS.some((a) => a.valor === busca.get("aba")) ? busca.get("aba") : ""));
+  // Filtro por categoria (mostra as compras no cartão uma a uma, como o filtro "Pessoa")
+  const categoria = busca.get("categoria") ?? "";
+  const [nomeCategoria, setNomeCategoria] = useState("");
   // Filtro "Pessoa" (só em espaço com mais de uma pessoa): mostra as compras no cartão uma a uma
   const [pessoa, setPessoa] = useState("");
   const [pessoas, setPessoas] = useState([]);
@@ -199,7 +206,29 @@ function Lancamentos() {
   // null = janela fechada; objeto = editando
   const [edicao, setEdicao] = useState(null);
 
-  const comFaturas = !pessoa && (aba === "" || aba === "EXPENSE");
+  const comFaturas = !pessoa && !categoria && (aba === "" || aba === "EXPENSE");
+
+  // Nome da categoria do filtro (para o selo no topo)
+  useEffect(() => {
+    if (!categoria) return undefined;
+    if (categoria === "none") {
+      setNomeCategoria("Sem categoria");
+      return undefined;
+    }
+    let ativo = true;
+    api("/categories")
+      .then((lista) => ativo && setNomeCategoria(lista.find((c) => c.id === categoria)?.name ?? "Categoria"))
+      .catch(() => ativo && setNomeCategoria("Categoria"));
+    return () => {
+      ativo = false;
+    };
+  }, [categoria]);
+
+  const limparCategoria = () => {
+    const nova = new URLSearchParams(busca);
+    nova.delete("categoria");
+    setBusca(nova, { replace: true });
+  };
 
   useEffect(() => {
     if (!compartilhado) return;
@@ -210,14 +239,17 @@ function Lancamentos() {
 
   const carregar = useCallback(() => {
     setErro("");
-    const filtroTipo = (aba ? `&type=${aba}` : "") + (pessoa ? `&createdById=${encodeURIComponent(pessoa)}` : "");
+    const filtroTipo =
+      (aba ? `&type=${aba}` : "") +
+      (pessoa ? `&createdById=${encodeURIComponent(pessoa)}` : "") +
+      (categoria ? `&categoryId=${encodeURIComponent(categoria)}` : "");
     Promise.all([api(`/transactions?month=${mes}${filtroTipo}`), comFaturas ? api(`/transactions/invoices?month=${mes}`) : []])
       .then(([lancamentos, listaFaturas]) => {
         setLista(lancamentos);
         setFaturas(listaFaturas);
       })
       .catch((e) => setErro(e.message));
-  }, [mes, aba, pessoa, comFaturas]);
+  }, [mes, aba, pessoa, categoria, comFaturas]);
 
   useEffect(() => {
     setLista(null);
@@ -265,6 +297,19 @@ function Lancamentos() {
           <div className="min-w-0">
             <h1 className="font-heading text-2xl font-bold md:text-4xl">Lançamentos</h1>
             <p className="mt-1 text-sm text-white/80">{NOME_ABA[aba]}</p>
+            {categoria && (
+              <p className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full bg-white/15 py-0.5 pl-3 pr-1 text-sm font-bold text-white">
+                <span className="truncate">{nomeCategoria || "Categoria"}</span>
+                <button
+                  type="button"
+                  onClick={limparCategoria}
+                  aria-label={`Tirar o filtro de categoria ${nomeCategoria}`}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full hover:bg-white/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+                >
+                  <FaXmark aria-hidden="true" />
+                </button>
+              </p>
+            )}
             {pessoas.length > 1 && (
               <label className="mt-2 inline-flex items-center gap-2 text-sm text-white/90">
                 <span>Pessoa</span>

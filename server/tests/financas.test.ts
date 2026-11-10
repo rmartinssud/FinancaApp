@@ -213,9 +213,9 @@ describe("saldo e resumo com centavos", () => {
     expect(resumo.body.month).toBe("2026-07");
     expect(resumo.body.totals).toEqual({ income: "0.30", expense: "84.41", balance: "-84.11" });
     expect(resumo.body.byCategory).toEqual([
-      { categoryId: categoria("Lazer"), name: "Lazer", color: "#ec4899", total: "50.00" },
-      { categoryId: categoria("Mercado"), name: "Mercado", color: "#22c55e", total: "33.40" },
-      { categoryId: null, name: "Sem categoria", color: "#94a3b8", total: "1.01" },
+      { categoryId: categoria("Lazer"), name: "Lazer", color: "#ec4899", icon: expect.any(String), type: "EXPENSE", total: "50.00" },
+      { categoryId: categoria("Mercado"), name: "Mercado", color: "#22c55e", icon: expect.any(String), type: "EXPENSE", total: "33.40" },
+      { categoryId: null, name: "Sem categoria", color: "#94a3b8", icon: null, type: null, total: "1.01" },
     ]);
     expect(resumo.body.accounts.find((c: { id: string }) => c.id === accountId).currentBalance).toBe("22.89");
 

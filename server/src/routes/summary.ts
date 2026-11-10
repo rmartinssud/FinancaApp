@@ -1,10 +1,10 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope } from "../middleware/household.js";
 import { validateQuery } from "../middleware/validate.js";
-import { ZERO, mesSchema, mesAtual, intervaloDoMes } from "../lib/money.js";
+import { ZERO, mesSchema, mesAtual, intervaloDoMes, somarMeses, partesLocais } from "../lib/money.js";
 import { contasComSaldo } from "../services/saldos.js";
 
 export const summaryRouter = Router();
@@ -15,6 +15,17 @@ const filtro = z.object({
   month: mesSchema.optional(),
 });
 
+// Regras do resumo (Início): só confirmados e sem ajustes de saldo.
+// "Despesas por categoria" e o histórico da categoria usam exatamente este filtro.
+function baseDoResumo(req: Request) {
+  return {
+    ...scope(req),
+    status: "CONFIRMED" as const,
+    // Ajuste de saldo só acerta o saldo da conta: não é receita nem despesa
+    isAdjustment: false,
+  };
+}
+
 // GET /api/summary?month=2026-11 → resumo do mês (só lançamentos confirmados).
 // Transferências (e pagamentos de fatura) e ajustes de saldo não entram em receitas nem despesas.
 // Compras no cartão contam como despesa no mês do vencimento da fatura, não no dia da compra.
@@ -22,10 +33,7 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
   const { month } = res.locals.query as z.infer<typeof filtro>;
   const mes = month ?? mesAtual();
   const doMes = {
-    ...scope(req),
-    status: "CONFIRMED" as const,
-    // Ajuste de saldo só acerta o saldo da conta: não é receita nem despesa
-    isAdjustment: false,
+    ...baseDoResumo(req),
     OR: [{ invoiceMonth: null, date: intervaloDoMes(mes) }, { invoiceMonth: mes }],
   };
 
@@ -55,6 +63,9 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
         categoryId: p.categoryId,
         name: c?.name ?? "Sem categoria",
         color: c?.color ?? "#94a3b8",
+        // Ícone e tipo para o Início (editar a categoria direto do cartão)
+        icon: c?.icon ?? null,
+        type: c?.type ?? null,
         total: p._sum.amount ?? ZERO,
       };
     })
@@ -80,5 +91,61 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
       total: somar(somadas),
       investments: somar(somadas.filter((c) => c.type === "INVESTMENT")),
     },
+  });
+});
+
+const filtroHistorico = z.object({
+  // Id da categoria ou "none" (despesas sem categoria)
+  categoryId: z.string().min(1, "Escolha a categoria."),
+  // Último mês do histórico (padrão: mês atual)
+  month: mesSchema.optional(),
+  months: z.coerce.number().int().min(1, "De 1 a 12 meses.").max(12, "De 1 a 12 meses.").default(6),
+});
+
+// GET /api/summary/category-history?categoryId=...&month=2026-11&months=6
+// → despesas da categoria mês a mês (o mais antigo primeiro), com as mesmas regras de
+// "Despesas por categoria": só confirmadas, sem transferências nem ajustes, compras no cartão
+// no mês da fatura. categoryId=none = despesas sem categoria.
+summaryRouter.get("/category-history", validateQuery(filtroHistorico), async (req, res) => {
+  const f = res.locals.query as z.infer<typeof filtroHistorico>;
+  const fim = f.month ?? mesAtual();
+  const semCategoria = f.categoryId === "none";
+
+  let categoria = null;
+  if (!semCategoria) {
+    categoria = await prisma.category.findFirst({ where: { id: f.categoryId, ...scope(req) } });
+    if (!categoria) return res.status(404).json({ error: "Categoria não encontrada." });
+  }
+
+  const meses = Array.from({ length: f.months }, (_, i) => somarMeses(fim, i - (f.months - 1)));
+  const lancamentos = await prisma.transaction.findMany({
+    where: {
+      ...baseDoResumo(req),
+      type: "EXPENSE",
+      categoryId: semCategoria ? null : f.categoryId,
+      OR: [
+        { invoiceMonth: null, date: { gte: intervaloDoMes(meses[0]).gte, lt: intervaloDoMes(fim).lt } },
+        { invoiceMonth: { in: meses } },
+      ],
+    },
+    select: { amount: true, date: true, invoiceMonth: true },
+  });
+
+  const somas = new Map(meses.map((m) => [m, ZERO]));
+  for (const l of lancamentos) {
+    const m = l.invoiceMonth ?? partesLocais(l.date).mes;
+    const atual = somas.get(m);
+    if (atual) somas.set(m, atual.plus(l.amount));
+  }
+  const total = [...somas.values()].reduce((t, v) => t.plus(v), ZERO);
+
+  res.json({
+    categoryId: semCategoria ? null : categoria!.id,
+    name: categoria?.name ?? "Sem categoria",
+    color: categoria?.color ?? "#94a3b8",
+    month: fim,
+    months: meses.map((m) => ({ month: m, total: somas.get(m)!.toFixed(2) })),
+    // Média simples dos meses mostrados (o mês atual inclusive)
+    average: total.dividedBy(meses.length).toFixed(2),
   });
 });

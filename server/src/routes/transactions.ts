@@ -22,6 +22,7 @@ const situacao = z.enum(["PENDING", "CONFIRMED"]);
 const filtro = z.object({
   month: mesSchema.optional(),
   accountId: z.string().min(1).optional(),
+  // Id da categoria ou "none" (sem categoria)
   categoryId: z.string().min(1).optional(),
   type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
   // Forma de pagamento, tirada do tipo da conta: CREDIT_CARD = cartão, BANK = débito/Pix, WALLET = dinheiro
@@ -131,7 +132,8 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
   const mes = f.month ?? mesAtual();
 
   // Filtro por pessoa: mostra as compras no cartão uma a uma (ex.: cartão adicional do filho)
-  let comComprasDoCartao = f.accountType === "CREDIT_CARD" || Boolean(f.createdById);
+  // Filtro por categoria também: as compras aparecem uma a uma (a fatura junta categorias diferentes)
+  let comComprasDoCartao = f.accountType === "CREDIT_CARD" || Boolean(f.createdById) || Boolean(f.categoryId);
   if (f.accountId && !comComprasDoCartao) {
     const conta = await prisma.financialAccount.findFirst({ where: { id: f.accountId, ...scope(req) }, select: { type: true } });
     comComprasDoCartao = conta?.type === "CREDIT_CARD";
@@ -154,7 +156,8 @@ transactionsRouter.get("/", validateQuery(filtro), async (req, res) => {
           ? [{ OR: [{ account: { type: f.accountType } }, { type: "TRANSFER" as const, toAccount: { type: f.accountType } }] }]
           : []),
       ],
-      ...(f.categoryId ? { categoryId: f.categoryId } : {}),
+      // categoryId=none: só os lançamentos sem categoria
+      ...(f.categoryId ? { categoryId: f.categoryId === "none" ? null : f.categoryId } : {}),
       ...(f.type ? { type: f.type } : {}),
       ...(f.createdById ? { createdById: f.createdById } : {}),
     },
