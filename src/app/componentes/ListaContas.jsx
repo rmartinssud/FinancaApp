@@ -30,6 +30,7 @@ export function LinhaConta({ conta, detalhe }) {
       <span className="min-w-0 flex-1 text-left">
         <span className="block truncate font-bold text-slate-900">{conta.name}</span>
         <span className="block text-sm text-slate-500">{detalhe ?? nome}</span>
+        {conta.ignoreInTotals && <span className="block text-xs font-medium text-amber-700">Fora dos totais</span>}
         <InfoCheque conta={conta} />
       </span>
       <span className="text-right">

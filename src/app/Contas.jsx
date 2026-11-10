@@ -32,7 +32,7 @@ function Contas() {
   // Contas com "Ignorar nos totais" ficam fora das somas
   const soma = (lista) => lista.filter((c) => !c.ignoreInTotals).reduce((t, c) => t + Number(c.currentBalance), 0);
   const total = soma(contas ?? []);
-  const investimentos = (contas ?? []).filter((c) => c.type === "INVESTMENT" && !c.ignoreInTotals);
+  const investimentos = (contas ?? []).filter((c) => c.type === "INVESTMENT");
   const grupos = [
     { titulo: "Contas", lista: (contas ?? []).filter((c) => c.type !== "INVESTMENT") },
     { titulo: "Investimentos", lista: investimentos },
