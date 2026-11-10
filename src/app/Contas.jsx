@@ -1,149 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaPlus, FaScaleBalanced } from "react-icons/fa6";
+import { FaPlus } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
-import Modal from "./componentes/Modal.jsx";
-import CampoSelect from "./componentes/CampoSelect.jsx";
-import BotaoApagar from "./componentes/BotaoApagar.jsx";
 import FormAjusteSaldo from "./componentes/FormAjusteSaldo.jsx";
+import FormConta from "./componentes/FormConta.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
-import CampoLogo from "./componentes/CampoLogo.jsx";
-import { TIPOS_CONTA } from "../lib/contas.js";
-import { cartao, botaoSecundario } from "./componentes/estilos.js";
+import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
-import Campo from "../auth/Campo.jsx";
-import BotaoEnviar from "../auth/BotaoEnviar.jsx";
 import Alerta from "../auth/Alerta.jsx";
-import { api, enviarJson, errosPorCampo, formatarReais } from "../lib/api.js";
-import { mascarar, paraApi, paraCampo } from "../lib/dinheiro.js";
-
-// Tipos que aparecem aqui (cartões de crédito ficam na tela "Cartões de crédito")
-const tiposConta = Object.entries(TIPOS_CONTA).filter(([valor]) => valor !== "CREDIT_CARD");
-
-// Janela para criar ou editar uma conta
-function FormConta({ conta, onFechar, onSalvo, onAjustar }) {
-  const editando = Boolean(conta);
-  const [nome, setNome] = useState(conta?.name ?? "");
-  const [tipo, setTipo] = useState(conta?.type ?? "BANK");
-  const [saldoInicial, setSaldoInicial] = useState(paraCampo(conta?.initialBalance ?? "0"));
-  const [cheque, setCheque] = useState(paraCampo(conta?.overdraftLimit ?? ""));
-  const [logo, setLogo] = useState(conta?.bankLogo ?? null);
-  const [erros, setErros] = useState({});
-  const [erro, setErro] = useState("");
-  const [salvando, setSalvando] = useState(false);
-  const [apagando, setApagando] = useState(false);
-  const [erroApagar, setErroApagar] = useState("");
-
-  async function salvar(e) {
-    e.preventDefault();
-    const novosErros = {};
-    if (!nome.trim()) novosErros.name = "Dê um nome para a conta.";
-    setErros(novosErros);
-    setErro("");
-    if (Object.keys(novosErros).length) return;
-
-    const corpo = { name: nome.trim(), type: tipo, initialBalance: paraApi(saldoInicial) || "0", bankLogo: logo };
-    // Cheque especial só em conta bancária (vazio = sem cheque especial)
-    if (tipo === "BANK") corpo.overdraftLimit = paraApi(cheque) || null;
-
-    setSalvando(true);
-    try {
-      if (editando) await api(`/accounts/${conta.id}`, enviarJson("PATCH", corpo));
-      else await api("/accounts", enviarJson("POST", corpo));
-      onSalvo();
-    } catch (falha) {
-      setErros(errosPorCampo(falha));
-      setErro(falha.message);
-      setSalvando(false);
-    }
-  }
-
-  async function apagar() {
-    setApagando(true);
-    setErroApagar("");
-    try {
-      await api(`/accounts/${conta.id}`, { method: "DELETE" });
-      onSalvo();
-    } catch (falha) {
-      // 409: a família precisa ficar com pelo menos uma conta
-      setErroApagar(
-        falha.status === 409
-          ? "Esta é a única conta da família, por isso não pode ser apagada. Crie outra conta antes de apagar esta."
-          : falha.message,
-      );
-      setApagando(false);
-    }
-  }
-
-  return (
-    <Modal titulo={editando ? "Editar conta" : "Nova conta"} onFechar={onFechar}>
-      <form onSubmit={salvar} noValidate className="space-y-5">
-        <Alerta>{erro}</Alerta>
-
-        <Campo label="Nome" maxLength={60} autoComplete="off" placeholder="Ex.: Nubank" value={nome} onChange={(e) => setNome(e.target.value)} erro={erros.name} />
-
-        <CampoSelect label="Tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} erro={erros.type}>
-          {tiposConta.map(([valor, { nome: texto }]) => (
-            <option key={valor} value={valor}>
-              {texto}
-            </option>
-          ))}
-        </CampoSelect>
-
-        <Campo
-          label="Saldo inicial (R$)"
-          inputMode="numeric"
-          autoComplete="off"
-          value={saldoInicial}
-          onChange={(e) => setSaldoInicial(mascarar(e.target.value, true))}
-          erro={erros.initialBalance}
-          dica="Para saldo negativo, digite o sinal de menos (-)."
-        />
-
-        {tipo === "BANK" && (
-          <Campo
-            label="Cheque especial (limite)"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="0,00"
-            value={cheque}
-            onChange={(e) => setCheque(mascarar(e.target.value))}
-            erro={erros.overdraftLimit}
-            dica="Opcional. Mostramos quanto ainda dá para gastar (saldo + limite)."
-          />
-        )}
-
-        <CampoLogo valor={logo} onMudar={setLogo} tipo={tipo} erro={erros.bankLogo} />
-
-        <BotaoEnviar texto={editando ? "Salvar alterações" : "Criar conta"} carregando={salvando} textoCarregando="Salvando..." className="w-full" />
-
-        {editando && (
-          <div className="rounded-2xl bg-soft p-4">
-            <p className="text-sm text-slate-700">
-              Saldo no app: <strong>{formatarReais(conta.currentBalance)}</strong>. Não bate com o {conta.type === "WALLET" ? "que você tem" : conta.type === "INVESTMENT" ? "da corretora" : "banco"}?
-            </p>
-            <button type="button" onClick={() => onAjustar(conta)} className={`${botaoSecundario} mt-3 w-full bg-white`}>
-              <FaScaleBalanced aria-hidden="true" />
-              Ajustar saldo
-            </button>
-          </div>
-        )}
-
-        {editando && (
-          <div className="flex flex-col items-center gap-3">
-            <Alerta className="w-full">{erroApagar}</Alerta>
-            <BotaoApagar
-              texto="Apagar conta"
-              pergunta="Apagar esta conta? Todos os lançamentos e transferências dela também serão apagados. Isso não pode ser desfeito."
-              onConfirmar={apagar}
-              carregando={apagando}
-            />
-          </div>
-        )}
-      </form>
-    </Modal>
-  );
-}
+import { api, formatarReais } from "../lib/api.js";
 
 // Lista de contas (carteira, banco e investimentos) com saldo atual. Cartões ficam em "Cartões de crédito".
 function Contas() {
@@ -164,9 +29,10 @@ function Contas() {
     carregar();
   }, [carregar]);
 
-  const soma = (lista) => lista.reduce((t, c) => t + Number(c.currentBalance), 0);
+  // Contas com "Ignorar nos totais" ficam fora das somas
+  const soma = (lista) => lista.filter((c) => !c.ignoreInTotals).reduce((t, c) => t + Number(c.currentBalance), 0);
   const total = soma(contas ?? []);
-  const investimentos = (contas ?? []).filter((c) => c.type === "INVESTMENT");
+  const investimentos = (contas ?? []).filter((c) => c.type === "INVESTMENT" && !c.ignoreInTotals);
   const grupos = [
     { titulo: "Contas", lista: (contas ?? []).filter((c) => c.type !== "INVESTMENT") },
     { titulo: "Investimentos", lista: investimentos },

@@ -30,23 +30,22 @@ function CartaoTotal({ titulo, valor, Icone, cor, destaque = false }) {
   );
 }
 
-// Rodapé de "Suas contas": total e, se houver, quanto está em investimentos
-function TotaisContas({ contas }) {
-  const soma = (lista) => lista.reduce((t, c) => t + Number(c.currentBalance), 0).toFixed(2);
-  const investimentos = contas.filter((c) => c.type === "INVESTMENT");
+// Rodapé de "Suas contas": total e, se houver, quanto está em investimentos (calculados pela API:
+// contas com "Ignorar nos totais" ficam de fora; as escondidas do Resumo continuam somando)
+function TotaisContas({ totais, temInvestimentos }) {
   return (
     <dl className="mt-2 space-y-1 border-t border-slate-100 pt-3 text-sm">
       <div className="flex justify-between gap-3">
         <dt className="text-slate-600">Total</dt>
         <dd>
-          <Saldo valor={soma(contas)} />
+          <Saldo valor={totais.total} />
         </dd>
       </div>
-      {investimentos.length > 0 && (
+      {temInvestimentos && (
         <div className="flex justify-between gap-3">
           <dt className="text-slate-600">Investimentos</dt>
           <dd>
-            <Saldo valor={soma(investimentos)} />
+            <Saldo valor={totais.investments} />
           </dd>
         </div>
       )}
@@ -143,15 +142,17 @@ function Inicio() {
           </div>
           <ul className="mt-2 divide-y divide-slate-100">
             {resumo?.accounts
-              .filter((conta) => conta.type !== "CREDIT_CARD")
+              .filter((conta) => conta.type !== "CREDIT_CARD" && conta.showOnSummary !== false)
               .map((conta) => (
               <li key={conta.id} className="flex items-center gap-3 py-3">
                 <LinhaConta conta={conta} />
               </li>
             ))}
           </ul>
-          {/* Patrimônio: soma de todas as contas (investimentos inclusive) */}
-          {resumo?.accounts && <TotaisContas contas={resumo.accounts.filter((c) => c.type !== "CREDIT_CARD")} />}
+          {/* Patrimônio: soma das contas (investimentos inclusive), menos as marcadas "Ignorar nos totais" */}
+          {resumo?.accountsTotals && (
+            <TotaisContas totais={resumo.accountsTotals} temInvestimentos={resumo.accounts.some((c) => c.type === "INVESTMENT" && !c.ignoreInTotals)} />
+          )}
         </section>
       </div>
 

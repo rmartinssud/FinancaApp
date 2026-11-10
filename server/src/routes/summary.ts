@@ -61,6 +61,12 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
     .sort((a, b) => b.total.comparedTo(a.total))
     .map((p) => ({ ...p, total: p.total.toFixed(2) }));
 
+  // Saldo das contas (sem cartões): total e quanto está em investimentos.
+  // Contas com "Ignorar nos totais" ficam de fora; "Exibir na tela de Resumo" só esconde da lista, não do total.
+  const accounts = await contasComSaldo(scope(req).householdId);
+  const somadas = accounts.filter((c) => c.type !== "CREDIT_CARD" && !c.ignoreInTotals);
+  const somar = (lista: typeof accounts) => lista.reduce((t, c) => t.plus(c.currentBalance), ZERO).toFixed(2);
+
   res.json({
     month: mes,
     totals: {
@@ -69,6 +75,10 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
       balance: income.minus(expense).toFixed(2),
     },
     byCategory,
-    accounts: await contasComSaldo(scope(req).householdId),
+    accounts,
+    accountsTotals: {
+      total: somar(somadas),
+      investments: somar(somadas.filter((c) => c.type === "INVESTMENT")),
+    },
   });
 });

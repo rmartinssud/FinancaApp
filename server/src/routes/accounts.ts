@@ -14,7 +14,26 @@ export const accountsRouter = Router();
 // Todas as rotas daqui exigem login e família. VIEWER só lê.
 accountsRouter.use(requireAuth, withHousehold, bloqueiaSomenteLeitura);
 
-const tipoConta = z.enum(["WALLET", "BANK", "CREDIT_CARD", "INVESTMENT"]);
+const tipoConta = z.enum(["WALLET", "BANK", "CREDIT_CARD", "INVESTMENT", "OTHER"]);
+
+// Texto opcional: vazio vira null
+const textoOpcional = (max: number, msg: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, msg)
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional();
+
+// Campos extras do formulário de conta (os mesmos na criação e na edição)
+const camposExtras = {
+  accountNumber: textoOpcional(40, "Use no máximo 40 caracteres."),
+  notes: textoOpcional(500, "Use no máximo 500 caracteres."),
+  isDefault: z.boolean().optional(),
+  showOnSummary: z.boolean().optional(),
+  ignoreInTotals: z.boolean().optional(),
+};
 const dia = z.number().int().min(1).max(31);
 
 const filtro = z.object({
@@ -36,6 +55,7 @@ const novaConta = z
     dueDay: dia.nullable().optional(),
     overdraftLimit: valorNaoNegativo.nullable().optional(),
     bankLogo: logoBanco.nullable().optional(),
+    ...camposExtras,
   })
   .superRefine((d, ctx) => {
     if (d.type !== "BANK" && d.overdraftLimit != null && !d.overdraftLimit.isZero()) {
@@ -56,6 +76,7 @@ const edicaoConta = z.object({
   dueDay: dia.nullable().optional(),
   overdraftLimit: valorNaoNegativo.nullable().optional(),
   bankLogo: logoBanco.nullable().optional(),
+  ...camposExtras,
 });
 
 // Ajuste de saldo: o saldo que aparece no banco hoje (pode ser negativo)
@@ -72,13 +93,19 @@ accountsRouter.get("/", validateQuery(filtro), async (req, res) => {
 // POST /api/accounts → cria carteira, conta bancária, investimento ou cartão
 accountsRouter.post("/", validateBody(novaConta), async (req, res) => {
   const d = req.body as z.infer<typeof novaConta>;
-  const conta = await prisma.financialAccount.create({
-    data: {
-      ...scope(req),
-      ...d,
-      initialBalance: d.initialBalance ?? 0,
-      overdraftLimit: d.type === "BANK" && d.overdraftLimit && !d.overdraftLimit.isZero() ? d.overdraftLimit : null,
-    },
+  // Cartão não é conta padrão (a conta padrão é a que já vem escolhida em despesas/receitas)
+  const padrao = d.type !== "CREDIT_CARD" && d.isDefault === true;
+  const conta = await prisma.$transaction(async (tx) => {
+    if (padrao) await tx.financialAccount.updateMany({ where: { ...scope(req), isDefault: true }, data: { isDefault: false } });
+    return tx.financialAccount.create({
+      data: {
+        ...scope(req),
+        ...d,
+        isDefault: padrao,
+        initialBalance: d.initialBalance ?? 0,
+        overdraftLimit: d.type === "BANK" && d.overdraftLimit && !d.overdraftLimit.isZero() ? d.overdraftLimit : null,
+      },
+    });
   });
   res.status(201).json({ ...serializarConta(conta), ...saldoEDisponivel(conta, conta.initialBalance) });
 });
@@ -113,7 +140,14 @@ accountsRouter.patch("/:id", validateBody(edicaoConta), async (req, res) => {
       ? { creditLimit: null, closingDay: null, dueDay: null, brand: null, color: null, paymentAccountId: null, archivedAt: null }
       : {};
 
-  await prisma.financialAccount.update({ where: { id: atual.id }, data: { ...d, ...limpaCartao, ...cheque } });
+  // Só uma conta padrão por espaço: marcar esta desmarca as outras (na mesma transação). Cartão não é padrão.
+  const padrao = tipoFinal === "CREDIT_CARD" ? { isDefault: false } : {};
+  await prisma.$transaction(async (tx) => {
+    if (d.isDefault === true && tipoFinal !== "CREDIT_CARD") {
+      await tx.financialAccount.updateMany({ where: { ...scope(req), isDefault: true, id: { not: atual.id } }, data: { isDefault: false } });
+    }
+    await tx.financialAccount.update({ where: { id: atual.id }, data: { ...d, ...limpaCartao, ...cheque, ...padrao } });
+  });
   const [conta] = (await contasComSaldo(scope(req).householdId)).filter((c) => c.id === atual.id);
   res.json(conta);
 });

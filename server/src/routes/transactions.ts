@@ -25,7 +25,7 @@ const filtro = z.object({
   categoryId: z.string().min(1).optional(),
   type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
   // Forma de pagamento, tirada do tipo da conta: CREDIT_CARD = cartão, BANK = débito/Pix, WALLET = dinheiro
-  accountType: z.enum(["WALLET", "BANK", "CREDIT_CARD", "INVESTMENT"], { error: "Use WALLET, BANK, INVESTMENT ou CREDIT_CARD." }).optional(),
+  accountType: z.enum(["WALLET", "BANK", "CREDIT_CARD", "INVESTMENT", "OTHER"], { error: "Use WALLET, BANK, INVESTMENT, OTHER ou CREDIT_CARD." }).optional(),
   // Quem lançou (filtro "Pessoa" no espaço da família)
   createdById: z.string().min(1).optional(),
 });

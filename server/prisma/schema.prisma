@@ -120,6 +120,7 @@ enum AccountType {
   BANK
   CREDIT_CARD
   INVESTMENT // conta de investimento (corretora, CDB, poupança...)
+  OTHER // "Outros": conta que não é carteira, banco nem investimento
 }
 
 // Bandeira do cartão de crédito
@@ -227,6 +228,11 @@ model FinancialAccount {
   creditLimit      Decimal?    @db.Decimal(12, 2)
   overdraftLimit   Decimal?    @db.Decimal(12, 2) // cheque especial (só conta bancária)
   bankLogo         String? // slug do logo do banco (public/bancos/<slug>.svg)
+  accountNumber    String? // número da conta, só para identificar (ex.: ag. 1234 c/c 56789-0)
+  notes            String? // dados adicionais (texto livre)
+  isDefault        Boolean     @default(false) // conta padrão do espaço (no máximo uma); já vem escolhida em novas despesas/receitas
+  showOnSummary    Boolean     @default(true) // aparece em "Suas contas" no Início
+  ignoreInTotals   Boolean     @default(false) // fora do total/patrimônio do Início
   closingDay       Int? // dia de fechamento da fatura (cartão)
   dueDay           Int? // dia de vencimento da fatura (cartão)
   brand            CardBrand? // bandeira (cartão)

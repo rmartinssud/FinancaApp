@@ -238,8 +238,25 @@ transfira para ela (aporte) e dela (resgate) em Lançamentos, e use **Ajustar sa
 Ela aparece num grupo próprio em Contas, entra no **Total** do Início e tem a linha **Investimentos R$ X**.
 Na API: `type: "INVESTMENT"`.
 
+### Formulário da conta (tela cheia)
+**Nova conta / Editando conta** abre em tela cheia, no mesmo visual de Nova despesa: ✕ · título · **Salvar** · ⋮
+(na edição o ⋮ tem **Ajustar saldo** e **Apagar conta**). Linhas: nome + logo (▾ abre a lista de logos),
+**Saldo inicial** (pode ser negativo: digite `-`), **Cheque especial** (só Conta corrente),
+**Categoria** (Outros, Carteira, Conta corrente, Investimento — cartões ficam em Cartões de crédito),
+**Número da conta** e **Dados adicionais** (opcionais), e os interruptores:
+- **Conta padrão** — só uma por espaço (marcar uma desmarca a outra); já vem escolhida em nova despesa/receita.
+- **Exibir na tela de Resumo** — desligado esconde a conta de "Suas contas" no Início (ela continua no total).
+- **Conta para investimentos** — o mesmo que escolher a categoria Investimento.
+- **Ignorar nos totais** — fica fora do Total/Investimentos do Início e do "Saldo somado" de Contas.
+- **Padrão para importação de notificações** — em breve.
+
+Mudar o saldo inicial ou o cheque especial vale para todo o histórico (o saldo é recalculado a partir do saldo inicial).
+Na API (`POST/PATCH /api/accounts`): `type` aceita também `"OTHER"`; `accountNumber` (até 40), `notes` (até 500),
+`isDefault`, `showOnSummary` (padrão `true`), `ignoreInTotals` (padrão `false`). `GET /api/summary` devolve
+`accountsTotals: { total, investments }` já sem as contas ignoradas.
+
 ### Logo do banco
-No formulário da conta ou do cartão, toque em **Logo do banco** e busque pelo nome (ou escolha **Sem logo**).
+No formulário da conta ou do cartão, toque no logo (ou em **Logo do banco**) e busque pelo nome (ou escolha **Sem logo**).
 O logo aparece em Contas, no Início, no desenho do cartão e nos lançamentos. Na API: `bankLogo` (slug ou `null`).
 
 Para adicionar um logo: coloque o SVG em `public/bancos/<slug>.svg` e o slug em
