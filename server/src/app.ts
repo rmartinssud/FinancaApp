@@ -13,6 +13,7 @@ import { summaryRouter } from "./routes/summary.js";
 import { cardsRouter } from "./routes/cards.js";
 import { cardExpensesRouter } from "./routes/cardExpenses.js";
 import { budgetsRouter } from "./routes/budgets.js";
+import { goalsRouter } from "./routes/goals.js";
 import { tagsRouter } from "./routes/tags.js";
 import { uploadRouter, attachmentsRouter } from "./routes/attachments.js";
 import { statsRouter, savingsRouter } from "./routes/stats.js";
@@ -61,6 +62,7 @@ export function createApp() {
   app.use("/api/cards", cardsRouter);
   app.use("/api/card-expenses", cardExpensesRouter);
   app.use("/api/budgets", budgetsRouter);
+  app.use("/api/goals", goalsRouter);
   app.use("/api/tags", tagsRouter);
   app.use("/api/attachments", attachmentsRouter);
   app.use("/api/stats", statsRouter);

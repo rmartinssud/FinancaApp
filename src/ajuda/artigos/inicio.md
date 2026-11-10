@@ -2,9 +2,9 @@
 titulo: Tela de Início (Resumo)
 categoria: Análises
 ordem: 10
-resumo: Os cards do Início, as despesas por categoria em gráfico ou lista e os orçamentos do mês.
-palavras: início, inicio, resumo, painel, saldo do mês, despesas por categoria, gráfico, lista, evolução por categoria, orçamentos do mês, cards
-relacionados: orcamentos, estatisticas-e-economia, perguntas-frequentes
+resumo: Os cards do Início, as despesas por categoria em gráfico ou lista, os orçamentos do mês e os objetivos.
+palavras: início, inicio, resumo, painel, saldo do mês, despesas por categoria, gráfico, lista, evolução por categoria, orçamentos do mês, objetivos, cards
+relacionados: orcamentos, objetivos, estatisticas-e-economia, perguntas-frequentes
 ---
 
 O Início (no menu: **Resumo**) mostra o mês de uma vez só.
@@ -31,3 +31,7 @@ No modo Gráfico, a **setinha** no topo do card esconde ou mostra as linhas das 
 ## Orçamentos do mês
 
 Mostra os orçamentos marcados com **Exibir no Início**, com quanto já foi usado. Veja [Orçamentos](artigo:orcamentos).
+
+## Objetivos
+
+Mostra até 3 objetivos ativos marcados com **Exibir no Início**, com quanto já foi guardado e quanto falta. Veja [Objetivos](artigo:objetivos).

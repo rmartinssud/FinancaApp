@@ -4,7 +4,7 @@ categoria: Lançamentos
 ordem: 6
 resumo: Passar dinheiro de uma conta sua para outra sem virar receita nem despesa.
 palavras: transferência, transferir, pix entre contas, mover dinheiro, origem, destino, transfs
-relacionados: contas, ajustar-saldo, cartoes-de-credito
+relacionados: contas, ajustar-saldo, cartoes-de-credito, objetivos
 ---
 
 Use transferência quando o dinheiro sai de uma conta sua e entra em **outra conta sua**. Ex.: tirar R$ 300,00 do banco e colocar na carteira.
@@ -25,3 +25,4 @@ Use transferência quando o dinheiro sai de uma conta sua e entra em **outra con
 - Transferência é entre contas; **cartão de crédito não entra** aqui. Para pagar a fatura, use o **Pagar fatura** do cartão (veja [Cartões de crédito](artigo:cartoes-de-credito)).
 - Uma transferência **pendente** (sem **Efetivada**) ainda **não move o saldo** das contas.
 - Você vê todas na aba **Transfs** de Lançamentos.
+- Um depósito ou retirada num [objetivo](artigo:objetivos) com conta vinculada pode criar uma transferência destas (descrição "Objetivo: nome do objetivo").

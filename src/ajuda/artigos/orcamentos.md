@@ -4,7 +4,7 @@ categoria: Planejamento
 ordem: 9
 resumo: Limites de gastos e metas de receita, filtros, alertas, cartão por data da compra ou da fatura, e o que cada número quer dizer.
 palavras: orçamento, orcamento, meta, limite de gastos, estourado, alerta, previsto, pendente, efetivado, saldo, 50/30/20, agrupado, percentual das receitas, mês da fatura, data da compra, transferir saldo, copiar, arquivar, excluir, meta recomendada
-relacionados: categorias, cartoes-de-credito, inicio, perguntas-frequentes
+relacionados: categorias, cartoes-de-credito, inicio, perguntas-frequentes, objetivos
 ---
 
 Um orçamento é um limite de gastos (ou uma meta de receita) para um período. Ex.: "Mercado: até R$ 800,00 por mês".
