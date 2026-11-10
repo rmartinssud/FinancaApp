@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaPlus } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
+import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import FormAjusteSaldo from "./componentes/FormAjusteSaldo.jsx";
 import FormConta from "./componentes/FormConta.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
@@ -46,7 +47,10 @@ function Contas() {
       </Alerta>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Contas</h1>
+        <div className="flex items-center gap-1">
+          <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Contas</h1>
+          <BotaoAjuda artigo="contas" assunto="contas" />
+        </div>
         {podeEditar && (
           <button
             type="button"

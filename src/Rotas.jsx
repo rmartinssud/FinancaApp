@@ -21,6 +21,8 @@ const Orcamentos = lazy(() => import("./app/Orcamentos.jsx"));
 const OrcamentoDetalhes = lazy(() => import("./app/OrcamentoDetalhes.jsx"));
 const Familia = lazy(() => import("./app/Familia.jsx"));
 const Convite = lazy(() => import("./pages/Convite.jsx"));
+const Ajuda = lazy(() => import("./app/Ajuda.jsx"));
+const AjudaPublica = lazy(() => import("./pages/AjudaPublica.jsx"));
 
 function Rotas() {
   return (
@@ -38,6 +40,9 @@ function Rotas() {
           <Route path="/verificar-email" element={<VerificarEmail />} />
           {/* Convite para um espaço: abre logado ou não */}
           <Route path="/convite/:token" element={<Convite />} />
+          {/* Central de Ajuda aberta (sem login) */}
+          <Route path="/ajuda" element={<AjudaPublica />} />
+          <Route path="/ajuda/:slug" element={<AjudaPublica />} />
 
           {/* Área logada */}
           <Route path="/app" element={<RotaProtegida><Inicio /></RotaProtegida>} />
@@ -50,6 +55,8 @@ function Rotas() {
           <Route path="/app/orcamentos/:id" element={<RotaProtegida><OrcamentoDetalhes /></RotaProtegida>} />
           <Route path="/app/familia" element={<RotaProtegida><Familia /></RotaProtegida>} />
           <Route path="/app/seguranca" element={<RotaProtegida><Seguranca /></RotaProtegida>} />
+          <Route path="/app/ajuda" element={<RotaProtegida><Ajuda /></RotaProtegida>} />
+          <Route path="/app/ajuda/:slug" element={<RotaProtegida><Ajuda /></RotaProtegida>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
