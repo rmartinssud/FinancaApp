@@ -21,6 +21,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY package.json ./
+# Anexos dos lançamentos (foto/PDF). Em produção monte um volume persistente aqui
+# (no Coolify: Storages → Volume, destino /data/anexos). Sem volume, os anexos somem a cada deploy.
+ENV UPLOADS_DIR=/data/anexos
+RUN mkdir -p /data/anexos && chown -R node:node /data
 USER node
 EXPOSE 3333
 # Aplica as migrações pendentes e sobe a API

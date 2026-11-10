@@ -32,6 +32,7 @@ import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
 import { CORES_CATEGORIA } from "../../lib/icones.js";
 import { hoje, mesAtual, nomeDoMes } from "../../lib/datas.js";
 import { NOMES_META } from "../../lib/orcamentos.js";
+import { comSubcategorias } from "../../lib/categorias.js";
 
 // Linha com interruptor (ícone à esquerda), igual ao formulário de conta
 function LinhaInterruptor({ Icone, texto, descricao, ligado, onMudar }) {
@@ -194,7 +195,8 @@ function FormOrcamento({ orcamento = null, modelo = null, copia = true, kind = "
     Promise.all(pedidos)
       .then(([cats, cts, desp, rec]) => {
         if (!ativo) return;
-        setOpcoesCategorias(cats.map((c) => ({ id: c.id, nome: c.name, icone: <IconeCategoria categoria={c} tamanho="h-8 w-8 text-sm" /> })));
+        // Subcategorias aparecem como "Mercado › Feira" (escolher a principal já conta as filhas)
+        setOpcoesCategorias(comSubcategorias(cats).map((c) => ({ id: c.id, nome: c.rotulo, icone: <IconeCategoria categoria={c} tamanho="h-8 w-8 text-sm" /> })));
         setOpcoesContas(
           cts
             .filter((c) => !c.archivedAt || contas.includes(c.id))

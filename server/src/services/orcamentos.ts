@@ -2,13 +2,16 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { Decimal, ZERO, intervaloDoMes, somarMeses, mesAtual } from "../lib/money.js";
 import { incluir, serializar } from "./lancamentos.js";
+import { filtroCategorias, valorNasCategorias, selecionarPorcoes } from "./porcoes.js";
 
 // ─────────────────────────────────────────────
 // Orçamentos: meta, quanto já foi usado e saldo de cada período.
 //
 // Quais lançamentos contam:
 // - do mesmo tipo do orçamento (despesa ou receita); transferências e ajustes de saldo nunca contam;
-// - das categorias escolhidas (sem categoria escolhida = todas);
+// - das categorias escolhidas (sem categoria escolhida = todas), com as subcategorias delas;
+//   multicategorias: conta só a parte das categorias escolhidas;
+// - lançamentos com "Ignorar em Orçamentos" nunca contam;
 // - das contas/cartões escolhidos (só despesa; sem conta escolhida = todas);
 // - contas com "Ignorar nos totais" ficam de fora, a não ser que o orçamento peça para considerar;
 // - no período: mês (mensal) ou intervalo de datas (personalizado), em Brasília.
@@ -17,7 +20,7 @@ import { incluir, serializar } from "./lancamentos.js";
 // ─────────────────────────────────────────────
 
 export const incluirOrcamento = {
-  categories: { select: { categoryId: true } },
+  categories: { select: { categoryId: true, category: { select: { children: { select: { id: true } } } } } },
   accounts: { select: { accountId: true } },
   goals: true,
   components: { select: { budgetId: true } },
@@ -61,16 +64,22 @@ export function periodoDe(b: Orcamento, mes: string): Periodo {
 }
 
 // Filtro do Prisma com os lançamentos que contam no orçamento (sem olhar a situação)
+// Categorias do filtro + as subcategorias delas
+export function categoriasDoFiltro(b: Orcamento) {
+  return [...new Set(b.categories.flatMap((c) => [c.categoryId, ...c.category.children.map((f) => f.id)]))];
+}
+
 export function filtroLancamentos(b: Orcamento, periodo: Periodo): Prisma.TransactionWhereInput {
   const data = { gte: periodo.gte, lt: periodo.lt };
   const porFatura = b.kind === "EXPENSE" && b.cardDateRef === "INVOICE";
-  const categorias = b.categories.map((c) => c.categoryId);
+  const categorias = categoriasDoFiltro(b);
   const contas = b.kind === "EXPENSE" ? b.accounts.map((c) => c.accountId) : [];
   return {
     householdId: b.householdId,
     type: b.kind,
     isAdjustment: false,
-    ...(categorias.length ? { categoryId: { in: categorias } } : {}),
+    ignoreInBudgets: false,
+    ...(categorias.length ? { AND: [filtroCategorias(categorias)] } : {}),
     ...(contas.length ? { accountId: { in: contas } } : {}),
     ...(b.includeIgnored ? {} : { account: { ignoreInTotals: false } }),
     // Mês da fatura: compras no cartão (invoiceMonth preenchido) contam no mês da fatura; o resto pela data
@@ -135,6 +144,7 @@ export class Calculadora {
             type: "INCOME",
             status: "CONFIRMED",
             isAdjustment: false,
+            ignoreInTotals: false,
             OR: [{ invoiceMonth: null, date: intervaloDoMes(mes) }, { invoiceMonth: mes }],
           },
           _sum: { amount: true },
@@ -192,12 +202,20 @@ export class Calculadora {
       const used = soma("used");
       return { goal, confirmed: soma("confirmed"), pending: soma("pending"), used, balance: goal.minus(used) };
     }
-    const [goal, porSituacao] = await Promise.all([
+    const [goal, usados] = await Promise.all([
       this.meta(b, mes),
-      prisma.transaction.groupBy({ by: ["status"], where: filtroLancamentos(b, periodoDe(b, mes)), _sum: { amount: true } }),
+      prisma.transaction.findMany({ where: filtroLancamentos(b, periodoDe(b, mes)), select: { ...selecionarPorcoes, status: true } }),
     ]);
-    const confirmed = porSituacao.find((x) => x.status === "CONFIRMED")?._sum.amount ?? ZERO;
-    const pending = porSituacao.find((x) => x.status === "PENDING")?._sum.amount ?? ZERO;
+    // Com categorias no filtro, multicategorias contam só pela parte dessas categorias
+    const categorias = categoriasDoFiltro(b);
+    const dentro = new Set(categorias);
+    const valor = (t: (typeof usados)[number]) => (categorias.length ? valorNasCategorias(t, dentro) : t.amount);
+    let confirmed = ZERO;
+    let pending = ZERO;
+    for (const t of usados) {
+      if (t.status === "CONFIRMED") confirmed = confirmed.plus(valor(t));
+      else pending = pending.plus(valor(t));
+    }
     const used = b.includePending ? confirmed.plus(pending) : confirmed;
     return { goal, confirmed, pending, used, balance: goal.minus(used) };
   }

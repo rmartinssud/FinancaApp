@@ -22,6 +22,8 @@ const schema = z.object({
   // Limite de tentativas nas rotas de login (por IP, a cada 15 minutos).
   // Sem valor: 30 em produção e 1000 em dev/teste (para não travar os testes locais).
   AUTH_RATE_LIMIT: z.coerce.number().optional(),
+  // Pasta dos anexos dos lançamentos (no Coolify: volume persistente montado aqui)
+  UPLOADS_DIR: z.string().min(1).default("/data/anexos"),
 });
 
 const parsed = schema.safeParse(process.env);

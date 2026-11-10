@@ -30,3 +30,6 @@ export function paraApi(campo) {
   const inteiro = String(Number(cheio.slice(0, -2)));
   return `${negativo ? "-" : ""}${inteiro}.${cheio.slice(-2)}`;
 }
+
+// Centavos de um campo de dinheiro ("1.234,50" → 123450)
+export const centavosDe = (campo) => Math.round(Number(paraApi(campo) || 0) * 100);

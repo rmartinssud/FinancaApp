@@ -16,7 +16,6 @@ import {
   FaCalendarPlus,
   FaPercent,
   FaNoteSticky,
-  FaPaperclip,
   FaRegCircleCheck,
   FaChartColumn,
   FaPiggyBank,
@@ -28,13 +27,18 @@ import Modal from "./Modal.jsx";
 import FolhaCheia from "./FolhaCheia.jsx";
 import Alternador from "./Alternador.jsx";
 import Interruptor from "./Interruptor.jsx";
-import { classeCampo, EmBreve, Linha, SelectLimpo, InterruptorEmBreve, LinhaEmBreve } from "./LinhasForm.jsx";
+import { classeCampo, Linha, SelectLimpo } from "./LinhasForm.jsx";
+import SeletorTags, { ChipsTags } from "./SeletorTags.jsx";
+import CamposDivisao from "./CamposDivisao.jsx";
+import CampoAnexos from "./CampoAnexos.jsx";
 import BotaoApagar from "./BotaoApagar.jsx";
 import Alerta from "../../auth/Alerta.jsx";
 import { FormCategoria } from "../Categorias.jsx";
 import { api, enviarJson, errosPorCampo, formatarReais } from "../../lib/api.js";
-import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
+import { mascarar, paraApi, paraCampo, centavosDe } from "../../lib/dinheiro.js";
 import { dataLocal, hoje, nomeDoMes } from "../../lib/datas.js";
+import { principais, filhasDe, comSubcategorias } from "../../lib/categorias.js";
+import { enviarAnexo } from "../../lib/anexos.js";
 
 // Cores do tipo (as mesmas da lista: despesa vermelha, receita verde, transferência âmbar)
 const CORES = {
@@ -161,6 +165,22 @@ const REPETICOES = [
   { valor: "FIXED", texto: "Fixa mensal" },
 ];
 
+// Linha com interruptor (Multicategorias, Ignorar em..., Não efetivar automaticamente)
+function LinhaInterruptor({ Icone, texto, descricao, ligado, onMudar, cor }) {
+  return (
+    <div className="flex min-h-[60px] items-center gap-4 border-b border-slate-100 px-5 py-2">
+      <Icone aria-hidden="true" className="w-6 shrink-0 text-xl text-slate-500" />
+      <Interruptor texto={texto} descricao={descricao} ligado={ligado} onMudar={onMudar} corLigado={cor} className="min-w-0 flex-1" />
+    </div>
+  );
+}
+
+const classeDinheiroPequeno =
+  "h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 text-right text-base text-slate-900 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20";
+
+// Linhas da multicategoria vindas da API (para editar)
+const linhasDaApi = (splits) => (splits ?? []).map((s) => ({ categoryId: s.category?.id ?? "", valor: paraCampo(s.amount) }));
+
 function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
   const editando = Boolean(lancamento);
   const ids = useId();
@@ -169,41 +189,73 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
   const cores = CORES[tipo];
   const receita = tipo === "INCOME";
 
+  // Subcategoria: na API a categoria do lançamento é a filha (com parent); no formulário são dois campos
+  const categoriaApi = lancamento?.category;
   const [descricao, setDescricao] = useState(lancamento?.description ?? "");
-  const [valor, setValor] = useState(paraCampo(lancamento?.amount));
+  // Valor digitado (antes de encargos e desconto)
+  const [valor, setValor] = useState(paraCampo(lancamento?.baseAmount ?? lancamento?.amount));
   const [repeticao, setRepeticao] = useState("NONE"); // NONE | MULTI | FIXED
   const [modoMulti, setModoMulti] = useState("INSTALLMENT"); // INSTALLMENT (parcelar) | REPEAT (repetir)
   const [vezes, setVezes] = useState("2");
   const [data, setData] = useState(lancamento ? dataLocal(lancamento.date) : hoje());
   const [efetivada, setEfetivada] = useState((lancamento?.status ?? "CONFIRMED") === "CONFIRMED");
-  const [categoriaId, setCategoriaId] = useState(lancamento?.category?.id ?? "");
+  const [categoriaId, setCategoriaId] = useState(categoriaApi?.parentId ?? categoriaApi?.id ?? "");
+  const [subcategoriaId, setSubcategoriaId] = useState(categoriaApi?.parentId ? categoriaApi.id : "");
   const [contaId, setContaId] = useState(lancamento?.account.id ?? "");
+  const [tagIds, setTagIds] = useState(() => (lancamento?.tags ?? []).map((t) => t.id));
   const [notas, setNotas] = useState(lancamento?.notes ?? "");
-  const [maisInfo, setMaisInfo] = useState(Boolean(lancamento?.notes));
+  // Mais informações
+  const [multi, setMulti] = useState(Boolean(lancamento?.splits?.length));
+  const [linhasDivisao, setLinhasDivisao] = useState(() =>
+    lancamento?.splits?.length ? linhasDaApi(lancamento.splits) : [{ categoryId: "", valor: "" }, { categoryId: "", valor: "" }],
+  );
+  const [dataLancamento, setDataLancamento] = useState(lancamento ? (lancamento.launchDate ? dataLocal(lancamento.launchDate) : "") : hoje());
+  const [encargos, setEncargos] = useState(paraCampo(lancamento?.fees));
+  const [desconto, setDesconto] = useState(paraCampo(lancamento?.discount));
+  const [verEncargos, setVerEncargos] = useState(Boolean(lancamento?.fees || lancamento?.discount));
+  const [anexosSalvos, setAnexosSalvos] = useState(lancamento?.attachments ?? []);
+  const [anexosNovos, setAnexosNovos] = useState([]);
+  const [naoEfetivar, setNaoEfetivar] = useState(lancamento?.noAutoConfirm ?? false);
+  const [ignorar, setIgnorar] = useState({
+    ignoreInStatistics: lancamento?.ignoreInStatistics ?? false,
+    ignoreInBudgets: lancamento?.ignoreInBudgets ?? false,
+    ignoreInMonthlySavings: lancamento?.ignoreInMonthlySavings ?? false,
+    ignoreInTotals: lancamento?.ignoreInTotals ?? false,
+  });
+  const algumExtra =
+    Boolean(lancamento?.notes || lancamento?.splits?.length || lancamento?.fees || lancamento?.discount || lancamento?.attachments?.length || lancamento?.noAutoConfirm) ||
+    Object.values(ignorar).some(Boolean);
+  const [maisInfo, setMaisInfo] = useState(algumExtra);
 
   const [contas, setContas] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [escolhendoTags, setEscolhendoTags] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState(false);
   const [erros, setErros] = useState({});
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [apagando, setApagando] = useState(false);
 
-  // Carrega contas e categorias; num lançamento novo, a conta padrão (ou a primeira) já vem escolhida
+  // Carrega contas, categorias e tags; num lançamento novo, a conta padrão (ou a primeira) já vem escolhida
   useEffect(() => {
-    Promise.all([api("/accounts"), api("/categories")])
-      .then(([listaContas, listaCategorias]) => {
+    Promise.all([api("/accounts"), api("/categories"), api("/tags")])
+      .then(([listaContas, listaCategorias, listaTags]) => {
         setContas(listaContas);
         setCategorias(listaCategorias);
+        setTags(listaTags);
         const comuns = contasComuns(listaContas);
         setContaId((atual) => atual || (comuns.find((c) => c.isDefault) ?? comuns[0])?.id || "");
       })
       .catch((e) => setErro(e.message));
   }, []);
 
-  const categoriasDoTipo = categorias.filter((c) => c.type === tipo);
+  const categoriasDoTipo = principais(categorias, tipo);
+  const subcategorias = filhasDe(categorias, categoriaId);
+  const opcoesDivisao = comSubcategorias(categorias, tipo);
   // Num lançamento antigo feito direto num cartão, o cartão continua aparecendo na lista
   const opcoesConta = contas.filter((c) => c.type !== "CREDIT_CARD" || c.id === lancamento?.account.id);
+  const tagsEscolhidas = tags.filter((t) => tagIds.includes(t.id));
 
   // Depois de criar uma categoria pelo "+", ela já vem escolhida
   async function categoriaCriada() {
@@ -212,20 +264,29 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
       const lista = await api("/categories");
       const nova = lista.find((c) => c.type === tipo && !categorias.some((x) => x.id === c.id));
       setCategorias(lista);
-      if (nova) setCategoriaId(nova.id);
+      if (nova && !nova.parentId) {
+        setCategoriaId(nova.id);
+        setSubcategoriaId("");
+      }
     } catch (e) {
       setErro(e.message);
     }
   }
 
   const numVezes = Number(vezes);
-  const centavos = Math.round(Number(paraApi(valor) || 0) * 100);
+  const centavos = centavosDe(valor);
+  const centavosEncargos = centavosDe(encargos);
+  const centavosDesconto = centavosDe(desconto);
+  // Valor final: valor + encargos − desconto (é o que conta em saldos, resumo e orçamentos)
+  const centavosFinal = centavos + centavosEncargos - centavosDesconto;
+  const parcelado = !editando && repeticao === "MULTI" && modoMulti === "INSTALLMENT";
+
   let resumoRepeticao = "";
   if (repeticao === "MULTI" && numVezes >= 2 && numVezes <= 48 && centavos > 0) {
     resumoRepeticao =
       modoMulti === "INSTALLMENT"
         ? `${numVezes}x de ${reaisDeCentavos(Math.floor(centavos / numVezes))}${centavos % numVezes ? " (os centavos que sobram vão na 1ª)" : ""}, um por mês.`
-        : `${numVezes} meses de ${reaisDeCentavos(centavos)} (total ${reaisDeCentavos(centavos * numVezes)}).`;
+        : `${numVezes} meses de ${reaisDeCentavos(centavosFinal)} (total ${reaisDeCentavos(centavosFinal * numVezes)}).`;
   }
   if (repeticao === "FIXED") resumoRepeticao = "Cria este mês e os próximos 11, todo mês no mesmo dia. Os próximos ficam pendentes.";
 
@@ -235,12 +296,29 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
     const novosErros = {};
     if (!descricao.trim()) novosErros.description = "Escreva uma descrição.";
     if (!quantia || Number(quantia) <= 0) novosErros.amount = "Digite um valor maior que zero.";
+    else if (centavosFinal <= 0) novosErros.discount = "O desconto não pode ser maior ou igual ao valor com encargos.";
     if (!data) novosErros.date = "Escolha a data.";
     if (!contaId) novosErros.accountId = "Escolha a conta.";
     if (repeticao === "MULTI" && !(Number.isInteger(numVezes) && numVezes >= 2 && numVezes <= 48)) novosErros.times = "De 2 a 48 vezes.";
+    if (parcelado && (multi || centavosEncargos || centavosDesconto)) {
+      novosErros.times = "Parcelado não aceita multicategorias, encargos nem desconto.";
+    }
+    if (multi) {
+      const escolhidas = linhasDivisao.map((l) => l.categoryId);
+      if (linhasDivisao.length < 2) novosErros.splits = "Escolha pelo menos 2 categorias.";
+      else if (escolhidas.some((c) => !c)) novosErros.splits = "Escolha a categoria de cada linha.";
+      else if (new Set(escolhidas).size !== escolhidas.length) novosErros.splits = "Não repita a mesma categoria.";
+      else if (linhasDivisao.some((l) => centavosDe(l.valor) <= 0)) novosErros.splits = "Cada categoria precisa de um valor maior que zero.";
+      else if (linhasDivisao.reduce((s, l) => s + centavosDe(l.valor), 0) !== centavosFinal) {
+        novosErros.splits = `A soma das categorias precisa ser igual ao valor final (${reaisDeCentavos(centavosFinal)}).`;
+      }
+    }
     setErros(novosErros);
     setErro("");
-    if (Object.keys(novosErros).length) return;
+    if (Object.keys(novosErros).length) {
+      if (novosErros.splits || novosErros.discount) setMaisInfo(true);
+      return;
+    }
 
     const corpo = {
       type: tipo,
@@ -248,23 +326,52 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
       description: descricao.trim(),
       date: data,
       accountId: contaId,
-      categoryId: categoriaId || null,
+      categoryId: multi ? null : subcategoriaId || categoriaId || null,
       status: efetivada ? "CONFIRMED" : "PENDING",
       notes: notas.trim() || null,
+      splits: multi ? linhasDivisao.map((l) => ({ categoryId: l.categoryId, amount: paraApi(l.valor) })) : null,
+      tagIds,
+      launchDate: dataLancamento || null,
+      fees: centavosEncargos ? paraApi(encargos) : null,
+      discount: centavosDesconto ? paraApi(desconto) : null,
+      noAutoConfirm: naoEfetivar,
+      ...ignorar,
     };
     if (!editando && repeticao === "MULTI") Object.assign(corpo, { recurrence: modoMulti, times: numVezes });
     if (!editando && repeticao === "FIXED") corpo.recurrence = "FIXED";
 
     setSalvando(true);
+    let salvo;
     try {
-      const salvo = editando
+      salvo = editando
         ? await api(`/transactions/${lancamento.id}`, enviarJson("PATCH", corpo))
         : await api("/transactions", enviarJson("POST", corpo));
-      onSalvo(salvo);
     } catch (falha) {
       setErros(errosPorCampo(falha));
       setErro(falha.message);
       setSalvando(false);
+      return;
+    }
+    // Anexos novos vão depois que o lançamento existe (na repetição, ficam no 1º)
+    const falhas = [];
+    for (const arquivo of anexosNovos) {
+      try {
+        await enviarAnexo(salvo.id, arquivo);
+      } catch (falha) {
+        falhas.push(`${arquivo.name}: ${falha.message}`);
+      }
+    }
+    if (falhas.length) window.alert(`O lançamento foi salvo, mas alguns anexos não foram enviados:\n${falhas.join("\n")}`);
+    onSalvo(salvo);
+  }
+
+  async function removerAnexoSalvo(anexo) {
+    if (!window.confirm(`Remover o anexo “${anexo.originalName}”?`)) return;
+    try {
+      await api(`/attachments/${anexo.id}`, { method: "DELETE" });
+      setAnexosSalvos((lista) => lista.filter((a) => a.id !== anexo.id));
+    } catch (falha) {
+      setErro(falha.message);
     }
   }
 
@@ -286,6 +393,18 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
       : lancamento?.installmentTotal
         ? `${lancamento.recurrence === "REPEAT" ? "Repetição" : "Parcela"} ${lancamento.installmentNumber}/${lancamento.installmentTotal}`
         : "";
+
+  const ligarMulti = (ligado) => {
+    setMulti(ligado);
+    // Ao ligar, a 1ª linha já vem com a categoria escolhida e o valor todo
+    if (ligado && !linhasDivisao.some((l) => l.categoryId || l.valor)) {
+      setLinhasDivisao([
+        { categoryId: subcategoriaId || categoriaId || "", valor: centavosFinal > 0 ? mascarar(String(centavosFinal)) : "" },
+        { categoryId: "", valor: "" },
+      ]);
+    }
+  };
+  const mudarIgnorar = (campo) => (v) => setIgnorar((atual) => ({ ...atual, [campo]: v }));
 
   return (
     <FolhaCheia
@@ -334,6 +453,11 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
             className={`${classeCampo} text-2xl font-bold ${cores.texto}`}
           />
         </Linha>
+        {(centavosEncargos > 0 || centavosDesconto > 0) && (
+          <p className="border-b border-slate-100 px-5 py-2 pl-[3.75rem] text-sm text-slate-600">
+            Valor final: <strong className="whitespace-nowrap text-slate-900">{reaisDeCentavos(Math.max(0, centavosFinal))}</strong>
+          </p>
+        )}
 
         {editando ? (
           textoGrupo && (
@@ -407,37 +531,70 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
           />
         </div>
 
-        <Linha
-          Icone={FaShapes}
-          rotulo="Categoria"
-          idCampo={id("categoria")}
-          erro={erros.categoryId}
-          acao={
+        {multi ? (
+          <Linha Icone={FaShapes} rotulo="Categoria" idCampo={id("categoria")}>
             <button
+              id={id("categoria")}
               type="button"
-              onClick={() => setNovaCategoria(true)}
-              aria-label="Criar categoria"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg text-slate-600 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+              onClick={() => setMaisInfo(true)}
+              className="min-h-11 text-left text-lg text-slate-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
             >
-              <FaPlus aria-hidden="true" />
+              Várias categorias ({linhasDivisao.length}) · veja em Multicategorias
             </button>
-          }
-        >
-          <SelectLimpo id={id("categoria")} erro={erros.categoryId} value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
-            <option value="">Sem categoria</option>
-            {categoriasDoTipo.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </SelectLimpo>
-        </Linha>
+          </Linha>
+        ) : (
+          <>
+            <Linha
+              Icone={FaShapes}
+              rotulo="Categoria"
+              idCampo={id("categoria")}
+              erro={erros.categoryId}
+              acao={
+                <button
+                  type="button"
+                  onClick={() => setNovaCategoria(true)}
+                  aria-label="Criar categoria"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg text-slate-600 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+                >
+                  <FaPlus aria-hidden="true" />
+                </button>
+              }
+            >
+              <SelectLimpo
+                id={id("categoria")}
+                erro={erros.categoryId}
+                value={categoriaId}
+                onChange={(e) => {
+                  setCategoriaId(e.target.value);
+                  setSubcategoriaId("");
+                }}
+              >
+                <option value="">Sem categoria</option>
+                {categoriasDoTipo.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectLimpo>
+            </Linha>
 
-        <Linha Icone={FaLayerGroup} rotulo={<>Subcategoria<EmBreve /></>} idCampo={id("subcategoria")} apagada>
-          <SelectLimpo id={id("subcategoria")} disabled value="">
-            <option value="">Nenhuma</option>
-          </SelectLimpo>
-        </Linha>
+            <Linha Icone={FaLayerGroup} rotulo="Subcategoria" idCampo={id("subcategoria")} apagada={subcategorias.length === 0}>
+              <SelectLimpo
+                id={id("subcategoria")}
+                disabled={subcategorias.length === 0}
+                value={subcategoriaId}
+                onChange={(e) => setSubcategoriaId(e.target.value)}
+              >
+                <option value="">{subcategorias.length ? "Nenhuma" : "Esta categoria não tem subcategorias"}</option>
+                {subcategorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectLimpo>
+            </Linha>
+          </>
+        )}
 
         <Linha Icone={FaBuildingColumns} rotulo="Conta" idCampo={id("conta")} erro={erros.accountId}>
           <SelectLimpo id={id("conta")} erro={erros.accountId} value={contaId} onChange={(e) => setContaId(e.target.value)}>
@@ -450,9 +607,22 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
           </SelectLimpo>
         </Linha>
 
-        <LinhaEmBreve Icone={FaTags} texto="Tags">
-          <FaChevronRight aria-hidden="true" className="text-sm" />
-        </LinhaEmBreve>
+        <div className="border-b border-slate-100 px-5 py-2">
+          <button
+            type="button"
+            onClick={() => setEscolhendoTags(true)}
+            className="flex min-h-11 w-full items-center gap-4 rounded-xl text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            aria-label={`Tags: ${tagsEscolhidas.length ? tagsEscolhidas.map((t) => t.name).join(", ") : "nenhuma"}. Escolher tags`}
+          >
+            <FaTags aria-hidden="true" className="w-6 shrink-0 text-xl text-slate-500" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm text-slate-500">Tags</span>
+              <ChipsTags tags={tagsEscolhidas} />
+            </span>
+            <FaChevronRight aria-hidden="true" className="shrink-0 text-sm text-slate-500" />
+          </button>
+          {erros.tagIds && <p className="ml-10 mt-1 text-sm text-red-600">{erros.tagIds}</p>}
+        </div>
 
         <div className="flex justify-center py-3">
           <button
@@ -468,11 +638,101 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
         </div>
 
         <div id={id("mais")} hidden={!maisInfo}>
-          <InterruptorEmBreve Icone={FaLayerGroup} texto="Multicategorias" />
-          <LinhaEmBreve Icone={FaCalendarPlus} texto="Data lançamento">
-            <span className="text-sm">Hoje</span>
-          </LinhaEmBreve>
-          <LinhaEmBreve Icone={FaPercent} texto="Encargos / Desconto" />
+          <LinhaInterruptor
+            Icone={FaLayerGroup}
+            texto="Multicategorias"
+            descricao={multi ? "Divida o valor entre categorias" : "Uma categoria só"}
+            ligado={multi}
+            onMudar={ligarMulti}
+            cor={cores.interruptor}
+          />
+          {multi && <CamposDivisao linhas={linhasDivisao} onMudar={setLinhasDivisao} opcoes={opcoesDivisao} totalCentavos={centavosFinal} erro={erros.splits} />}
+
+          <Linha Icone={FaCalendarPlus} rotulo="Data lançamento" idCampo={id("data-lancamento")} erro={erros.launchDate}>
+            <input
+              id={id("data-lancamento")}
+              type="date"
+              value={dataLancamento}
+              onChange={(e) => setDataLancamento(e.target.value)}
+              className={classeCampo}
+            />
+          </Linha>
+
+          <div className="border-b border-slate-100 px-5 py-2">
+            <button
+              type="button"
+              onClick={() => setVerEncargos((v) => !v)}
+              aria-expanded={verEncargos}
+              aria-controls={id("encargos")}
+              className="flex min-h-11 w-full items-center gap-4 rounded-xl text-left font-medium text-slate-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            >
+              <FaPercent aria-hidden="true" className="w-6 shrink-0 text-xl text-slate-500" />
+              <span className="min-w-0 flex-1">
+                Encargos / Desconto
+                {(centavosEncargos > 0 || centavosDesconto > 0) && (
+                  <span className="block whitespace-nowrap text-sm text-slate-500">
+                    {centavosEncargos > 0 && `+ ${reaisDeCentavos(centavosEncargos)}`}
+                    {centavosEncargos > 0 && centavosDesconto > 0 && " · "}
+                    {centavosDesconto > 0 && `− ${reaisDeCentavos(centavosDesconto)}`}
+                  </span>
+                )}
+              </span>
+              <FaChevronDown aria-hidden="true" className={`shrink-0 text-sm text-slate-500 transition-transform ${verEncargos ? "rotate-180" : ""}`} />
+            </button>
+            <div id={id("encargos")} hidden={!verEncargos} className="ml-10 space-y-2 pb-2 pt-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor={id("encargos-valor")} className="mb-1 block text-sm text-slate-500">
+                    Encargos (juros/multa)
+                  </label>
+                  <input
+                    id={id("encargos-valor")}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="0,00"
+                    value={encargos}
+                    onChange={(e) => setEncargos(mascarar(e.target.value))}
+                    className={classeDinheiroPequeno}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={id("desconto-valor")} className="mb-1 block text-sm text-slate-500">
+                    Desconto
+                  </label>
+                  <input
+                    id={id("desconto-valor")}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="0,00"
+                    value={desconto}
+                    onChange={(e) => setDesconto(mascarar(e.target.value))}
+                    aria-invalid={erros.discount ? "true" : undefined}
+                    className={classeDinheiroPequeno}
+                  />
+                </div>
+              </div>
+              <dl className="space-y-0.5 text-sm text-slate-600">
+                <div className="flex justify-between gap-2">
+                  <dt>Valor</dt>
+                  <dd className="whitespace-nowrap">{reaisDeCentavos(centavos)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>+ Encargos</dt>
+                  <dd className="whitespace-nowrap">{reaisDeCentavos(centavosEncargos)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>− Desconto</dt>
+                  <dd className="whitespace-nowrap">{reaisDeCentavos(centavosDesconto)}</dd>
+                </div>
+                <div className="flex justify-between gap-2 border-t border-slate-200 pt-1 font-bold text-slate-900">
+                  <dt>Valor final</dt>
+                  <dd className="whitespace-nowrap">{reaisDeCentavos(centavosFinal)}</dd>
+                </div>
+              </dl>
+              {erros.discount && <p className="text-sm text-red-600">{erros.discount}</p>}
+            </div>
+          </div>
+
           <Linha Icone={FaNoteSticky} rotulo="Observações" idCampo={id("notas")} erro={erros.notes}>
             <textarea
               id={id("notas")}
@@ -484,22 +744,65 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
               className={`${classeCampo} resize-y text-base`}
             />
           </Linha>
-          <LinhaEmBreve Icone={FaPaperclip} texto="Adicionar anexo" />
-          <LinhaEmBreve Icone={FaRegCircleCheck} texto="Não efetivar automaticamente" />
-          <InterruptorEmBreve Icone={FaChartColumn} texto="Ignorar em Estatísticas e Gráficos" />
-          <InterruptorEmBreve Icone={FaPercent} texto="Ignorar em Orçamentos" />
-          <InterruptorEmBreve Icone={FaPiggyBank} texto="Ignorar em Economia mensal" />
-          <InterruptorEmBreve Icone={FaEyeSlash} texto="Ignorar nos totais" />
+
+          <CampoAnexos
+            salvos={anexosSalvos}
+            novos={anexosNovos}
+            onAdicionar={(arquivos) => setAnexosNovos((lista) => [...lista, ...arquivos])}
+            onRemoverNovo={(i) => setAnexosNovos((lista) => lista.filter((_, j) => j !== i))}
+            onRemoverSalvo={removerAnexoSalvo}
+          />
+
+          <LinhaInterruptor
+            Icone={FaRegCircleCheck}
+            texto="Não efetivar automaticamente"
+            descricao="Ligado: fica pendente até você confirmar, mesmo depois da data."
+            ligado={naoEfetivar}
+            onMudar={setNaoEfetivar}
+            cor={cores.interruptor}
+          />
+          <LinhaInterruptor
+            Icone={FaChartColumn}
+            texto="Ignorar em Estatísticas e Gráficos"
+            ligado={ignorar.ignoreInStatistics}
+            onMudar={mudarIgnorar("ignoreInStatistics")}
+            cor={cores.interruptor}
+          />
+          <LinhaInterruptor Icone={FaPercent} texto="Ignorar em Orçamentos" ligado={ignorar.ignoreInBudgets} onMudar={mudarIgnorar("ignoreInBudgets")} cor={cores.interruptor} />
+          <LinhaInterruptor
+            Icone={FaPiggyBank}
+            texto="Ignorar em Economia mensal"
+            ligado={ignorar.ignoreInMonthlySavings}
+            onMudar={mudarIgnorar("ignoreInMonthlySavings")}
+            cor={cores.interruptor}
+          />
+          <LinhaInterruptor
+            Icone={FaEyeSlash}
+            texto="Ignorar nos totais"
+            descricao="Fica fora das receitas/despesas do mês; o saldo da conta continua considerando."
+            ligado={ignorar.ignoreInTotals}
+            onMudar={mudarIgnorar("ignoreInTotals")}
+            cor={cores.interruptor}
+          />
         </div>
 
         {editando && (
           <div className="flex justify-center pt-6">
-            <BotaoApagar texto="Apagar lançamento" pergunta="Apagar este lançamento? Isso não pode ser desfeito." onConfirmar={apagar} carregando={apagando} />
+            <BotaoApagar texto="Apagar lançamento" pergunta="Apagar este lançamento (e os anexos dele)? Isso não pode ser desfeito." onConfirmar={apagar} carregando={apagando} />
           </div>
         )}
       </form>
 
       {novaCategoria && <FormCategoria tipoInicial={tipo} onFechar={() => setNovaCategoria(false)} onSalvo={categoriaCriada} />}
+      {escolhendoTags && (
+        <SeletorTags
+          tags={tags}
+          escolhidas={tagIds}
+          onMudar={setTagIds}
+          onCriada={(nova) => setTags((lista) => [...lista, nova].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")))}
+          onFechar={() => setEscolhendoTags(false)}
+        />
+      )}
     </FolhaCheia>
   );
 }

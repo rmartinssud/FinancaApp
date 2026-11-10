@@ -13,6 +13,7 @@ import {
   FaChevronRight,
   FaArrowRightFromBracket,
   FaUsers,
+  FaPiggyBank,
   FaCircleQuestion,
 } from "react-icons/fa6";
 import logo from "../../assets/logo-financas.webp";
@@ -40,8 +41,9 @@ const SECOES_MENU = [
   {
     titulo: "Analisar",
     itens: [
+      { para: "/app/estatisticas", texto: "Estatísticas e Gráficos", Icone: FaChartPie },
+      { para: "/app/economia", texto: "Economia mensal", Icone: FaPiggyBank },
       { texto: "Relatórios", Icone: FaMagnifyingGlassChart, emBreve: true },
-      { texto: "Gráficos", Icone: FaChartPie, emBreve: true },
       { para: "/app/categorias", texto: "Categorias", Icone: FaShapes },
       { texto: "Calendário", Icone: FaCalendarDays, emBreve: true },
     ],
