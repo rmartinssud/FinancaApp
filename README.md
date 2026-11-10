@@ -245,6 +245,13 @@ O logo aparece em Contas, no Início, no desenho do cartão e nos lançamentos. 
 Para adicionar um logo: coloque o SVG em `public/bancos/<slug>.svg` e o slug em
 `src/app/dados/bancos.js` **e** em `server/src/lib/bancos.ts` (o servidor só aceita slugs da lista).
 
-**Créditos:** os logos vêm do repositório público [Tgentil/Bancos-em-SVG](https://github.com/Tgentil/Bancos-em-SVG)
-(otimizados com svgo). Os logos são marcas registradas dos seus respectivos donos e são usados aqui só para
-identificar a conta do usuário.
+**Créditos:** a maior parte dos logos vem do repositório público [Tgentil/Bancos-em-SVG](https://github.com/Tgentil/Bancos-em-SVG).
+Os demais (todos otimizados com svgo):
+- [Wikimedia Commons](https://commons.wikimedia.org/) (arquivos de logo em domínio público): Agibank, Ágora Investimentos
+  (só o símbolo), Banco Modal, Binance, Digio, Genial Investimentos, Mercado Bitcoin, Nomad, Warren Investimentos e Will Bank;
+- [simple-icons](https://simpleicons.org/) (CC0, com a cor da marca do próprio simple-icons): Wise;
+- sites oficiais das marcas: Avenue (avenue.us), Foxbit (foxbit.com.br), Guide Investimentos (guide.com.br, ícone com a
+  cor declarada pelo site), Kinvo (kinvo.com.br), Next (next.me, símbolo), NuInvest (nuinvest.com.br) e Toro Investimentos
+  (toroinvestimentos.com.br, só o símbolo).
+
+Os logos são marcas registradas dos seus respectivos donos e são usados aqui só para identificar a conta do usuário.
