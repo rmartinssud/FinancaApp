@@ -4,6 +4,7 @@ import { FaArrowTrendUp, FaArrowTrendDown, FaScaleBalanced, FaShieldHalved } fro
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
+import { ConteudoOrcamento } from "./componentes/CartaoOrcamento.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
 import Alerta from "../auth/Alerta.jsx";
@@ -58,6 +59,7 @@ function Inicio() {
   const { me, erroMe } = useMe();
   const [mes, setMes] = useState(mesAtual);
   const [resumo, setResumo] = useState(null);
+  const [orcamentos, setOrcamentos] = useState(null);
   const [erro, setErro] = useState("");
 
   const carregar = useCallback(() => {
@@ -65,6 +67,10 @@ function Inicio() {
     api(`/summary?month=${mes}`)
       .then(setResumo)
       .catch((e) => setErro(e.message));
+    // Orçamentos marcados "Exibir no Início" (até 4); sem nenhum, o cartão não aparece
+    api(`/budgets?month=${mes}&home=true`)
+      .then(setOrcamentos)
+      .catch(() => setOrcamentos(null));
   }, [mes]);
 
   useEffect(() => {
@@ -155,6 +161,36 @@ function Inicio() {
           )}
         </section>
       </div>
+
+      {/* Orçamentos do mês (os marcados "Exibir no Início") */}
+      {orcamentos?.month === mes && orcamentos.budgets.length > 0 && (
+        <section aria-labelledby="titulo-orcamentos" className={`${cartao} mt-6`}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="titulo-orcamentos" className="font-heading text-xl font-bold text-slate-900">
+              Orçamentos do mês
+            </h2>
+            <Link
+              to={`/app/orcamentos?mes=${mes}`}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 font-bold text-primary hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            >
+              Ver todos
+            </Link>
+          </div>
+          <ul className="mt-2 grid gap-x-6 divide-y divide-slate-100 lg:grid-cols-2 lg:divide-y-0">
+            {orcamentos.budgets.map((b) => (
+              <li key={b.id}>
+                <Link
+                  to={`/app/orcamentos/${b.id}?mes=${mes}`}
+                  aria-label={`${b.name}: ver detalhes`}
+                  className="block rounded-2xl py-3 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 lg:px-2"
+                >
+                  <ConteudoOrcamento orcamento={b} compacto />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Lembrete de segurança quando o 2FA está desligado */}
       {me && !me.user.twoFactorEnabled && (
