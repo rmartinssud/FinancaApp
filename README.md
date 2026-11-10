@@ -272,3 +272,96 @@ Os demais (todos otimizados com svgo):
   (toroinvestimentos.com.br, só o símbolo).
 
 Os logos são marcas registradas dos seus respectivos donos e são usados aqui só para identificar a conta do usuário.
+
+## Orçamentos
+
+Menu **Planejar → Orçamentos**. Serve para dizer quanto você quer gastar (ou espera receber) e acompanhar mês a mês.
+Tudo é do **espaço ativo** (Pessoal, Família...). Quem tem acesso **somente leitura** vê, mas não cria nem altera.
+
+### Despesas × Receitas
+A tela tem duas abas independentes:
+- **Despesas**: cada orçamento é um **limite de gastos** (ex.: Mercado R$ 1.200,00). A barra fica âmbar ao chegar no
+  **alerta** (padrão 80%) e vermelha quando passa de 100% (**Estourado**).
+- **Receitas**: cada orçamento é uma **receita esperada** (ex.: Salário R$ 5.000,00). Quando entra tudo, aparece **Alcançado**.
+
+No topo aparecem **Meta**, **Usado** e **Saldo** do mês (somando só os orçamentos comuns; os agrupados não entram, para
+não contar duas vezes).
+
+### Criando um orçamento
+Toque no **+** e escolha **Orçamento** (ou **Agrupado**, nas despesas). Campos:
+- **Descrição**, **cor** e **ícone** (os mesmos ícones das categorias).
+- **Período**: **Mensal** (começa no mês de vigência e se repete todo mês até ser arquivado) ou **Personalizado**
+  (data de início e de fim — ex.: uma viagem ou um trimestre; ele aparece em todos os meses que o período encosta e
+  sempre mostra o total do período inteiro).
+- **Meta**: valor fixo. Nas despesas mensais também dá para usar **%**:
+  - **% do total de receitas do mês** (as receitas confirmadas — o mesmo número de Receitas no Início), ou
+  - **% da meta de um orçamento de receita** (ex.: Moradia = 30% da meta do Salário).
+- **Categorias**: uma ou mais. Sem nenhuma, entram todas as despesas (ou receitas) do período.
+- **Contas e cartões** (só despesas): uma ou mais. Sem nenhuma, entram todas.
+- **Compras no cartão contam pela**: **Data da compra** (padrão) ou **Mês da fatura**.
+- **Alerta** (só despesas): o percentual que acende o aviso (padrão 80%). Pode desligar.
+- **Previsto** (ligado por padrão): os lançamentos **pendentes** também contam no usado.
+- **Considerar contas ignoradas nos totais** (desligado por padrão): inclui as contas marcadas "Ignorar nos totais".
+- **Exibir no Início**: mostra o orçamento no cartão **Orçamentos do mês** do Início (até 4).
+
+Transferências, pagamentos de fatura e ajustes de saldo **nunca** contam. Um lançamento que combina com dois
+orçamentos (ex.: a mesma categoria nos dois) conta **nos dois**.
+
+> **Dica — cartão de crédito:** se você acompanha o gasto pelo que **paga** no mês, escolha **Mês da fatura**: a compra de
+> 05/11 num cartão que fecha dia 3 entra na fatura de dezembro e conta em dezembro. Com **Data da compra**, ela conta em
+> novembro (e cada parcela no mês dela).
+
+### Agrupado (ex.: 50/30/20)
+O agrupado junta orçamentos **mensais de despesa** já criados e mostra a soma das metas e do usado (não tem filtros nem
+meta própria). Na lista, toque na setinha para ver os orçamentos de dentro.
+
+Exemplo **50/30/20** com salário de R$ 5.000,00:
+1. Na aba **Receitas**, crie **Salário** com meta de R$ 5.000,00 (categoria Salário).
+2. Na aba **Despesas**, crie três orçamentos mensais com meta em **% da meta de um orçamento de receita → Salário**:
+   **Essenciais 50%** (Moradia, Mercado, Contas, Saúde, Transporte) = R$ 2.500,00; **Estilo de vida 30%** (Lazer...)
+   = R$ 1.500,00; **Prioridades 20%** (Educação, investimentos...) = R$ 1.000,00.
+   (Ou use **% do total de receitas do mês** para a meta acompanhar o que realmente entrou.)
+3. Toque em **+ → Agrupado**, chame de **50/30/20** e marque os três. O agrupado mostra os R$ 5.000,00 e quanto já foi usado.
+
+O botão **Criar 50/30/20** (quando a aba está vazia) abre o formulário de agrupado com essa dica.
+
+### Detalhes e ações
+Toque num orçamento para ver o progresso (**Meta**, **Efetivado**, **Pendente**, **Saldo**), os **lançamentos que
+contaram** (tocar abre o lançamento; compra no cartão abre a fatura) e um gráfico dos **últimos 6 meses** (meta × usado).
+- **Meta recomendada**: média do usado nos 3 últimos meses completos, arredondada para cima (R$ 10). Aparece quando já
+  existem lançamentos desde o primeiro desses meses. **Usar** abre "Alterar meta" com o valor.
+- **Editar**: muda tudo. Num mensal com valor fixo, a meta nova vale **do mês aberto em diante**.
+- **Alterar meta** (mensal com valor fixo): **Só neste mês** ou **Deste mês em diante**. Os meses anteriores ficam como estavam.
+- **Transferir saldo** (mensal de despesa): passa parte do saldo para outro orçamento mensal de despesa, **só no mês**
+  (ex.: sobrou R$ 100,00 no Mercado e faltou no Lazer). Não dá para passar mais do que o saldo.
+- **Copiar**: abre o formulário preenchido para criar outro parecido.
+- **Arquivar**: escolha o mês a partir do qual ele some; os meses anteriores continuam no histórico.
+- **Excluir**: apaga o orçamento e o histórico de metas (os lançamentos não mudam). Um orçamento de receita usado como
+  base de % por outro não pode ser excluído antes de mudar esse outro.
+
+Apagar uma categoria ou conta tira ela dos filtros dos orçamentos (se não sobrar nenhuma, o orçamento passa a valer
+para todas).
+
+### Alertas
+Por enquanto os alertas são só **dentro do app**: selo **Alerta**/**Estourado** no orçamento e no cartão do Início.
+Avisos por **email** e **WhatsApp** ficam para depois.
+
+### API
+Tudo em `/api/budgets` (espaço ativo; VIEWER só faz GET). Dinheiro em texto com 2 casas (`"500.00"`), meses `AAAA-MM`
+e datas `AAAA-MM-DD` no horário de Brasília.
+- `GET /api/budgets?month=2026-11&kind=EXPENSE|INCOME` → `{ summary: { goal, used, balance }, budgets: [...] }`; cada
+  orçamento traz `progress: { goal, confirmed, pending, used, balance, percent, status }` (`status`: `OK`, `ALERT`,
+  `OVER`, `REACHED`); agrupados trazem `components`. `&home=true` → só os marcados "Exibir no Início" (até 4) e `total`.
+- `GET /api/budgets/:id?month=` → `{ budget, transactions, history (6 meses; null no personalizado), recommended }`.
+- `POST /api/budgets` · `PUT /api/budgets/:id` · `DELETE /api/budgets/:id`. Campos: `kind`, `isGroup`, `name`, `color`,
+  `icon`, `period` (`MONTHLY`/`CUSTOM`), `startMonth` ou `startDate`/`endDate`, `goalType` (`FIXED`, `PERCENT_INCOME`,
+  `PERCENT_BUDGET`), `amount`, `percent`, `percentOfBudgetId`, `categoryIds`, `accountIds`, `componentIds`,
+  `includeIgnored`, `includePending`, `cardDateRef` (`PURCHASE`/`INVOICE`), `alertPercent` (ou `null`), `showOnHome`;
+  no `PUT`, `goalFromMonth` diz de quando vale a meta fixa nova (padrão: mês atual). O tipo e "agrupado" não mudam na edição.
+- `POST /api/budgets/:id/goal { amount, month, scope: "month" | "forward" }` — Alterar meta.
+- `POST /api/budgets/transfer { fromId, toId, month, amount }` — Transferir saldo.
+- `POST /api/budgets/:id/archive { fromMonth }` (`null` desarquiva) · `GET /api/budgets/:id/recommended`.
+
+No banco: `budgets`, `budget_categories` e `budget_accounts` (filtros; somem junto com a categoria/conta),
+`budget_group_items` (agrupados) e `budget_goals` (histórico da meta: `fromMonth`, `amount`, `onlyMonth`; as
+transferências são linhas `isTransfer` somadas só naquele mês). Migration `20261111000000_orcamentos`.

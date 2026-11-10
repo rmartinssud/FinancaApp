@@ -17,6 +17,8 @@ const Contas = lazy(() => import("./app/Contas.jsx"));
 const Categorias = lazy(() => import("./app/Categorias.jsx"));
 const Cartoes = lazy(() => import("./app/Cartoes.jsx"));
 const Fatura = lazy(() => import("./app/Fatura.jsx"));
+const Orcamentos = lazy(() => import("./app/Orcamentos.jsx"));
+const OrcamentoDetalhes = lazy(() => import("./app/OrcamentoDetalhes.jsx"));
 const Familia = lazy(() => import("./app/Familia.jsx"));
 const Convite = lazy(() => import("./pages/Convite.jsx"));
 
@@ -44,6 +46,8 @@ function Rotas() {
           <Route path="/app/categorias" element={<RotaProtegida><Categorias /></RotaProtegida>} />
           <Route path="/app/cartoes" element={<RotaProtegida><Cartoes /></RotaProtegida>} />
           <Route path="/app/cartoes/:id" element={<RotaProtegida><Fatura /></RotaProtegida>} />
+          <Route path="/app/orcamentos" element={<RotaProtegida><Orcamentos /></RotaProtegida>} />
+          <Route path="/app/orcamentos/:id" element={<RotaProtegida><OrcamentoDetalhes /></RotaProtegida>} />
           <Route path="/app/familia" element={<RotaProtegida><Familia /></RotaProtegida>} />
           <Route path="/app/seguranca" element={<RotaProtegida><Seguranca /></RotaProtegida>} />
 

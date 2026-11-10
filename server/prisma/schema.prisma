@@ -173,10 +173,11 @@ model Household {
 
   members      HouseholdMember[]
   invites      HouseholdInvite[]
-  lastUsedBy   User[]            @relation("LastHousehold")
+  lastUsedBy   User[]             @relation("LastHousehold")
   accounts     FinancialAccount[]
   categories   Category[]
   transactions Transaction[]
+  budgets      Budget[]
 
   @@map("households")
 }
@@ -247,6 +248,7 @@ model FinancialAccount {
   transfersIn     Transaction[]      @relation("TransferTo")
   paymentAccount  FinancialAccount?  @relation("CardPayment", fields: [paymentAccountId], references: [id], onDelete: SetNull)
   cardsPaidByThis FinancialAccount[] @relation("CardPayment")
+  budgetLinks     BudgetAccount[]
 
   @@index([householdId])
   @@map("financial_accounts")
@@ -261,8 +263,9 @@ model Category {
   icon        String
   createdAt   DateTime     @default(now())
 
-  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  budgetLinks  BudgetCategory[]
 
   @@index([householdId])
   @@map("categories")
@@ -315,4 +318,131 @@ model Transaction {
   @@index([purchaseId])
   @@index([groupId])
   @@map("transactions")
+}
+
+// ─────────────────────────────────────────────
+// Orçamentos
+// ─────────────────────────────────────────────
+
+// Despesa = limite de gastos; Receita = quanto se espera receber
+enum BudgetKind {
+  EXPENSE
+  INCOME
+}
+
+// Mensal: começa no mês de vigência e se repete todo mês até ser arquivado.
+// Personalizado: período com início e fim (viagem, trimestre...).
+enum BudgetPeriod {
+  MONTHLY
+  CUSTOM
+}
+
+// Meta: valor fixo, % do total de receitas do mês ou % da meta de um orçamento de receita
+enum BudgetGoalType {
+  FIXED
+  PERCENT_INCOME
+  PERCENT_BUDGET
+}
+
+// Compras no cartão contam pela data da compra ou pelo mês da fatura
+enum BudgetCardDate {
+  PURCHASE
+  INVOICE
+}
+
+model Budget {
+  id                String         @id @default(cuid())
+  householdId       String
+  kind              BudgetKind
+  // Agrupado: soma de outros orçamentos mensais de despesa (sem filtros nem meta própria)
+  isGroup           Boolean        @default(false)
+  name              String
+  color             String
+  icon              String
+  period            BudgetPeriod   @default(MONTHLY)
+  startMonth        String? // mensal: mês de vigência "AAAA-MM"
+  archivedFromMonth String? // mensal: arquivado a partir deste mês (os anteriores continuam no histórico)
+  startDate         String? // personalizado: "AAAA-MM-DD" (dia em Brasília)
+  endDate           String? // personalizado: "AAAA-MM-DD"
+  goalType          BudgetGoalType @default(FIXED)
+  // Meta fixa do personalizado (no mensal, as metas ficam em BudgetGoal, com histórico)
+  amount            Decimal?       @db.Decimal(12, 2)
+  percent           Decimal?       @db.Decimal(5, 2) // meta em %: 30 = 30%
+  percentOfBudgetId String? // PERCENT_BUDGET: orçamento mensal de receita usado como base
+  includeIgnored    Boolean        @default(false) // considera contas com "Ignorar nos totais"
+  includePending    Boolean        @default(true) // Previsto: lançamentos pendentes também contam
+  cardDateRef       BudgetCardDate @default(PURCHASE)
+  alertPercent      Int? // alerta (despesa): avisa ao chegar a este % da meta. Vazio = sem alerta
+  showOnHome        Boolean        @default(false) // aparece no Início
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  household      Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  percentOf      Budget?           @relation("BudgetPercentOf", fields: [percentOfBudgetId], references: [id], onDelete: NoAction)
+  percentUsers   Budget[]          @relation("BudgetPercentOf")
+  categories     BudgetCategory[]
+  accounts       BudgetAccount[]
+  goals          BudgetGoal[]
+  components     BudgetGroupItem[] @relation("GroupItems")
+  memberOfGroups BudgetGroupItem[] @relation("GroupMember")
+
+  @@index([householdId, kind])
+  @@map("budgets")
+}
+
+// Categorias do filtro (apagar a categoria tira ela do filtro)
+model BudgetCategory {
+  budgetId   String
+  categoryId String
+
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([budgetId, categoryId])
+  @@index([categoryId])
+  @@map("budget_categories")
+}
+
+// Contas e cartões do filtro (só despesa; apagar a conta tira ela do filtro)
+model BudgetAccount {
+  budgetId  String
+  accountId String
+
+  budget  Budget           @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([budgetId, accountId])
+  @@index([accountId])
+  @@map("budget_accounts")
+}
+
+// Orçamentos que fazem parte de um agrupado
+model BudgetGroupItem {
+  groupId  String
+  budgetId String
+
+  group  Budget @relation("GroupItems", fields: [groupId], references: [id], onDelete: Cascade)
+  budget Budget @relation("GroupMember", fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, budgetId])
+  @@index([budgetId])
+  @@map("budget_group_items")
+}
+
+// Histórico da meta (orçamento mensal com meta fixa).
+// onlyMonth = false: vale de fromMonth em diante; true: só em fromMonth.
+// isTransfer = true: ajuste (+/-) de "Transferir saldo", somado à meta só em fromMonth.
+model BudgetGoal {
+  id         String   @id @default(cuid())
+  budgetId   String
+  fromMonth  String
+  amount     Decimal  @db.Decimal(12, 2)
+  onlyMonth  Boolean  @default(false)
+  isTransfer Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId, fromMonth])
+  @@map("budget_goals")
 }
