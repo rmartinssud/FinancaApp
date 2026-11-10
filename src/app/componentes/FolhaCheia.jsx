@@ -5,8 +5,9 @@ import { botaoIcone } from "./estilos.js";
 // Formulário em tela cheia (celular) ou janela alta centralizada (computador).
 // Barra do topo: ✕ para fechar, o título e o botão "Salvar" à direita (envia o <form id={formId}>).
 // corSalvar: classes do botão Salvar (vermelho na despesa, verde na receita...).
+// extraTopo: algo a mais no fim da barra (ex.: o menu ⋮ do formulário de conta).
 // Usa o <dialog> nativo: prende o foco e fecha com Esc. Abre ao montar; o pai desmonta para fechar.
-function FolhaCheia({ titulo, formId, onFechar, salvando = false, corSalvar = "bg-primary hover:bg-primary-dark", podeSalvar = true, children }) {
+function FolhaCheia({ titulo, formId, onFechar, salvando = false, corSalvar = "bg-primary hover:bg-primary-dark", podeSalvar = true, extraTopo = null, children }) {
   const ref = useRef(null);
   const idTitulo = useId();
 
@@ -50,6 +51,7 @@ function FolhaCheia({ titulo, formId, onFechar, salvando = false, corSalvar = "b
             {salvando ? "Salvando..." : "Salvar"}
           </button>
         )}
+        {extraTopo}
       </div>
       <div className="pb-[calc(1.5rem+env(safe-area-inset-bottom))]">{children}</div>
     </dialog>

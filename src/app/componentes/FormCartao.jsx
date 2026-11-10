@@ -14,9 +14,10 @@ import CampoLogo from "./CampoLogo.jsx";
 const NOVA_CONTA = "__nova";
 
 const tiposConta = [
-  { valor: "BANK", texto: "Conta bancária" },
+  { valor: "BANK", texto: "Conta corrente" },
   { valor: "WALLET", texto: "Carteira" },
   { valor: "INVESTMENT", texto: "Investimento" },
+  { valor: "OTHER", texto: "Outros" },
 ];
 
 // Janelinha por cima do formulário do cartão para criar a conta de pagamento sem sair dele
