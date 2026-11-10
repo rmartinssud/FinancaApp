@@ -68,7 +68,7 @@ describe("categorias (/api/categories)", () => {
 
     const criar = await agent.post("/api/categories").send({ name: "Pets", type: "EXPENSE", color: "#a16207", icon: "paw" });
     expect(criar.status).toBe(201);
-    expect(criar.body).toEqual({ id: expect.any(String), name: "Pets", type: "EXPENSE", color: "#a16207", icon: "paw" });
+    expect(criar.body).toEqual({ id: expect.any(String), name: "Pets", type: "EXPENSE", color: "#a16207", icon: "paw", parentId: null });
 
     const editar = await agent.patch(`/api/categories/${criar.body.id}`).send({ name: "Pet", color: "#000000" });
     expect(editar.body).toMatchObject({ name: "Pet", color: "#000000", type: "EXPENSE" });

@@ -6,6 +6,7 @@ import { withHousehold, scope } from "../middleware/household.js";
 import { validateQuery } from "../middleware/validate.js";
 import { ZERO, mesSchema, mesAtual, intervaloDoMes, somarMeses, partesLocais } from "../lib/money.js";
 import { contasComSaldo } from "../services/saldos.js";
+import { selecionarPorcoes, mapaDePais, somarPorCategoria, comSubcategorias, filtroCategorias, porcoes } from "../services/porcoes.js";
 
 export const summaryRouter = Router();
 
@@ -37,36 +38,38 @@ summaryRouter.get("/", validateQuery(filtro), async (req, res) => {
     OR: [{ invoiceMonth: null, date: intervaloDoMes(mes) }, { invoiceMonth: mes }],
   };
 
-  // Totais de receitas e despesas
+  // Totais de receitas e despesas (lançamentos com "Ignorar nos totais" ficam de fora;
+  // o saldo das contas continua real, com eles)
   const totais = await prisma.transaction.groupBy({
     by: ["type"],
-    where: { ...doMes, type: { in: ["INCOME", "EXPENSE"] } },
+    where: { ...doMes, type: { in: ["INCOME", "EXPENSE"] }, ignoreInTotals: false },
     _sum: { amount: true },
   });
   const income = totais.find((t) => t.type === "INCOME")?._sum.amount ?? ZERO;
   const expense = totais.find((t) => t.type === "EXPENSE")?._sum.amount ?? ZERO;
 
-  // Despesas por categoria (a maior primeiro)
-  const porCategoria = await prisma.transaction.groupBy({
-    by: ["categoryId"],
-    where: { ...doMes, type: "EXPENSE" },
-    _sum: { amount: true },
-  });
+  // Despesas por categoria (a maior primeiro). Subcategorias somam na categoria-pai,
+  // multicategorias contam pelas partes e "Ignorar em Estatísticas" fica de fora.
+  const [despesas, pais] = await Promise.all([
+    prisma.transaction.findMany({ where: { ...doMes, type: "EXPENSE", ignoreInStatistics: false }, select: selecionarPorcoes }),
+    mapaDePais(scope(req).householdId),
+  ]);
+  const porCategoria = somarPorCategoria(despesas, pais);
   const categorias = await prisma.category.findMany({
-    where: { ...scope(req), id: { in: porCategoria.flatMap((p) => (p.categoryId ? [p.categoryId] : [])) } },
+    where: { ...scope(req), id: { in: [...porCategoria.keys()].flatMap((k) => (k ? [k] : [])) } },
   });
 
-  const byCategory = porCategoria
-    .map((p) => {
-      const c = categorias.find((x) => x.id === p.categoryId);
+  const byCategory = [...porCategoria.entries()]
+    .map(([categoryId, total]) => {
+      const c = categorias.find((x) => x.id === categoryId);
       return {
-        categoryId: p.categoryId,
+        categoryId,
         name: c?.name ?? "Sem categoria",
         color: c?.color ?? "#94a3b8",
         // Ícone e tipo para o Início (editar a categoria direto do cartão)
         icon: c?.icon ?? null,
         type: c?.type ?? null,
-        total: p._sum.amount ?? ZERO,
+        total,
       };
     })
     .sort((a, b) => b.total.comparedTo(a.total))
@@ -118,24 +121,37 @@ summaryRouter.get("/category-history", validateQuery(filtroHistorico), async (re
   }
 
   const meses = Array.from({ length: f.months }, (_, i) => somarMeses(fim, i - (f.months - 1)));
+  // A categoria e as subcategorias dela (como no gráfico, que agrega na pai)
+  const ids = semCategoria ? [] : await comSubcategorias(scope(req).householdId, [f.categoryId]);
   const lancamentos = await prisma.transaction.findMany({
     where: {
       ...baseDoResumo(req),
       type: "EXPENSE",
-      categoryId: semCategoria ? null : f.categoryId,
-      OR: [
-        { invoiceMonth: null, date: { gte: intervaloDoMes(meses[0]).gte, lt: intervaloDoMes(fim).lt } },
-        { invoiceMonth: { in: meses } },
+      ignoreInStatistics: false,
+      AND: [
+        semCategoria ? { OR: [{ categoryId: null, splits: { none: {} } }, { splits: { some: { categoryId: null } } }] } : filtroCategorias(ids),
+        {
+          OR: [
+            { invoiceMonth: null, date: { gte: intervaloDoMes(meses[0]).gte, lt: intervaloDoMes(fim).lt } },
+            { invoiceMonth: { in: meses } },
+          ],
+        },
       ],
     },
-    select: { amount: true, date: true, invoiceMonth: true },
+    select: { ...selecionarPorcoes, date: true, invoiceMonth: true },
   });
 
+  const dentro = new Set(ids);
   const somas = new Map(meses.map((m) => [m, ZERO]));
   for (const l of lancamentos) {
     const m = l.invoiceMonth ?? partesLocais(l.date).mes;
     const atual = somas.get(m);
-    if (atual) somas.set(m, atual.plus(l.amount));
+    if (!atual) continue;
+    const valor = porcoes(l).reduce(
+      (t, p) => ((semCategoria ? p.categoryId === null : p.categoryId !== null && dentro.has(p.categoryId)) ? t.plus(p.amount) : t),
+      ZERO,
+    );
+    somas.set(m, atual.plus(valor));
   }
   const total = [...somas.values()].reduce((t, v) => t.plus(v), ZERO);
 

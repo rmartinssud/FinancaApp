@@ -39,6 +39,10 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # Pasta dos anexos (foto/PDF dos lançamentos), num volume para não sumir no deploy
+      UPLOADS_DIR: ${UPLOADS_DIR:-/data/anexos}
+    volumes:
+      - anexos:/data/anexos
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,3 +59,4 @@ services:
 
 volumes:
   pgdata:
+  anexos:

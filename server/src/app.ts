@@ -13,6 +13,9 @@ import { summaryRouter } from "./routes/summary.js";
 import { cardsRouter } from "./routes/cards.js";
 import { cardExpensesRouter } from "./routes/cardExpenses.js";
 import { budgetsRouter } from "./routes/budgets.js";
+import { tagsRouter } from "./routes/tags.js";
+import { uploadRouter, attachmentsRouter } from "./routes/attachments.js";
+import { statsRouter, savingsRouter } from "./routes/stats.js";
 import { householdsRouter, familyRouter, invitesRouter } from "./routes/familia.js";
 
 export function createApp() {
@@ -38,6 +41,9 @@ export function createApp() {
   // Rotas do Better Auth (/api/auth/...). Vêm ANTES do express.json()
   app.all("/api/auth/*splat", authLimiter, toNodeHandler(auth));
 
+  // Upload de anexo: corpo cru (até 3 MB), antes do express.json()
+  app.use("/api/transactions/:id/attachments", uploadRouter);
+
   app.use(express.json({ limit: "100kb" }));
 
   // Informa ao frontend quais opções de login estão ligadas
@@ -55,6 +61,10 @@ export function createApp() {
   app.use("/api/cards", cardsRouter);
   app.use("/api/card-expenses", cardExpensesRouter);
   app.use("/api/budgets", budgetsRouter);
+  app.use("/api/tags", tagsRouter);
+  app.use("/api/attachments", attachmentsRouter);
+  app.use("/api/stats", statsRouter);
+  app.use("/api/savings", savingsRouter);
   app.use("/api/households", householdsRouter);
   app.use("/api/family", familyRouter);
   app.use("/api/invites", invitesRouter);

@@ -178,6 +178,7 @@ model Household {
   categories   Category[]
   transactions Transaction[]
   budgets      Budget[]
+  tags         Tag[]
 
   @@map("households")
 }
@@ -261,13 +262,19 @@ model Category {
   type        CategoryType
   color       String
   icon        String
+  // Subcategoria: aponta para a categoria-pai (um nível só). Apagar a pai apaga as filhas.
+  parentId    String?
   createdAt   DateTime     @default(now())
 
-  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  household    Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  parent       Category?          @relation("Subcategorias", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Category[]         @relation("Subcategorias")
   transactions Transaction[]
   budgetLinks  BudgetCategory[]
+  splits       TransactionSplit[]
 
   @@index([householdId])
+  @@index([parentId])
   @@map("categories")
 }
 
@@ -302,8 +309,24 @@ model Transaction {
   groupId           String?
   recurrence        Recurrence?
   source            TransactionSource @default(APP)
+  // Data em que o lançamento foi registrado / da compra (só informativa; o mês vem de "date")
+  launchDate        DateTime?
+  // Encargos (juros/multa) e desconto. "amount" já é o valor efetivo: valor + encargos − desconto
+  fees              Decimal?          @db.Decimal(12, 2)
+  discount          Decimal?          @db.Decimal(12, 2)
+  // Não efetivar automaticamente: fica pendente mesmo depois da data
+  noAutoConfirm     Boolean           @default(false)
+  // Onde o lançamento fica de fora
+  ignoreInStatistics     Boolean @default(false) // Estatísticas e Gráficos + "Despesas por categoria" do Início
+  ignoreInBudgets        Boolean @default(false) // Orçamentos
+  ignoreInMonthlySavings Boolean @default(false) // Economia mensal
+  ignoreInTotals         Boolean @default(false) // somas de receitas/despesas do mês (o saldo da conta continua real)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+
+  splits      TransactionSplit[]
+  tags        TransactionTag[]
+  attachments TransactionAttachment[]
 
   household Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
   account   FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -318,6 +341,66 @@ model Transaction {
   @@index([purchaseId])
   @@index([groupId])
   @@map("transactions")
+}
+
+// Multicategorias: o valor efetivo do lançamento dividido entre categorias (a soma bate com "amount")
+model TransactionSplit {
+  id            String  @id @default(cuid())
+  transactionId String
+  // Apagar a categoria deixa a parte "sem categoria" (a soma continua batendo)
+  categoryId    String?
+  amount        Decimal @db.Decimal(12, 2)
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([transactionId])
+  @@index([categoryId])
+  @@map("transaction_splits")
+}
+
+// Tags do espaço (muitas por lançamento)
+model Tag {
+  id          String   @id @default(cuid())
+  householdId String
+  name        String
+  color       String?
+  createdAt   DateTime @default(now())
+
+  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  transactions TransactionTag[]
+
+  @@unique([householdId, name])
+  @@map("tags")
+}
+
+model TransactionTag {
+  transactionId String
+  tagId         String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, tagId])
+  @@index([tagId])
+  @@map("transaction_tags")
+}
+
+// Anexos (foto ou PDF). O arquivo fica no armazenamento (disco: UPLOADS_DIR) pela "chave";
+// aqui só os metadados.
+model TransactionAttachment {
+  id            String   @id @default(cuid())
+  transactionId String
+  originalName  String
+  mime          String
+  size          Int
+  storageKey    String   @unique
+  createdAt     DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@map("transaction_attachments")
 }
 
 // ─────────────────────────────────────────────
