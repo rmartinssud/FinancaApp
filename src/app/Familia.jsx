@@ -141,6 +141,57 @@ function Convidar({ onConvidado }) {
 }
 
 // Tela "Família": quem está no espaço ativo, convites e papéis
+// Sair do espaço em duas etapas. Muita gente toca aqui achando que é só "voltar" para o
+// espaço pessoal, então a confirmação explica a diferença e aponta para o seletor do menu.
+function BotaoSair({ nome, carregando, desabilitado, onConfirmar }) {
+  const [confirmando, setConfirmando] = useState(false);
+  if (!confirmando) {
+    return (
+      <div className="w-full">
+        <p className="mb-3 text-sm text-slate-500">
+          Para só ver outro espaço, troque pelo seletor <strong>Espaço</strong> no menu. Você continua neste.
+        </p>
+        <button
+          type="button"
+          disabled={desabilitado}
+          onClick={() => setConfirmando(true)}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 font-bold text-red-700 transition hover:bg-red-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300 disabled:opacity-60"
+        >
+          <FaArrowRightFromBracket aria-hidden="true" />
+          Sair do espaço
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div role="alertdialog" aria-label="Confirmar saída do espaço" className="w-full rounded-2xl border border-red-200 bg-red-50 p-4">
+      <p className="text-sm font-medium text-red-800">
+        Sair de "{nome}"? Você deixa de ver as contas e os lançamentos deste espaço e só volta com um convite novo.
+        Para apenas trocar de espaço, use o seletor no menu.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onConfirmar}
+          disabled={carregando}
+          aria-busy={carregando}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-red-600 px-5 font-bold text-white transition hover:bg-red-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300 disabled:opacity-70"
+        >
+          {carregando ? "Saindo..." : "Sim, sair do espaço"}
+        </button>
+        <button
+          type="button"
+          autoFocus
+          onClick={() => setConfirmando(false)}
+          className="inline-flex min-h-11 items-center rounded-full px-5 font-bold text-slate-700 transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Familia() {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
@@ -316,15 +367,12 @@ function Familia() {
       {h && (podeSair || (ehDono && !h.isPersonal)) && (
         <section aria-label="Sair ou apagar o espaço" className={`${cartao} mt-6 flex flex-wrap items-center gap-3`}>
           {podeSair && (
-            <button
-              type="button"
-              disabled={Boolean(ocupado)}
-              onClick={() => acao("sair", () => api("/family/leave", { method: "POST" }), { recarregarPagina: true })}
-              className={`${botaoSecundario} disabled:opacity-60`}
-            >
-              <FaArrowRightFromBracket aria-hidden="true" />
-              {ocupado === "sair" ? "Saindo..." : "Sair do espaço"}
-            </button>
+            <BotaoSair
+              nome={h.name}
+              carregando={ocupado === "sair"}
+              desabilitado={Boolean(ocupado)}
+              onConfirmar={() => acao("sair", () => api("/family/leave", { method: "POST" }), { recarregarPagina: true })}
+            />
           )}
           {ehDono && !h.isPersonal && (
             <BotaoApagar
