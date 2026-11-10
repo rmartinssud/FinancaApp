@@ -1,6 +1,7 @@
 import { FaCreditCard } from "react-icons/fa6";
 import { formatarReais } from "../../lib/api.js";
 import { BANDEIRAS, COR_PADRAO } from "../../lib/cartoes.js";
+import LogoConta from "./LogoConta.jsx";
 
 // Desenho do cartão (cor escolhida, nome, bandeira e limite disponível)
 function CartaoVisual({ cartao, className = "" }) {
@@ -15,7 +16,11 @@ function CartaoVisual({ cartao, className = "" }) {
         <p className="min-w-0 truncate font-heading text-xl font-bold">{cartao.name}</p>
         <p className="shrink-0 text-sm font-bold uppercase tracking-wider text-white/85">{BANDEIRAS[cartao.brand] ?? "Cartão"}</p>
       </div>
-      <FaCreditCard aria-hidden="true" className="mt-4 text-2xl text-white/70" />
+      {cartao.bankLogo ? (
+        <LogoConta conta={cartao} className="mt-3 !ring-white/40" />
+      ) : (
+        <FaCreditCard aria-hidden="true" className="mt-4 text-2xl text-white/70" />
+      )}
       <div className="mt-3 flex items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wider text-white/75">Disponível</p>

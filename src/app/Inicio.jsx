@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FaArrowTrendUp, FaArrowTrendDown, FaScaleBalanced, FaShieldHalved } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
-import { LinhaConta } from "./componentes/ListaContas.jsx";
+import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
 import Alerta from "../auth/Alerta.jsx";
@@ -27,6 +27,30 @@ function CartaoTotal({ titulo, valor, Icone, cor, destaque = false }) {
       </div>
       <p className={`mt-2 whitespace-nowrap font-heading font-bold ${destaque ? "text-xl md:text-2xl" : `text-base sm:text-2xl ${cor}`}`}>{valor === undefined ? "..." : formatarReais(valor)}</p>
     </section>
+  );
+}
+
+// Rodapé de "Suas contas": total e, se houver, quanto está em investimentos
+function TotaisContas({ contas }) {
+  const soma = (lista) => lista.reduce((t, c) => t + Number(c.currentBalance), 0).toFixed(2);
+  const investimentos = contas.filter((c) => c.type === "INVESTMENT");
+  return (
+    <dl className="mt-2 space-y-1 border-t border-slate-100 pt-3 text-sm">
+      <div className="flex justify-between gap-3">
+        <dt className="text-slate-600">Total</dt>
+        <dd>
+          <Saldo valor={soma(contas)} />
+        </dd>
+      </div>
+      {investimentos.length > 0 && (
+        <div className="flex justify-between gap-3">
+          <dt className="text-slate-600">Investimentos</dt>
+          <dd>
+            <Saldo valor={soma(investimentos)} />
+          </dd>
+        </div>
+      )}
+    </dl>
   );
 }
 
@@ -126,6 +150,8 @@ function Inicio() {
               </li>
             ))}
           </ul>
+          {/* Patrimônio: soma de todas as contas (investimentos inclusive) */}
+          {resumo?.accounts && <TotaisContas contas={resumo.accounts.filter((c) => c.type !== "CREDIT_CARD")} />}
         </section>
       </div>
 

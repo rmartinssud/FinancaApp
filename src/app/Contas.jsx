@@ -7,6 +7,7 @@ import CampoSelect from "./componentes/CampoSelect.jsx";
 import BotaoApagar from "./componentes/BotaoApagar.jsx";
 import FormAjusteSaldo from "./componentes/FormAjusteSaldo.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
+import CampoLogo from "./componentes/CampoLogo.jsx";
 import { TIPOS_CONTA } from "../lib/contas.js";
 import { cartao, botaoSecundario } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
@@ -25,6 +26,8 @@ function FormConta({ conta, onFechar, onSalvo, onAjustar }) {
   const [nome, setNome] = useState(conta?.name ?? "");
   const [tipo, setTipo] = useState(conta?.type ?? "BANK");
   const [saldoInicial, setSaldoInicial] = useState(paraCampo(conta?.initialBalance ?? "0"));
+  const [cheque, setCheque] = useState(paraCampo(conta?.overdraftLimit ?? ""));
+  const [logo, setLogo] = useState(conta?.bankLogo ?? null);
   const [erros, setErros] = useState({});
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -39,7 +42,9 @@ function FormConta({ conta, onFechar, onSalvo, onAjustar }) {
     setErro("");
     if (Object.keys(novosErros).length) return;
 
-    const corpo = { name: nome.trim(), type: tipo, initialBalance: paraApi(saldoInicial) || "0" };
+    const corpo = { name: nome.trim(), type: tipo, initialBalance: paraApi(saldoInicial) || "0", bankLogo: logo };
+    // Cheque especial só em conta bancária (vazio = sem cheque especial)
+    if (tipo === "BANK") corpo.overdraftLimit = paraApi(cheque) || null;
 
     setSalvando(true);
     try {
@@ -95,12 +100,27 @@ function FormConta({ conta, onFechar, onSalvo, onAjustar }) {
           dica="Para saldo negativo, digite o sinal de menos (-)."
         />
 
+        {tipo === "BANK" && (
+          <Campo
+            label="Cheque especial (limite)"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="0,00"
+            value={cheque}
+            onChange={(e) => setCheque(mascarar(e.target.value))}
+            erro={erros.overdraftLimit}
+            dica="Opcional. Mostramos quanto ainda dá para gastar (saldo + limite)."
+          />
+        )}
+
+        <CampoLogo valor={logo} onMudar={setLogo} tipo={tipo} erro={erros.bankLogo} />
+
         <BotaoEnviar texto={editando ? "Salvar alterações" : "Criar conta"} carregando={salvando} textoCarregando="Salvando..." className="w-full" />
 
         {editando && (
           <div className="rounded-2xl bg-soft p-4">
             <p className="text-sm text-slate-700">
-              Saldo no app: <strong>{formatarReais(conta.currentBalance)}</strong>. Não bate com o {conta.type === "WALLET" ? "que você tem" : "banco"}?
+              Saldo no app: <strong>{formatarReais(conta.currentBalance)}</strong>. Não bate com o {conta.type === "WALLET" ? "que você tem" : conta.type === "INVESTMENT" ? "da corretora" : "banco"}?
             </p>
             <button type="button" onClick={() => onAjustar(conta)} className={`${botaoSecundario} mt-3 w-full bg-white`}>
               <FaScaleBalanced aria-hidden="true" />
@@ -125,7 +145,7 @@ function FormConta({ conta, onFechar, onSalvo, onAjustar }) {
   );
 }
 
-// Lista de contas (carteira e banco) com saldo atual. Cartões ficam em "Cartões de crédito".
+// Lista de contas (carteira, banco e investimentos) com saldo atual. Cartões ficam em "Cartões de crédito".
 function Contas() {
   const { erroMe, podeEditar } = useMe();
   const [contas, setContas] = useState(null);
@@ -144,7 +164,13 @@ function Contas() {
     carregar();
   }, [carregar]);
 
-  const total = (contas ?? []).reduce((soma, c) => soma + Number(c.currentBalance), 0);
+  const soma = (lista) => lista.reduce((t, c) => t + Number(c.currentBalance), 0);
+  const total = soma(contas ?? []);
+  const investimentos = (contas ?? []).filter((c) => c.type === "INVESTMENT");
+  const grupos = [
+    { titulo: "Contas", lista: (contas ?? []).filter((c) => c.type !== "INVESTMENT") },
+    { titulo: "Investimentos", lista: investimentos },
+  ].filter((g) => g.lista.length);
 
   return (
     <AppLayout onLancamentoSalvo={carregar}>
@@ -168,12 +194,20 @@ function Contas() {
       </div>
       <p className="mt-2 text-slate-600">
         Saldo somado: <Saldo valor={total.toFixed(2)} />
+        {investimentos.length > 0 && (
+          <span className="block text-sm sm:ml-3 sm:inline">
+            Investimentos: <Saldo valor={soma(investimentos).toFixed(2)} />
+          </span>
+        )}
       </p>
 
       <section aria-label="Lista de contas" className={`mt-6 ${cartao}`}>
         {contas === null && !erro && <p role="status" className="text-slate-500">Carregando contas...</p>}
+        {grupos.map((g) => (
+          <div key={g.titulo} className="mb-4 last:mb-0">
+            {grupos.length > 1 && <h2 className="px-2 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{g.titulo}</h2>}
         <ul className="divide-y divide-slate-100">
-          {contas?.map((c) => (
+          {g.lista.map((c) => (
             <li key={c.id}>
               {podeEditar ? (
                 <button
@@ -192,6 +226,8 @@ function Contas() {
             </li>
           ))}
         </ul>
+          </div>
+        ))}
       </section>
 
       <p className="mt-4 px-2 text-sm text-slate-600">

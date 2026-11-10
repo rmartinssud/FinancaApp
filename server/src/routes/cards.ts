@@ -7,6 +7,7 @@ import { validateQuery, validateBody } from "../middleware/validate.js";
 import { Decimal, ZERO, valorNaoNegativo, valorPositivo, dataSchema, mesSchema } from "../lib/money.js";
 import { cartoesComFatura, datasDaFatura, faturaAtual, situacaoDaFatura } from "../services/cartoes.js";
 import { incluir, serializar } from "../services/lancamentos.js";
+import { logoBanco } from "../lib/bancos.js";
 
 export const cardsRouter = Router();
 
@@ -26,6 +27,7 @@ const novoCartao = z.object({
   dueDay: dia,
   color: cor,
   paymentAccountId: z.string().min(1).nullable().optional(),
+  bankLogo: logoBanco.nullable().optional(),
 });
 
 const edicaoCartao = novoCartao.partial().extend({ archived: z.boolean().optional() });

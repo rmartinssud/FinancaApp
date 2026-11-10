@@ -1,4 +1,4 @@
-import type { FinancialAccount } from "@prisma/client";
+import { Prisma, type FinancialAccount } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 
 // Conta financeira no formato do JSON (Decimal vira texto "0.00")
@@ -9,6 +9,8 @@ export function serializarConta(c: FinancialAccount) {
     type: c.type,
     initialBalance: c.initialBalance.toFixed(2),
     creditLimit: c.creditLimit?.toFixed(2) ?? null,
+    overdraftLimit: c.overdraftLimit?.toFixed(2) ?? null,
+    bankLogo: c.bankLogo,
     closingDay: c.closingDay,
     dueDay: c.dueDay,
     brand: c.brand,
@@ -16,6 +18,12 @@ export function serializarConta(c: FinancialAccount) {
     paymentAccountId: c.paymentAccountId,
     archivedAt: c.archivedAt?.toISOString() ?? null,
   };
+}
+
+// Saldo atual e quanto dá para gastar: saldo + limite do cheque especial (se tiver)
+export function saldoEDisponivel(c: FinancialAccount, saldo: Prisma.Decimal) {
+  const limite = c.overdraftLimit ?? new Prisma.Decimal(0);
+  return { currentBalance: saldo.toFixed(2), availableBalance: saldo.plus(limite).toFixed(2) };
 }
 
 // Contas da família com o saldo atual:
@@ -57,6 +65,6 @@ export async function contasComSaldo(householdId: string, type?: FinancialAccoun
     const entrou = recebidas.find((s) => s.toAccountId === c.id)?._sum.amount;
     if (saiu) saldo = saldo.minus(saiu);
     if (entrou) saldo = saldo.plus(entrou);
-    return { ...serializarConta(c), currentBalance: saldo.toFixed(2) };
+    return { ...serializarConta(c), ...saldoEDisponivel(c, saldo) };
   });
 }
