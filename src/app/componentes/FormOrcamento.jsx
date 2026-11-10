@@ -142,7 +142,8 @@ function resumoLista(ids, opcoes, todas) {
 // Formulário de orçamento em tela cheia (novo, editar ou copiar).
 // orcamento: da API (edição); modelo: dados para preencher (copiar) sem id; kind/agrupado: novo.
 // mes: mês da tela (vigência padrão e, na edição, de quando a meta nova passa a valer).
-function FormOrcamento({ orcamento = null, modelo = null, kind = "EXPENSE", agrupado = false, mes = mesAtual(), dica = "", onFechar, onSalvo }) {
+// copia = false: o modelo só preenche o formulário (ex.: orçamento da categoria, vindo do Início), sem "(cópia)" no nome.
+function FormOrcamento({ orcamento = null, modelo = null, copia = true, kind = "EXPENSE", agrupado = false, mes = mesAtual(), dica = "", onFechar, onSalvo }) {
   const base = orcamento ?? modelo;
   const editando = Boolean(orcamento);
   const tipo = base?.kind ?? kind;
@@ -152,7 +153,7 @@ function FormOrcamento({ orcamento = null, modelo = null, kind = "EXPENSE", agru
   const id = (nome) => `${ids}-${nome}`;
   const formId = id("form");
 
-  const [nome, setNome] = useState(modelo && !orcamento ? `${modelo.name} (cópia)` : (base?.name ?? ""));
+  const [nome, setNome] = useState(modelo && !orcamento && copia ? `${modelo.name} (cópia)` : (base?.name ?? ""));
   const [cor, setCor] = useState(base?.color ?? (despesa ? "#ef4444" : "#22c55e"));
   const [icone, setIcone] = useState(base?.icon ?? (grupo ? "chart" : despesa ? "cart" : "briefcase"));
   const [periodo, setPeriodo] = useState(base?.period ?? "MONTHLY");

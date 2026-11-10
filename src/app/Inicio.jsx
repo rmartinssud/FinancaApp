@@ -5,6 +5,7 @@ import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
 import { ConteudoOrcamento } from "./componentes/CartaoOrcamento.jsx";
+import DespesasPorCategoria from "./componentes/DespesasPorCategoria.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
 import Alerta from "../auth/Alerta.jsx";
@@ -56,7 +57,7 @@ function TotaisContas({ totais, temInvestimentos }) {
 
 // Painel do mês: totais, despesas por categoria e saldo das contas
 function Inicio() {
-  const { me, erroMe } = useMe();
+  const { me, erroMe, podeEditar } = useMe();
   const [mes, setMes] = useState(mesAtual);
   const [resumo, setResumo] = useState(null);
   const [orcamentos, setOrcamentos] = useState(null);
@@ -80,7 +81,6 @@ function Inicio() {
   const primeiroNome = me?.user.name.split(" ")[0];
   const totais = resumo?.month === mes ? resumo.totals : undefined;
   const saldoNegativo = Number(totais?.balance) < 0;
-  const totalDespesas = Number(totais?.expense ?? 0);
 
   return (
     <AppLayout onLancamentoSalvo={carregar}>
@@ -105,36 +105,8 @@ function Inicio() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {/* Despesas por categoria: barras simples (os gráficos chegam na Fase 5) */}
-        <section aria-labelledby="titulo-categorias" className={cartao}>
-          <h2 id="titulo-categorias" className="font-heading text-xl font-bold text-slate-900">
-            Despesas por categoria
-          </h2>
-          {totais && resumo.byCategory.length === 0 && <p className="mt-4 text-slate-500">Nenhuma despesa neste mês.</p>}
-          <ul className="mt-4 space-y-4">
-            {totais &&
-              resumo.byCategory.map((c) => {
-                const parte = totalDespesas > 0 ? (Number(c.total) / totalDespesas) * 100 : 0;
-                return (
-                  <li key={c.categoryId ?? "sem"}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="flex min-w-0 items-center gap-2 font-medium text-slate-800">
-                        <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
-                        <span className="truncate">{c.name}</span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="font-bold text-slate-900">{formatarReais(c.total)}</span>
-                        <span className="ml-2 text-xs text-slate-500">{Math.round(parte)}%</span>
-                      </span>
-                    </div>
-                    <div aria-hidden="true" className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full" style={{ width: `${Math.max(parte, 2)}%`, backgroundColor: c.color }} />
-                    </div>
-                  </li>
-                );
-              })}
-          </ul>
-        </section>
+        {/* Despesas por categoria: gráfico de rosca (ou a lista de antes), com orçamento e evolução de cada categoria */}
+        <DespesasPorCategoria resumo={resumo} mes={mes} userId={me?.user.id} podeEditar={podeEditar} onAlterado={carregar} />
 
         {/* Saldo atual de cada conta */}
         <section aria-labelledby="titulo-contas" className={cartao}>
