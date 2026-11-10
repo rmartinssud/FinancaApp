@@ -166,7 +166,7 @@ function BotaoSair({ nome, carregando, desabilitado, onConfirmar }) {
   return (
     <div role="alertdialog" aria-label="Confirmar saída do espaço" className="w-full rounded-2xl border border-red-200 bg-red-50 p-4">
       <p className="text-sm font-medium text-red-800">
-        Sair de "{nome}"? Você deixa de ver as contas e os lançamentos deste espaço e só volta com um convite novo.
+        Sair de “{nome}”? Você deixa de ver as contas e os lançamentos deste espaço e só volta com um convite novo.
         Para apenas trocar de espaço, use o seletor no menu.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
