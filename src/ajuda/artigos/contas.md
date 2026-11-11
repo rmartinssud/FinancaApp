@@ -47,6 +47,8 @@ Só aparece na **Conta corrente**. Informe o limite que o banco te dá.
 2. Toque no menu **⋮** (Mais opções) no topo e escolha **Apagar conta**.
 3. Confirme em **Sim, apagar**.
 
+Os lançamentos da conta são apagados junto, e os **anexos** deles (fotos e PDFs) também.
+
 ## O saldo não bate com o do banco?
 
 Use o **Ajustar saldo**. Veja o passo a passo em [Saldo não bate com o banco?](artigo:ajustar-saldo).

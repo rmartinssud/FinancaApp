@@ -5,16 +5,18 @@ import Campo from "../../auth/Campo.jsx";
 import CampoSelect from "./CampoSelect.jsx";
 import Alerta from "../../auth/Alerta.jsx";
 import { api, enviarJson, errosPorCampo, formatarReais } from "../../lib/api.js";
-import { mascarar, paraApi } from "../../lib/dinheiro.js";
+import { mascarar, paraApi, paraCampo } from "../../lib/dinheiro.js";
 import { hoje } from "../../lib/datas.js";
 
 // Depositar ou retirar de um objetivo. Com conta vinculada, pode virar também uma transferência real.
-function FormMovimentoObjetivo({ objetivo, tipo, onFechar, onSalvo }) {
-  const deposito = tipo === "DEPOSIT";
-  const conta = objetivo.account;
-  const [valor, setValor] = useState("");
-  const [data, setData] = useState(hoje());
-  const [obs, setObs] = useState("");
+// Com "entrada", corrige um depósito/retirada que já existe (valor, data e observação); a transferência vinculada muda junto.
+function FormMovimentoObjetivo({ objetivo, tipo, entrada = null, onFechar, onSalvo }) {
+  const editando = Boolean(entrada);
+  const deposito = (entrada?.kind ?? tipo) === "DEPOSIT";
+  const conta = editando ? null : objetivo.account;
+  const [valor, setValor] = useState(editando ? paraCampo(entrada.amount) : "");
+  const [data, setData] = useState(editando ? entrada.date : hoje());
+  const [obs, setObs] = useState(entrada?.notes ?? "");
   const [transferir, setTransferir] = useState(false);
   const [outra, setOutra] = useState("");
   const [contas, setContas] = useState([]);
@@ -43,10 +45,12 @@ function FormMovimentoObjetivo({ objetivo, tipo, onFechar, onSalvo }) {
     if (Object.keys(novos).length) return;
     setSalvando(true);
     try {
-      const r = await api(
-        `/goals/${objetivo.id}/entries`,
-        enviarJson("POST", { kind: tipo, amount: paraApi(valor), date: data || hoje(), notes: obs.trim() || null, transfer: transferir, accountId: transferir ? outra : null }),
-      );
+      const r = editando
+        ? await api(`/goals/${objetivo.id}/entries/${entrada.id}`, enviarJson("PUT", { amount: paraApi(valor), date: data || entrada.date, notes: obs.trim() || null }))
+        : await api(
+            `/goals/${objetivo.id}/entries`,
+            enviarJson("POST", { kind: tipo, amount: paraApi(valor), date: data || hoje(), notes: obs.trim() || null, transfer: transferir, accountId: transferir ? outra : null }),
+          );
       onSalvo(r);
     } catch (falha) {
       setErros(errosPorCampo(falha));
@@ -56,15 +60,21 @@ function FormMovimentoObjetivo({ objetivo, tipo, onFechar, onSalvo }) {
   }
 
   return (
-    <Modal titulo={deposito ? "Depositar" : "Retirar"} onFechar={onFechar}>
+    <Modal titulo={editando ? (deposito ? "Editar depósito" : "Editar retirada") : deposito ? "Depositar" : "Retirar"} onFechar={onFechar}>
       <form onSubmit={salvar} noValidate className="space-y-4">
         <Alerta>{erro}</Alerta>
         <Campo label="Valor (R$)" inputMode="numeric" autoComplete="off" placeholder="0,00" value={valor} onChange={(e) => setValor(mascarar(e.target.value))} erro={erros.amount} />
-        {!deposito && <p className="-mt-2 text-sm text-slate-500">Guardado agora: <span className="whitespace-nowrap">{formatarReais(objetivo.progress.saved)}</span></p>}
+        {!deposito && !editando && <p className="-mt-2 text-sm text-slate-500">Guardado agora: <span className="whitespace-nowrap">{formatarReais(objetivo.progress.saved)}</span></p>}
         <Campo label="Data" type="date" value={data} onChange={(e) => setData(e.target.value)} erro={erros.date} />
         <Campo label="Observação (opcional)" maxLength={200} value={obs} onChange={(e) => setObs(e.target.value)} erro={erros.notes} />
 
-        {conta ? (
+        {editando ? (
+          <p className="rounded-2xl bg-soft p-4 text-sm text-slate-700">
+            {entrada.transfer
+              ? `A transferência ${entrada.transfer.from.name} → ${entrada.transfer.to?.name ?? ""} em Lançamentos muda junto (valor e data), e os saldos das contas acompanham.`
+              : "Isto só corrige a anotação no objetivo: saldos, receitas e despesas não mudam."}
+          </p>
+        ) : conta ? (
           <div className="rounded-2xl border border-slate-200 p-4">
             <Interruptor
               texto="Registrar também como transferência"
@@ -105,7 +115,7 @@ function FormMovimentoObjetivo({ objetivo, tipo, onFechar, onSalvo }) {
               deposito ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700"
             }`}
           >
-            {salvando ? "Salvando..." : deposito ? "Depositar" : "Retirar"}
+            {salvando ? "Salvando..." : editando ? "Salvar" : deposito ? "Depositar" : "Retirar"}
           </button>
         </div>
       </form>

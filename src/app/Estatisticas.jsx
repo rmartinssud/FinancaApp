@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaArrowLeft, FaChevronRight } from "react-icons/fa6";
+import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import Alternador from "./componentes/Alternador.jsx";
@@ -200,7 +201,10 @@ function Estatisticas() {
   return (
     <AppLayout>
       <Alerta>{erroMe || erro}</Alerta>
-      <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Estatísticas e Gráficos</h1>
+      <div className="flex items-center gap-1">
+        <h1 className="font-heading text-2xl font-bold text-slate-900 md:text-4xl">Estatísticas e Gráficos</h1>
+        <BotaoAjuda artigo="estatisticas-e-economia" assunto="estatísticas" />
+      </div>
 
       <div className={`${cartao} mt-4 space-y-4`}>
         <SeletorMes mes={mes} onMudar={setMes} className="mx-auto max-w-sm bg-soft" />

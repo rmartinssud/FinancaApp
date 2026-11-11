@@ -266,3 +266,62 @@ goalsRouter.delete("/:id/entries/:entryId", validateQuery(apagarEntradaSchema), 
   await apagarArquivos(chaves);
   res.json(await umComProgresso(g.id));
 });
+
+const editarEntradaSchema = z.object({
+  amount: valorPositivo,
+  date: dataSchema,
+  notes: z.string().trim().max(200).nullable().optional(),
+});
+
+// PUT /api/goals/:id/entries/:entryId {amount, date, notes} → corrige um depósito/retirada.
+// O tipo não muda. Se tiver transferência vinculada, ela é atualizada junto (valor, data e situação).
+goalsRouter.put("/:id/entries/:entryId", validateBody(editarEntradaSchema), async (req, res) => {
+  const d = req.body as z.infer<typeof editarEntradaSchema>;
+  const g = await buscar(req);
+  if (!g) return res.status(404).json({ error: "Objetivo não encontrado." });
+  const entrada = await prisma.goalEntry.findFirst({ where: { id: String(req.params.entryId), goalId: g.id } });
+  if (!entrada) return res.status(404).json({ error: "Movimentação não encontrada." });
+
+  // Guardado sem esta movimentação e com o valor novo: nunca negativo
+  const hoje = diaLocal();
+  const somas = (await somasPorObjetivo([g.id])).get(g.id)!;
+  const deposito = entrada.kind === "DEPOSIT";
+  const semEla = calcularProgresso(
+    dadosProgresso(g),
+    deposito ? somas.dep.minus(entrada.amount) : somas.dep,
+    deposito ? somas.ret : somas.ret.minus(entrada.amount),
+    hoje,
+  ).saved;
+  const depois = deposito ? semEla.plus(d.amount) : semEla.minus(d.amount);
+  if (depois.lt(0)) {
+    const msg = deposito
+      ? "Com esse valor o guardado ficaria negativo. Corrija ou apague antes as retiradas."
+      : `O guardado disponível para esta retirada é ${semEla.toFixed(2).replace(".", ",")}.`;
+    return invalido(res, "amount", msg);
+  }
+
+  const notas = d.notes === undefined ? entrada.notes : d.notes || null;
+  const transacao = entrada.transactionId ? await prisma.transaction.findFirst({ where: { id: entrada.transactionId, ...scope(req) } }) : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.goalEntry.update({ where: { id: entrada.id }, data: { amount: d.amount, date: d.date, notes: notas } });
+    if (transacao) {
+      // Futura fica pendente; se só estava pendente por ser futura e a data voltou para hoje/antes, efetiva
+      const futura = diaLocal(d.date) > hoje;
+      const eraFutura = diaLocal(transacao.date) > hoje;
+      const status = futura ? "PENDING" : transacao.status === "PENDING" && eraFutura ? "CONFIRMED" : transacao.status;
+      await tx.transaction.update({
+        where: { id: transacao.id },
+        data: {
+          amount: d.amount,
+          date: d.date,
+          status,
+          // A observação da transferência acompanha só se era a mesma do objetivo
+          ...((transacao.notes ?? null) === (entrada.notes ?? null) ? { notes: notas } : {}),
+        },
+      });
+    }
+  });
+
+  res.json(await umComProgresso(g.id));
+});

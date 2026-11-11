@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { apagarArquivos, chavesDosLancamentos } from "../services/armazenamento.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
@@ -161,7 +162,10 @@ accountsRouter.delete("/:id", async (req, res) => {
   const total = await prisma.financialAccount.count({ where: { ...scope(req), type: { not: "CREDIT_CARD" } } });
   if (conta.type !== "CREDIT_CARD" && total <= 1) return res.status(409).json({ error: "Não é possível apagar a última conta da família." });
 
+  // Anexos dos lançamentos que somem junto (da conta e transferências de/para ela)
+  const chaves = await chavesDosLancamentos({ ...scope(req), OR: [{ accountId: conta.id }, { toAccountId: conta.id }] });
   await prisma.financialAccount.delete({ where: { id: conta.id } });
+  await apagarArquivos(chaves);
   res.status(204).end();
 });
 

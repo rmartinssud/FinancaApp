@@ -43,10 +43,11 @@ export function mesesDoIntervalo(de: string, ate: string) {
   return meses;
 }
 
-// O orçamento aparece neste mês? Mensal: da vigência até antes do mês arquivado. Personalizado: se o período encosta no mês.
+// O orçamento aparece neste mês? Mensal: da vigência até antes do mês arquivado, menos os meses pausados. Personalizado: se o período encosta no mês.
 export function ativoNoMes(b: Orcamento, mes: string) {
   if (b.period === "CUSTOM") return b.startDate!.slice(0, 7) <= mes && b.endDate!.slice(0, 7) >= mes;
   if (!b.startMonth || b.startMonth > mes) return false;
+  if (b.pausedMonths.includes(mes)) return false; // ficou arquivado nesse mês (desarquivado depois)
   return !b.archivedFromMonth || mes < b.archivedFromMonth;
 }
 
@@ -220,10 +221,13 @@ export class Calculadora {
     return { goal, confirmed, pending, used, balance: goal.minus(used) };
   }
 
-  // Lançamentos que contaram no período (do agrupado: de todos os componentes, sem repetir)
+  // Lançamentos que contaram no período (do agrupado: de todos os componentes, sem repetir).
+  // budgetAmount = quanto o lançamento conta neste orçamento: com categorias no filtro, multicategorias
+  // entram só pela parte dessas categorias (a mesma conta do progresso, então a lista bate com o total).
+  // partial = true quando é só uma parte do valor (a tela mostra "parte de R$ X").
   async lancamentos(b: Orcamento, mes: string) {
     const fontes = b.isGroup ? this.componentes(b, mes) : [b];
-    const vistos = new Map<string, ReturnType<typeof serializar>>();
+    const vistos = new Map<string, { t: ReturnType<typeof serializar>; valor: Prisma.Decimal; total: Prisma.Decimal }>();
     for (const f of fontes) {
       const lista = await prisma.transaction.findMany({
         where: { ...filtroLancamentos(f, periodoDe(f, mes)), ...(f.includePending ? {} : { status: "CONFIRMED" }) },
@@ -231,9 +235,20 @@ export class Calculadora {
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
         take: 500,
       });
-      for (const t of lista) vistos.set(t.id, serializar(t));
+      const categorias = categoriasDoFiltro(f);
+      const dentro = new Set(categorias);
+      for (const t of lista) {
+        const paraPorcoes = { amount: t.amount, categoryId: t.categoryId, splits: t.splits.map((s) => ({ categoryId: s.category?.id ?? null, amount: s.amount })) };
+        const valor = categorias.length ? valorNasCategorias(paraPorcoes, dentro) : t.amount;
+        const ja = vistos.get(t.id);
+        // Agrupado: o total soma os componentes, então a parte de cada componente soma aqui também
+        if (ja) ja.valor = ja.valor.plus(valor);
+        else vistos.set(t.id, { t: serializar(t), valor, total: t.amount });
+      }
     }
-    return [...vistos.values()].sort((a, c) => (a.date < c.date ? 1 : a.date > c.date ? -1 : 0));
+    return [...vistos.values()]
+      .map(({ t, valor, total }) => ({ ...t, budgetAmount: valor.toFixed(2), partial: valor.lt(total) }))
+      .sort((a, c) => (a.date < c.date ? 1 : a.date > c.date ? -1 : 0));
   }
 
   // Meta recomendada: média do usado nos 3 últimos meses completos, arredondada para cima (R$ 10).
@@ -271,6 +286,7 @@ export function serializarOrcamento(b: Orcamento) {
     period: b.period,
     startMonth: b.startMonth,
     archivedFromMonth: b.archivedFromMonth,
+    pausedMonths: b.pausedMonths,
     startDate: b.startDate,
     endDate: b.endDate,
     goalType: b.goalType,

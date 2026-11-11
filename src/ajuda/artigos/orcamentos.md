@@ -3,7 +3,7 @@ titulo: Orçamentos
 categoria: Planejamento
 ordem: 9
 resumo: Limites de gastos e metas de receita, filtros, alertas, cartão por data da compra ou da fatura, e o que cada número quer dizer.
-palavras: orçamento, orcamento, meta, limite de gastos, estourado, alerta, previsto, pendente, efetivado, saldo, 50/30/20, agrupado, percentual das receitas, mês da fatura, data da compra, transferir saldo, copiar, arquivar, excluir, meta recomendada
+palavras: arquivados, desarquivar, reativar orçamento, pausado, parte de, orçamento, orcamento, meta, limite de gastos, estourado, alerta, previsto, pendente, efetivado, saldo, 50/30/20, agrupado, percentual das receitas, mês da fatura, data da compra, transferir saldo, copiar, arquivar, excluir, meta recomendada
 relacionados: categorias, cartoes-de-credito, inicio, perguntas-frequentes, objetivos
 ---
 
@@ -58,9 +58,19 @@ Na tela do orçamento, toque em **Alterar meta**. Você escolhe se a meta nova v
 
 - **Transferir saldo**: passa parte da meta de um orçamento para outro do mesmo mês (ex.: sobrou no Lazer, falta no Mercado).
 - **Copiar**: cria um orçamento novo a partir deste.
-- **Arquivar**: o orçamento some a partir do mês escolhido; os meses anteriores continuam como estão.
+- **Arquivar**: o orçamento some a partir do mês escolhido; os meses anteriores continuam como estão. Para rever ou desarquivar, veja **Orçamentos arquivados** logo abaixo.
 - **Excluir**: apaga o orçamento.
+
+## Orçamentos arquivados
+
+Na tela **Orçamentos**, toque em **Arquivados (N)** para ver a lista. Em cada um você pode:
+
+- **Ver detalhes**: o histórico até o último mês em que ele valeu.
+- **Desarquivar**: escolha **de que mês ele volta a valer**. Pode ser o mesmo mês em que foi arquivado (volta como se nada tivesse acontecido) ou um mês depois. Nesse caso, os meses do meio ficam **pausados**: o orçamento não aparece neles. A meta continua a mesma de antes.
+- **Excluir**: apaga de vez.
 
 ## Detalhes do orçamento
 
 Ao abrir um orçamento você vê o progresso, os **Lançamentos que contaram**, um gráfico dos **Últimos 6 meses** e a **Meta recomendada**: a média dos **3 últimos meses completos**.
+
+Um lançamento dividido em [multicategorias](artigo:campos-extras-do-lancamento) conta **só a parte das categorias do orçamento**. Na lista ele mostra essa parte e, embaixo, **"parte de R$ X"** com o valor inteiro do lançamento.

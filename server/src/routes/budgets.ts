@@ -13,6 +13,7 @@ import {
   metaFixaDoMes,
   serializarOrcamento,
   serializarProgresso,
+  mesesDoIntervalo,
   type Orcamento,
 } from "../services/orcamentos.js";
 
@@ -205,9 +206,29 @@ budgetsRouter.get("/", validateQuery(filtroLista), async (req, res) => {
   res.json({
     month: mes,
     kind: f.kind,
+    // Quantos orçamentos deste tipo estão arquivados (link "Arquivados" na tela)
+    archivedCount: calc.lista.filter((b) => b.kind === f.kind && b.archivedFromMonth).length,
     summary: { goal: goal.toFixed(2), used: used.toFixed(2), balance: goal.minus(used).toFixed(2) },
     budgets,
   });
+});
+
+// GET /api/budgets/archived → orçamentos arquivados (despesas e receitas), do arquivado mais recente ao mais antigo.
+// lastMonth = último mês em que o orçamento valeu (para abrir os detalhes nele).
+budgetsRouter.get("/archived", async (req, res) => {
+  const calc = await Calculadora.carregar(scope(req).householdId);
+  const arquivados = calc.lista
+    .filter((b) => b.archivedFromMonth)
+    .sort((a, c) => (a.archivedFromMonth! < c.archivedFromMonth! ? 1 : a.archivedFromMonth! > c.archivedFromMonth! ? -1 : 0));
+  const budgets = await Promise.all(
+    arquivados.map(async (b) => {
+      let ultimo = somarMeses(b.archivedFromMonth!, -1);
+      while (ultimo >= b.startMonth! && !ativoNoMes(b, ultimo)) ultimo = somarMeses(ultimo, -1);
+      const lastMonth = ultimo >= b.startMonth! ? ultimo : b.startMonth!;
+      return { ...(await comProgresso(calc, b, lastMonth)), lastMonth, usedBy: calc.lista.filter((x) => x.percentOfBudgetId === b.id).map((x) => x.name) };
+    }),
+  );
+  res.json({ budgets });
 });
 
 const filtroMes = z.object({ month: mesSchema.optional() });
@@ -427,4 +448,23 @@ budgetsRouter.post("/:id/archive", validateBody(arquivoSchema), async (req, res)
   await prisma.budget.update({ where: { id: atual.id }, data: { archivedFromMonth: fromMonth } });
   const calc = await Calculadora.carregar(scope(req).householdId);
   res.json(serializarOrcamento(calc.orcamentos.get(atual.id)!));
+});
+
+const desarquivarSchema = z.object({ fromMonth: mesSchema });
+
+// POST /api/budgets/:id/unarchive {fromMonth} → volta a valer a partir do mês escolhido (o mês em que foi
+// arquivado ou depois). Os meses entre o arquivamento e a volta ficam pausados (fora da lista, sem meta).
+budgetsRouter.post("/:id/unarchive", validateBody(desarquivarSchema), async (req, res) => {
+  const { fromMonth } = req.body as z.infer<typeof desarquivarSchema>;
+  const atual = await buscarOrcamento(req);
+  if (!atual) return res.status(404).json({ error: "Orçamento não encontrado." });
+  if (!atual.archivedFromMonth) return res.status(400).json({ error: "Este orçamento não está arquivado." });
+  if (fromMonth < atual.archivedFromMonth) {
+    return responderErro(res, invalido("fromMonth", "Escolha o mês em que ele foi arquivado ou um mês depois."));
+  }
+  const pausa = fromMonth > atual.archivedFromMonth ? mesesDoIntervalo(atual.archivedFromMonth, somarMeses(fromMonth, -1)) : [];
+  const pausados = [...new Set([...atual.pausedMonths, ...pausa])].sort();
+  await prisma.budget.update({ where: { id: atual.id }, data: { archivedFromMonth: null, pausedMonths: pausados } });
+  const calc = await Calculadora.carregar(scope(req).householdId);
+  res.json(await comProgresso(calc, calc.orcamentos.get(atual.id)!, fromMonth));
 });

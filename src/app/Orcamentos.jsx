@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { FaPlus, FaChevronDown, FaLayerGroup, FaBullseye, FaWandMagicSparkles } from "react-icons/fa6";
+import { FaPlus, FaChevronDown, FaLayerGroup, FaBullseye, FaWandMagicSparkles, FaBoxArchive } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
@@ -204,6 +204,18 @@ function Orcamentos() {
             ))}
           </ul>
         </section>
+      )}
+
+      {/* Arquivados: ver, desarquivar ou excluir */}
+      {atual?.archivedCount > 0 && (
+        <div className="mt-6 flex justify-center">
+          <Link
+            to="/app/orcamentos/arquivados"
+            className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+          >
+            <FaBoxArchive aria-hidden="true" /> Arquivados ({atual.archivedCount})
+          </Link>
+        </div>
       )}
 
       {/* Botão "+" (no lugar do novo lançamento) */}

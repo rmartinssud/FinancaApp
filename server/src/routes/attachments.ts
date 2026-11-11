@@ -11,6 +11,9 @@ import { armazenamento, apagarArquivos } from "../services/armazenamento.js";
 // Download só para quem está no espaço do lançamento.
 // ─────────────────────────────────────────────
 
+// Tipos que qualquer navegador mostra na tela (o resto, como HEIC, vai como download)
+const ABRE_NA_TELA = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+
 export const LIMITE_ANEXO = 3 * 1024 * 1024;
 export const MAX_ANEXOS = 10;
 
@@ -108,7 +111,8 @@ attachmentsRouter.get("/:id", async (req, res) => {
   } catch {
     return res.status(404).json({ error: "O arquivo deste anexo não foi encontrado no servidor." });
   }
-  const baixar = req.query.download === "1";
+  // HEIC (e qualquer tipo que o navegador não mostra) sempre baixa: abrir na tela daria imagem quebrada
+  const baixar = req.query.download === "1" || !ABRE_NA_TELA.includes(anexo.mime);
   res.setHeader("Content-Type", anexo.mime);
   res.setHeader("Content-Length", String(dados.length));
   res.setHeader("Cache-Control", "private, no-store");
