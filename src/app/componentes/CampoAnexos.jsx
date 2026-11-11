@@ -1,32 +1,45 @@
 import { useId, useRef, useState } from "react";
-import { FaPaperclip, FaFilePdf, FaImage, FaXmark } from "react-icons/fa6";
-import { ACEITOS, problemaDoArquivo, tamanhoEmTexto, urlDoAnexo } from "../../lib/anexos.js";
+import { FaPaperclip, FaFilePdf, FaImage, FaFile, FaXmark, FaDownload } from "react-icons/fa6";
+import { ACEITOS, abreNoNavegador, problemaDoArquivo, tamanhoEmTexto, tipoDoIcone, urlDoAnexo } from "../../lib/anexos.js";
 
 const MAX_ANEXOS = 10;
 
-// Um anexo (salvo ou ainda para enviar)
-function ItemAnexo({ nome, tamanho, pdf, href, onRemover, rotuloRemover, pendente }) {
-  const Icone = pdf ? FaFilePdf : FaImage;
+// Um anexo (salvo ou ainda para enviar).
+// Foto comum (JPG/PNG/WEBP) e PDF abrem no navegador; HEIC (e outros) mostram ícone de arquivo e "Baixar",
+// porque a maioria dos navegadores não mostra HEIC.
+const ICONES = { pdf: [FaFilePdf, "text-red-600"], imagem: [FaImage, "text-primary"], arquivo: [FaFile, "text-slate-500"] };
+
+function ItemAnexo({ nome, tamanho, mime, id, onRemover, rotuloRemover, pendente }) {
+  const [Icone, cor] = ICONES[tipoDoIcone(mime, nome)];
+  const abre = abreNoNavegador(mime);
+  const href = id ? urlDoAnexo(id) : null;
   const conteudo = (
     <>
-      <Icone aria-hidden="true" className={`shrink-0 ${pdf ? "text-red-600" : "text-primary"}`} />
+      <Icone aria-hidden="true" className={`shrink-0 ${cor}`} />
       <span className="min-w-0 flex-1 truncate">{nome}</span>
       <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">{pendente ? "a enviar" : tamanhoEmTexto(tamanho)}</span>
     </>
   );
+  const classeLink =
+    "flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-sm font-medium text-slate-800 underline-offset-2 hover:bg-soft hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30";
   return (
     <li className="flex items-center gap-1">
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-sm font-medium text-slate-800 underline-offset-2 hover:bg-soft hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
-        >
+      {href && abre ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" className={classeLink}>
           {conteudo}
         </a>
       ) : (
         <span className="flex min-h-11 min-w-0 flex-1 items-center gap-2 px-2 text-sm font-medium text-slate-800">{conteudo}</span>
+      )}
+      {href && !abre && (
+        <a
+          href={urlDoAnexo(id, true)}
+          download={nome}
+          aria-label={`Baixar ${nome}`}
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-bold text-primary transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+        >
+          <FaDownload aria-hidden="true" /> Baixar
+        </a>
       )}
       {onRemover && (
         <button
@@ -52,8 +65,8 @@ export function ListaAnexos({ anexos, onRemover }) {
           key={a.id}
           nome={a.originalName}
           tamanho={a.size}
-          pdf={a.mime === "application/pdf"}
-          href={urlDoAnexo(a.id)}
+          mime={a.mime}
+          id={a.id}
           onRemover={onRemover ? () => onRemover(a) : null}
           rotuloRemover={`Remover anexo ${a.originalName}`}
         />
@@ -100,8 +113,8 @@ function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo
               key={a.id}
               nome={a.originalName}
               tamanho={a.size}
-              pdf={a.mime === "application/pdf"}
-              href={urlDoAnexo(a.id)}
+              mime={a.mime}
+              id={a.id}
               onRemover={onRemoverSalvo ? () => onRemoverSalvo(a) : null}
               rotuloRemover={`Remover anexo ${a.originalName}`}
             />
@@ -110,7 +123,7 @@ function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo
             <ItemAnexo
               key={`${arquivo.name}-${i}`}
               nome={arquivo.name}
-              pdf={arquivo.type === "application/pdf"}
+              mime={arquivo.type}
               pendente
               onRemover={() => onRemoverNovo(i)}
               rotuloRemover={`Tirar ${arquivo.name}`}

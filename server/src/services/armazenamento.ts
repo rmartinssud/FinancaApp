@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../lib/prisma.js";
 
 // ─────────────────────────────────────────────
 // Armazenamento de anexos. Hoje: disco local, na pasta UPLOADS_DIR (padrão /data/anexos).
@@ -64,4 +66,11 @@ export async function apagarArquivos(chaves: string[]) {
       console.error("Falha ao apagar anexo", c, e);
     }
   }
+}
+
+// Chaves dos anexos dos lançamentos que vão ser apagados (buscar ANTES do delete em cascata:
+// depois dele as linhas somem e os arquivos ficariam órfãos no disco)
+export async function chavesDosLancamentos(where: Prisma.TransactionWhereInput) {
+  const anexos = await prisma.transactionAttachment.findMany({ where: { transaction: where }, select: { storageKey: true } });
+  return anexos.map((a) => a.storageKey);
 }

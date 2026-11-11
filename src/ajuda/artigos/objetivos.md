@@ -3,7 +3,7 @@ titulo: Objetivos
 categoria: Planejamento
 ordem: 10
 resumo: Junte dinheiro para uma meta (viagem, reserva, carro): depósitos e retiradas, quanto guardar por mês, ritmo, conta vinculada e o card do Início.
-palavras: objetivo, objetivos, meta, guardar dinheiro, poupar, reserva de emergência, cofrinho, depositar, depósito, retirar, retirada, quanto guardar por mês, no ritmo, atrasado, data alvo, conta vinculada, investimento, concluir, arquivar, reativar, excluir
+palavras: editar depósito, corrigir depósito, editar retirada, objetivo, objetivos, meta, guardar dinheiro, poupar, reserva de emergência, cofrinho, depositar, depósito, retirar, retirada, quanto guardar por mês, no ritmo, atrasado, data alvo, conta vinculada, investimento, concluir, arquivar, reativar, excluir
 relacionados: orcamentos, transferencias, contas, inicio
 ---
 
@@ -37,6 +37,14 @@ O **guardado** é: já guardado ao criar + depósitos − retiradas. Não dá pa
 > Transferências **nunca contam como receita nem despesa**. Por isso guardar dinheiro num objetivo não "estraga" o resumo do mês.
 
 Com data futura, a transferência fica **pendente** e é efetivada sozinha no dia.
+
+### Corrigir um depósito ou retirada
+
+Errou o valor ou a data? Toque no **lápis** ao lado dele, no histórico, e mude o **valor**, a **data** ou a **observação**. O tipo (depósito ou retirada) não muda: se for o caso, apague e lance de novo.
+
+Se ele criou uma transferência, ela **muda junto** (valor e data). Com data futura a transferência fica pendente; se a data voltar para hoje ou antes, ela é efetivada.
+
+Não dá para salvar se o guardado ficasse negativo: uma retirada não pode passar do que está guardado, e para diminuir um depósito talvez seja preciso corrigir antes as retiradas.
 
 ### Apagar um depósito ou retirada
 

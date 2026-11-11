@@ -448,6 +448,7 @@ model Budget {
   period            BudgetPeriod   @default(MONTHLY)
   startMonth        String? // mensal: mês de vigência "AAAA-MM"
   archivedFromMonth String? // mensal: arquivado a partir deste mês (os anteriores continuam no histórico)
+  pausedMonths      String[]       @default([]) // mensal: meses "AAAA-MM" em que ficou arquivado e depois foi desarquivado mais adiante
   startDate         String? // personalizado: "AAAA-MM-DD" (dia em Brasília)
   endDate           String? // personalizado: "AAAA-MM-DD"
   goalType          BudgetGoalType @default(FIXED)

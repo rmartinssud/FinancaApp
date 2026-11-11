@@ -36,7 +36,9 @@ O que vale (no saldo, nos totais e nos orçamentos) é o **valor final**, já co
 
 ## Anexos
 
-Toque em **Adicionar anexo** para guardar uma foto ou um PDF (ex.: o comprovante ou o boleto). Cada arquivo pode ter até **3 MB**.
+Toque em **Adicionar anexo** para guardar uma foto ou um PDF (ex.: o comprovante ou o boleto). Cada arquivo pode ter até **3 MB**, e cada lançamento até **10 anexos**.
+
+Fotos JPG, PNG e WEBP e PDFs abrem direto no navegador. Fotos **HEIC** (o formato do iPhone) e outros tipos aparecem com um ícone e o botão **Baixar**, porque muitos navegadores não mostram esse formato.
 
 ## Não efetivar automaticamente
 

@@ -318,6 +318,16 @@ function ObjetivoDetalhes() {
                       <button
                         type="button"
                         className={`${botaoIcone} !text-slate-500`}
+                        aria-label={`Editar ${deposito ? "depósito" : "retirada"} de ${formatarReais(e.amount)} em ${dataBr(e.date)}`}
+                        onClick={() => setJanela({ tipo: "editarEntrada", entrada: e })}
+                      >
+                        <FaPen aria-hidden="true" />
+                      </button>
+                    )}
+                    {podeEditar && (
+                      <button
+                        type="button"
+                        className={`${botaoIcone} !text-slate-500`}
                         aria-label={`Apagar ${deposito ? "depósito" : "retirada"} de ${formatarReais(e.amount)} em ${dataBr(e.date)}`}
                         onClick={() => {
                           setApagarTransferencia(true);
@@ -339,6 +349,18 @@ function ObjetivoDetalhes() {
         <FormMovimentoObjetivo
           objetivo={g}
           tipo={janela.tipo}
+          onFechar={fechar}
+          onSalvo={() => {
+            setJanela(null);
+            setAviso("");
+            carregar();
+          }}
+        />
+      )}
+      {g && janela?.tipo === "editarEntrada" && (
+        <FormMovimentoObjetivo
+          objetivo={g}
+          entrada={janela.entrada}
           onFechar={fechar}
           onSalvo={() => {
             setJanela(null);

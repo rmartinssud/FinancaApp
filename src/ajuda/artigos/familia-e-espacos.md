@@ -32,6 +32,10 @@ O convite é de **uso único** e vale por **7 dias**. Em **Convites pendentes** 
 
 > O **último dono** não pode sair. Para sair, passe o papel de Dono para outra pessoa antes.
 
+## Apagar um espaço
+
+O dono pode apagar um espaço na tela **Família**, em **Apagar espaço**. Tudo some de vez: contas, cartões, lançamentos, orçamentos, objetivos e os **anexos** (fotos e PDFs). O seu espaço **Pessoal** não pode ser apagado, só renomeado.
+
 ## Quem lançou
 
 Em espaços com mais de uma pessoa, cada lançamento mostra **quem lançou**. Em Lançamentos, use o filtro **Pessoa** para ver só os lançamentos de alguém.

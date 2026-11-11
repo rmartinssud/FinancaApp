@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createHash, randomBytes } from "node:crypto";
 import type { MemberRole } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
+import { apagarArquivos, chavesDosLancamentos } from "../services/armazenamento.js";
 import { env } from "../env.js";
 import { sendEmail, emailComLink } from "../lib/email.js";
 import { requireAuth } from "../middleware/requireAuth.js";
@@ -159,7 +160,10 @@ familyRouter.patch("/", soDono, validateBody(nomeEspaco), async (req, res) => {
 // DELETE /api/family → apaga o espaço e TODOS os dados dele (dono; o espaço pessoal não pode)
 familyRouter.delete("/", soDono, async (req, res) => {
   if (req.household!.isPersonal) return res.status(409).json({ error: "O seu espaço pessoal não pode ser apagado." });
+  // Anexos de todos os lançamentos do espaço: buscar antes do delete em cascata
+  const chaves = await chavesDosLancamentos({ householdId: req.household!.id });
   await prisma.household.delete({ where: { id: req.household!.id } });
+  await apagarArquivos(chaves);
   res.status(204).end();
 });
 

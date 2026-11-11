@@ -7,6 +7,7 @@ import {
   FaRightLeft,
   FaCopy,
   FaBoxArchive,
+  FaBoxOpen,
   FaTrashCan,
   FaLightbulb,
   FaCreditCard,
@@ -15,6 +16,7 @@ import AppLayout from "./AppLayout.jsx";
 import SeletorMes from "./componentes/SeletorMes.jsx";
 import Modal from "./componentes/Modal.jsx";
 import FormOrcamento from "./componentes/FormOrcamento.jsx";
+import DesarquivarOrcamento from "./componentes/DesarquivarOrcamento.jsx";
 import FormLancamento from "./componentes/FormLancamento.jsx";
 import IconeCategoria from "./componentes/IconeCategoria.jsx";
 import { BarraOrcamento, ConteudoOrcamento, IconeOrcamento, SeloOrcamento } from "./componentes/CartaoOrcamento.jsx";
@@ -274,10 +276,11 @@ function OrcamentoDetalhes() {
   const p = b?.progress;
   const mensal = b?.period === "MONTHLY";
   // Mensal: vale da vigência até antes do mês arquivado. Personalizado: o período todo.
-  const valeNoMes = Boolean(b) && (!mensal || (b.startMonth <= mes && (!b.archivedFromMonth || mes < b.archivedFromMonth)));
+  const valeNoMes =
+    Boolean(b) && (!mensal || (b.startMonth <= mes && !b.pausedMonths?.includes(mes) && (!b.archivedFromMonth || mes < b.archivedFromMonth)));
   const metaFixaMensal = b && mensal && !b.isGroup && b.goalType === "FIXED";
   const podeTransferir = b && mensal && !b.isGroup && b.kind === "EXPENSE";
-  const voltar = `/app/orcamentos?mes=${mes}&aba=${b?.kind ?? "EXPENSE"}`;
+  const voltar = busca.get("de") === "arquivados" ? "/app/orcamentos/arquivados" : `/app/orcamentos?mes=${mes}&aba=${b?.kind ?? "EXPENSE"}`;
   const fechar = () => setJanela(null);
   const salvou = () => {
     setJanela(null);
@@ -333,7 +336,7 @@ function OrcamentoDetalhes() {
             </div>
           </div>
 
-          {mensal && <SeletorMes mes={mes} onMudar={(m) => setBusca({ mes: m }, { replace: true })} className="mt-4 max-w-sm" />}
+          {mensal && <SeletorMes mes={mes} onMudar={(m) => setBusca({ mes: m, ...(busca.get("de") ? { de: busca.get("de") } : {}) }, { replace: true })} className="mt-4 max-w-sm" />}
 
           {/* Progresso */}
           <section aria-label="Progresso" className={`${cartao} mt-4`}>
@@ -396,9 +399,14 @@ function OrcamentoDetalhes() {
               <button type="button" className={botaoAcao} onClick={() => setJanela({ tipo: "copiar" })}>
                 <FaCopy aria-hidden="true" /> Copiar
               </button>
-              {mensal && (
+              {mensal && !b.archivedFromMonth && (
                 <button type="button" className={botaoAcao} onClick={() => setJanela({ tipo: "arquivar" })}>
                   <FaBoxArchive aria-hidden="true" /> Arquivar
+                </button>
+              )}
+              {mensal && b.archivedFromMonth && (
+                <button type="button" className={botaoAcao} onClick={() => setJanela({ tipo: "desarquivar" })}>
+                  <FaBoxOpen aria-hidden="true" /> Desarquivar
                 </button>
               )}
               <button type="button" className={`${botaoAcao} !text-red-700`} onClick={() => setJanela({ tipo: "excluir" })}>
@@ -475,7 +483,8 @@ function OrcamentoDetalhes() {
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className={`block whitespace-nowrap font-bold ${receita ? "text-emerald-700" : "text-red-600"}`}>{formatarReais(l.amount)}</span>
+                        <span className={`block whitespace-nowrap font-bold ${receita ? "text-emerald-700" : "text-red-600"}`}>{formatarReais(l.budgetAmount ?? l.amount)}</span>
+                        {l.partial && <span className="block whitespace-nowrap text-xs text-slate-500">parte de {formatarReais(l.amount)}</span>}
                         {l.status === "PENDING" && <span className="block text-xs font-bold text-amber-700">pendente</span>}
                       </span>
                     </Elemento>
@@ -502,6 +511,17 @@ function OrcamentoDetalhes() {
       {janela?.tipo === "meta" && <AlterarMeta orcamento={b} mes={mes} inicial={janela.valor} onFechar={fechar} onSalvo={salvou} />}
       {janela?.tipo === "transferir" && <TransferirSaldo orcamento={b} mes={mes} onFechar={fechar} onSalvo={salvou} />}
       {janela?.tipo === "arquivar" && <Arquivar orcamento={b} mes={mes} onFechar={fechar} onSalvo={() => navigate(voltar, { replace: true })} />}
+      {janela?.tipo === "desarquivar" && (
+        <DesarquivarOrcamento
+          orcamento={b}
+          onFechar={fechar}
+          onSalvo={(r, aPartir) => {
+            setJanela(null);
+            setBusca({ mes: aPartir }, { replace: true }); // desarquivado: volta para a lista normal
+            carregar();
+          }}
+        />
+      )}
       {janela?.tipo === "excluir" && (
         <Modal titulo="Excluir orçamento?" onFechar={fechar}>
           <p className="text-slate-700">

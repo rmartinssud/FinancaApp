@@ -32,4 +32,20 @@ export async function enviarAnexo(lancamentoId, arquivo) {
   return dados;
 }
 
-export const urlDoAnexo = (id) => `/api/attachments/${id}`;
+export const urlDoAnexo = (id, baixar = false) => `/api/attachments/${id}${baixar ? "?download=1" : ""}`;
+
+// Imagens que qualquer navegador mostra (miniatura / abrir na tela). HEIC fica de fora: só Safari abre,
+// então vira ícone de arquivo com "Baixar" (não convertemos).
+export const IMAGENS_VISIVEIS = ["image/jpeg", "image/png", "image/webp"];
+export const imagemVisivel = (mime) => IMAGENS_VISIVEIS.includes(mime);
+
+// Abre no navegador (foto comum ou PDF) ou só baixa (HEIC e qualquer outro tipo)
+export const abreNoNavegador = (mime) => imagemVisivel(mime) || mime === "application/pdf";
+
+// Tipo do anexo para o ícone: "pdf", "imagem" ou "arquivo" (HEIC, ou arquivo novo ainda sem tipo conhecido)
+export function tipoDoIcone(mime, nome = "") {
+  if (mime === "application/pdf") return "pdf";
+  if (imagemVisivel(mime)) return "imagem";
+  if (!mime && /\.(jpe?g|png|webp)$/i.test(nome)) return "imagem";
+  return "arquivo";
+}
