@@ -8,7 +8,7 @@ import { criarFamiliaInicial } from "../services/onboarding.js";
 
 // Configuração central do login (Better Auth)
 export const auth = betterAuth({
-  appName: "Finanças Pessoais",
+  appName: "Famicash",
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: prismaAdapter(prisma, { provider: "postgresql" }),
@@ -23,11 +23,11 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       const { text, html } = emailComLink(
         "Redefinir sua senha",
-        "Recebemos um pedido para trocar a senha da sua conta no Finanças Pessoais.",
+        "Recebemos um pedido para trocar a senha da sua conta no Famicash.",
         "Criar nova senha",
         url,
       );
-      await sendEmail({ to: user.email, subject: "Redefinir senha - Finanças Pessoais", text, html });
+      await sendEmail({ to: user.email, subject: "Redefinir senha - Famicash", text, html });
     },
     revokeSessionsOnPasswordReset: true,
   },
@@ -44,7 +44,7 @@ export const auth = betterAuth({
         "Confirmar email",
         url,
       );
-      await sendEmail({ to: user.email, subject: "Confirme seu email - Finanças Pessoais", text, html });
+      await sendEmail({ to: user.email, subject: "Confirme seu email - Famicash", text, html });
     },
   },
 
@@ -82,6 +82,6 @@ export const auth = betterAuth({
 
   plugins: [
     // Autenticação em dois fatores (app autenticador + códigos de backup)
-    twoFactor({ issuer: "Finanças Pessoais" }),
+    twoFactor({ issuer: "Famicash" }),
   ],
 });

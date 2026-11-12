@@ -16,7 +16,7 @@ import {
   FaPiggyBank,
   FaCircleQuestion,
 } from "react-icons/fa6";
-import logo from "../../assets/logo-financas.webp";
+import logo from "../../assets/logo-famicash.webp";
 import SeletorEspaco from "./SeletorEspaco.jsx";
 import { iniciais } from "../../lib/pessoas.js";
 
@@ -65,7 +65,7 @@ function MenuLateral({ me, onSair, saindo, idTitulo }) {
     <div className="flex h-full flex-col">
       <div className="px-5 pb-2 pt-5">
         <Link to="/app" className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
-          <img src={logo} alt="Finanças Pessoais - início do app" className="w-32" />
+          <img src={logo} alt="Famicash - início do app" className="w-36" />
         </Link>
       </div>
 

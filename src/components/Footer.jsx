@@ -76,7 +76,7 @@ function Footer() {
         </div>
 
         <p className="mt-14 border-t border-primary/15 py-6 text-center text-sm text-slate-600">
-          © 2026 Finanças Pessoais. Todos os direitos reservados.
+          © 2026 Famicash. Todos os direitos reservados.
         </p>
       </Container>
     </footer>

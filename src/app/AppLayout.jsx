@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CHAVE_CONVITE } from "../lib/convite.js";
 import { FaBars } from "react-icons/fa6";
-import logo from "../assets/logo-financas.webp";
+import logo from "../assets/logo-famicash.webp";
 import { signOut } from "../lib/auth-client.js";
 import { useMe } from "./useMe.js";
 import MenuLateral from "./componentes/MenuLateral.jsx";
@@ -88,7 +88,7 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInf
             <FaBars aria-hidden="true" />
           </button>
           <Link to="/app" className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30">
-            <img src={logo} alt="Finanças Pessoais - início do app" className="w-28" />
+            <img src={logo} alt="Famicash - início do app" className="w-32" />
           </Link>
         </div>
       </header>
