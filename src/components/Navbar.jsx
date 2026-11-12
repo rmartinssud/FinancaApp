@@ -34,18 +34,18 @@ function Navbar() {
                 key={nome}
                 href="#"
                 aria-label={nome}
-                className="flex h-full w-11 items-center justify-center border-r border-white/30 first:border-l hover:bg-white/10"
+                className="flex h-full items-center px-2.5 first:pl-0 hover:text-white/80"
               >
                 <Icone className="text-lg" aria-hidden="true" />
               </a>
             ))}
           </div>
           <p className="hidden lg:block">Cuidando de você e do seu dinheiro para uma vida melhor</p>
-          <div className="flex h-full">
-            <a href="#contato" className="flex items-center gap-2 border-x border-white/30 px-3 hover:bg-white/10 sm:px-6">
+          <div className="flex h-full gap-5 sm:gap-6">
+            <a href="#contato" className="flex items-center gap-2 hover:text-white/80">
               <FaSquareEnvelope aria-hidden="true" /> Email
             </a>
-            <a href="#whatsapp" className="flex items-center gap-2 border-r border-white/30 px-3 hover:bg-white/10 sm:px-6">
+            <a href="#whatsapp" className="flex items-center gap-2 hover:text-white/80">
               <FaRegComment aria-hidden="true" /> Chat
             </a>
           </div>
