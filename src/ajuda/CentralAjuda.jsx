@@ -148,7 +148,7 @@ function CentralAjuda({ base }) {
   useEffect(() => {
     const anterior = document.title;
     const a = slug ? acharArtigo(slug) : null;
-    document.title = a ? `${a.titulo} · Ajuda · Finanças Pessoais` : "Central de Ajuda · Finanças Pessoais";
+    document.title = a ? `${a.titulo} · Ajuda · Famicash` : "Central de Ajuda · Famicash";
     return () => {
       document.title = anterior;
     };

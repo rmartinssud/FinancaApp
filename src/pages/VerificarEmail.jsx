@@ -67,7 +67,7 @@ function VerificarEmail() {
     <AuthLayout titulo={isPending ? "Confirmando..." : "Email confirmado!"}>
       {!isPending && (
         <>
-          <Alerta tipo="sucesso">Sua conta está ativa. Bem-vindo(a) ao Finanças Pessoais!</Alerta>
+          <Alerta tipo="sucesso">Sua conta está ativa. Bem-vindo(a) ao Famicash!</Alerta>
           <Link
             to={sessao ? "/app" : "/entrar"}
             className="group mt-8 inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-3 font-bold text-white hover:shadow-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"

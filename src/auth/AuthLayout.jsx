@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaCircleCheck } from "react-icons/fa6";
-import logo from "../assets/logo-financas.webp";
+import logo from "../assets/logo-famicash.webp";
 import { Destaque } from "../components/SectionTitle.jsx";
 
 // Moldura das telas de login/cadastro: painel da marca à esquerda (desktop)
@@ -16,7 +16,7 @@ function AuthLayout({ titulo, subtitulo, children }) {
       <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-gradient-to-br from-primary to-primary-light p-12 text-white lg:flex">
         <div aria-hidden="true" className="absolute -right-20 top-24 h-72 w-72 rounded-full bg-sky-300/40 blur-[100px]" />
         <Link to="/" className="relative inline-flex w-fit rounded-2xl bg-white px-4 py-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60">
-          <img src={logo} alt="Finanças Pessoais - voltar ao início" className="w-36" />
+          <img src={logo} alt="Famicash - voltar ao início" className="w-40" />
         </Link>
 
         <div className="relative max-w-md">
@@ -32,13 +32,13 @@ function AuthLayout({ titulo, subtitulo, children }) {
           </ul>
         </div>
 
-        <p className="relative text-sm text-white/70">© {new Date().getFullYear()} Finanças Pessoais</p>
+        <p className="relative text-sm text-white/70">© {new Date().getFullYear()} Famicash</p>
       </aside>
 
       {/* Área do formulário */}
       <main className="relative flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8">
         <Link to="/" className="mb-8 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 lg:hidden">
-          <img src={logo} alt="Finanças Pessoais - voltar ao início" className="w-40" />
+          <img src={logo} alt="Famicash - voltar ao início" className="w-44" />
         </Link>
 
         <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_20px_50px_-12px_rgba(70,79,163,0.25)] sm:p-10">

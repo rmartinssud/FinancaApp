@@ -39,7 +39,7 @@ function novoToken() {
 function avisar(para: string[], assunto: string, titulo: string, mensagem: string, url: string, botao: string) {
   for (const to of para) {
     const { text, html } = emailComLink(titulo, mensagem, botao, url);
-    sendEmail({ to, subject: `${assunto} - Finanças Pessoais`, text, html }).catch((e) => console.error("Falha ao enviar aviso:", e));
+    sendEmail({ to, subject: `${assunto} - Famicash`, text, html }).catch((e) => console.error("Falha ao enviar aviso:", e));
   }
 }
 
@@ -56,11 +56,11 @@ const contarDonos = (householdId: string) => prisma.householdMember.count({ wher
 async function enviarConvitePorEmail(email: string, espaco: string, quem: string, token: string) {
   const { text, html } = emailComLink(
     `Convite para "${espaco}"`,
-    `${quem} convidou você para compartilhar as finanças no espaço "${espaco}" do Finanças Pessoais. O convite vale por ${DIAS_CONVITE} dias.`,
+    `${quem} convidou você para compartilhar as finanças no espaço "${espaco}" do Famicash. O convite vale por ${DIAS_CONVITE} dias.`,
     "Entrar no espaço",
     linkConvite(token),
   );
-  await sendEmail({ to: email, subject: `Convite para ${espaco} - Finanças Pessoais`, text, html });
+  await sendEmail({ to: email, subject: `Convite para ${espaco} - Famicash`, text, html });
 }
 
 // Lista de espaços do usuário (para o seletor no menu)
