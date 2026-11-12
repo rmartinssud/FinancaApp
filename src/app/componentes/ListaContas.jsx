@@ -33,7 +33,7 @@ export function LinhaConta({ conta, detalhe }) {
         {conta.ignoreInTotals && <span className="block text-xs font-medium text-amber-700">Fora dos totais</span>}
         <InfoCheque conta={conta} />
       </span>
-      <span className="text-right">
+      <span className="shrink-0 whitespace-nowrap text-right">
         <span className="block text-xs text-slate-500">Saldo atual</span>
         <Saldo valor={conta.currentBalance} />
       </span>

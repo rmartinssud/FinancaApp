@@ -209,7 +209,7 @@ function Categorias() {
       </div>
       {categorias === null && !erro && <p role="status" className="mt-6 text-slate-500">Carregando categorias...</p>}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         {tiposCategoria.map(({ valor: tipo }) => {
           const daVez = principais(categorias ?? [], tipo);
           const titulo = tipo === "EXPENSE" ? "Despesas" : "Receitas";

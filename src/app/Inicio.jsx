@@ -110,7 +110,7 @@ function Inicio() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         {/* Despesas por categoria: gráfico de rosca (ou a lista de antes), com orçamento e evolução de cada categoria */}
         <DespesasPorCategoria resumo={resumo} mes={mes} userId={me?.user.id} podeEditar={podeEditar} onAlterado={carregar} />
 

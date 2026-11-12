@@ -260,7 +260,7 @@ function Familia() {
       )}
 
       {dados && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           <section aria-labelledby="titulo-membros" className={cartao}>
             <h2 id="titulo-membros" className="font-heading text-xl font-bold text-slate-900">
               Pessoas ({dados.members.length})
