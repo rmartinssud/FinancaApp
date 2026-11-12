@@ -15,12 +15,14 @@ function AuthLayout({ titulo, subtitulo, children }) {
       {/* Painel da marca: só em telas grandes */}
       <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-gradient-to-br from-primary to-primary-light p-12 text-white lg:flex">
         <div aria-hidden="true" className="absolute -right-20 top-24 h-72 w-72 rounded-full bg-sky-300/40 blur-[100px]" />
-        <Link to="/" className="relative inline-flex w-fit rounded-2xl bg-white px-4 py-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60">
-          <img src={logo} alt="Famicash - voltar ao início" className="w-40" />
-        </Link>
+        <div className="relative mx-auto w-full max-w-xl">
+          <Link to="/" className="relative inline-flex w-fit rounded-2xl bg-white px-4 py-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60">
+            <img src={logo} alt="Famicash - voltar ao início" className="w-40" />
+          </Link>
+        </div>
 
-        <div className="relative max-w-md">
-          <h2 className="font-heading text-4xl font-bold leading-tight xl:text-5xl">
+        <div className="relative mx-auto w-full max-w-xl">
+          <h2 className="max-w-md font-heading text-4xl font-bold leading-tight xl:text-5xl">
             O dinheiro da <Destaque claro>família</Destaque> organizado em um só lugar
           </h2>
           <ul className="mt-8 space-y-4 text-lg text-white/90">
@@ -32,7 +34,7 @@ function AuthLayout({ titulo, subtitulo, children }) {
           </ul>
         </div>
 
-        <p className="relative text-sm text-white/70">© {new Date().getFullYear()} Famicash</p>
+        <p className="relative mx-auto w-full max-w-xl text-sm text-white/70">© {new Date().getFullYear()} Famicash</p>
       </aside>
 
       {/* Área do formulário */}
