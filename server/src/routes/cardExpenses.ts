@@ -202,9 +202,68 @@ cardExpensesRouter.get("/:purchaseId", async (req, res) => {
   res.json(compraAtual);
 });
 
+// Edição que não mexe no dinheiro: mesmo cartão, mesmo valor de cada parcela, mesmas datas e faturas.
+// Devolve null quando algo financeiro mudou (aí a compra é refeita pelo caminho normal).
+async function atualizarSoDetalhes(req: Request, d: Compra): Promise<Erro | { purchaseId: string } | null> {
+  const purchaseId = String(req.params.purchaseId);
+  const existentes = await prisma.transaction.findMany({
+    where: { ...scope(req), purchaseId, type: "EXPENSE" },
+    orderBy: { date: "asc" },
+  });
+  if (existentes.length === 0) return null; // o caminho normal responde 404
+  const r = await conferir(req, d);
+  if ("error" in r) return null;
+  const fatura = faturaInicial(d, r);
+  if ("error" in fatura) return null;
+  const novas = montarParcelas(req, d, fatura.mes, purchaseId);
+  const igual =
+    novas.length === existentes.length &&
+    novas.every((p, i) => {
+      const e = existentes[i];
+      return (
+        e.accountId === p.accountId &&
+        e.amount.equals(p.amount) &&
+        e.invoiceMonth === p.invoiceMonth &&
+        diaLocal(e.date) === diaLocal(p.date) &&
+        e.installmentNumber === p.installmentNumber &&
+        e.installmentTotal === p.installmentTotal
+      );
+    });
+  if (!igual) return null;
+
+  const ids = existentes.map((e) => e.id);
+  const tagIds = d.tagIds ? [...new Set(d.tagIds)] : null;
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        description: d.description,
+        categoryId: d.categoryId ?? null,
+        notes: d.notes || null,
+        launchDate: d.launchDate ?? null,
+        ignoreInStatistics: d.ignoreInStatistics ?? false,
+        ignoreInBudgets: d.ignoreInBudgets ?? false,
+        ignoreInMonthlySavings: d.ignoreInMonthlySavings ?? false,
+      },
+    });
+    if (tagIds) {
+      await tx.transactionTag.deleteMany({ where: { transactionId: { in: ids } } });
+      if (tagIds.length) await tx.transactionTag.createMany({ data: ids.flatMap((transactionId) => tagIds.map((tagId) => ({ transactionId, tagId }))) });
+    }
+  });
+  return { purchaseId };
+}
+
 // PUT /api/card-expenses/:purchaseId → refaz a compra com os dados novos (troca todas as parcelas de uma vez)
 cardExpensesRouter.put("/:purchaseId", validateBody(compra), async (req, res) => {
   const d = req.body as Compra;
+  // Só mudaram os detalhes (tags, observações, categoria, descrição, flags)? Atualiza as parcelas no lugar.
+  // Vale mesmo com a fatura já paga, porque valor, data, parcelas e fatura continuam iguais.
+  const soDetalhes = await atualizarSoDetalhes(req, d);
+  if (soDetalhes) {
+    if ("error" in soDetalhes) return res.status(soDetalhes.status).json({ error: soDetalhes.error, detalhes: soDetalhes.detalhes });
+    return res.json(await devolverCompra(req, soDetalhes.purchaseId));
+  }
   const atual = await compraEditavel(req);
   if ("error" in atual) return res.status(atual.status).json({ error: atual.error });
   const r = await conferir(req, d);
