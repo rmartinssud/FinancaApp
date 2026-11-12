@@ -3,7 +3,7 @@ titulo: Cartões de crédito
 categoria: Cartões de crédito
 ordem: 7
 resumo: Fechamento, vencimento, em qual fatura cai cada compra, parcelas e como pagar a fatura.
-palavras: cartão, cartao de credito, fatura, limite, fechamento, vencimento, melhor dia de compra, parcela, parcelado, compra em andamento, pagar fatura, desfazer pagamento, despesa cartão, subcategoria, tags, observações, anexo, ignorar
+palavras: editar compra fatura paga, tag não salva, cartão, cartao de credito, fatura, limite, fechamento, vencimento, melhor dia de compra, parcela, parcelado, compra em andamento, pagar fatura, desfazer pagamento, despesa cartão, subcategoria, tags, observações, anexo, ignorar
 relacionados: lancamentos, transferencias, perguntas-frequentes, orcamentos, campos-extras-do-lancamento, calendario
 ---
 
@@ -61,3 +61,7 @@ Começou a usar o app com uma compra parcelada pela metade? Ligue **Compra já e
 O pagamento é uma **transferência da conta para o cartão**. Ele **não conta a despesa duas vezes**: as compras já contaram como despesa quando você lançou cada uma.
 
 > Errou o valor ou a conta? Abra o pagamento e toque em **Desfazer pagamento**, depois pague de novo.
+
+### Editar uma compra de fatura já paga
+
+Com a fatura paga, você ainda pode mudar **Descrição**, **Categoria**, **Subcategoria**, **Tags**, **Observações**, **Data lançamento** e as opções de **Ignorar**. O que **não dá** é mudar **valor**, **data da compra**, **parcelas**, **cartão** ou **fatura**. Para isso, toque em **Desfazer pagamento** antes e pague de novo depois.

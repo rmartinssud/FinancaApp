@@ -117,9 +117,12 @@ describe("compra parcelada já em andamento (currentInstallment)", () => {
     // Validação também vale na edição
     expect((await agent.put(`/api/card-expenses/${criada.purchaseId}`).send({ ...base, amount: "1000", installments: 4, currentInstallment: 5 })).status).toBe(400);
 
-    // Com a fatura atual paga, a compra fica travada
+    // Com a fatura atual paga, valor e parcelas ficam travados; só os detalhes podem mudar
     expect((await agent.post(`/api/cards/${cartao}/invoices/${atual}/pay`).send({ accountId: banco })).status).toBe(201);
-    const travada = await agent.put(`/api/card-expenses/${criada.purchaseId}`).send({ ...base, amount: "1000", installments: 10, currentInstallment: 5 });
+    const travada = await agent.put(`/api/card-expenses/${criada.purchaseId}`).send({ ...base, amount: "1100", installments: 10, currentInstallment: 5 });
     expect(travada.status).toBe(409);
+    const detalhes = await agent.put(`/api/card-expenses/${criada.purchaseId}`).send({ ...base, description: "Geladeira nova", amount: "1000", installments: 10, currentInstallment: 5 });
+    expect(detalhes.status).toBe(200);
+    expect(detalhes.body.installments[0].description).toBe("Geladeira nova");
   });
 });
