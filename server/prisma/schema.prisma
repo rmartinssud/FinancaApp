@@ -32,9 +32,11 @@ model User {
   transactions Transaction[]
 
   // Espaço ativo (o último usado). Se a pessoa sair dele, voltamos ao mais antigo.
-  lastHouseholdId String?
-  lastHousehold   Household?        @relation("LastHousehold", fields: [lastHouseholdId], references: [id], onDelete: SetNull)
-  invitesSent     HouseholdInvite[] @relation("InviteSentBy")
+  lastHouseholdId  String?
+  lastHousehold    Household?        @relation("LastHousehold", fields: [lastHouseholdId], references: [id], onDelete: SetNull)
+  invitesSent      HouseholdInvite[] @relation("InviteSentBy")
+  alertPreferences AlertPreference[]
+  sentAlerts       SentAlert[]
 
   @@map("users")
 }
@@ -181,6 +183,9 @@ model Household {
   tags         Tag[]
   goals        Goal[]
   debts        Debt[]
+
+  alertPreferences AlertPreference[]
+  sentAlerts       SentAlert[]
 
   @@map("households")
 }
@@ -671,4 +676,61 @@ model DebtPayment {
 
   @@index([debtId, date])
   @@map("debt_payments")
+}
+
+// ─────────────────────────────────────────────
+// Alertas (por e-mail; o canal fica separado para dar para ligar WhatsApp depois)
+// ─────────────────────────────────────────────
+
+// Por onde o alerta sai. Hoje só EMAIL; WHATSAPP entra aqui no futuro.
+enum AlertChannel {
+  EMAIL
+}
+
+enum AlertType {
+  BUDGET_WARNING // orçamento chegou ao % de alerta (80% por padrão)
+  BUDGET_OVER // orçamento passou de 100%
+  INVOICE_DUE // fatura do cartão vence em X dias
+  BILLS_DIGEST // resumo do dia: despesas pendentes que vencem hoje/amanhã
+}
+
+// Preferências de alerta de uma pessoa num espaço, por canal.
+// Sem linha = padrão do papel: Dono tudo ligado; Membro tudo desligado (liga se quiser); Visualizador não recebe.
+model AlertPreference {
+  id                String       @id @default(cuid())
+  userId            String
+  householdId       String
+  channel           AlertChannel @default(EMAIL)
+  budget            Boolean      @default(true)
+  invoice           Boolean      @default(true)
+  bills             Boolean      @default(true)
+  invoiceDaysBefore Int          @default(3) // fatura: quantos dias antes do vencimento (1 a 10)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, householdId, channel])
+  @@index([householdId])
+  @@map("alert_preferences")
+}
+
+// Alertas já enviados (para não mandar duas vezes). refKey identifica o que foi avisado:
+// orçamento "budgetId:período", fatura "cartaoId:AAAA-MM", resumo do dia "AAAA-MM-DD".
+model SentAlert {
+  id          String       @id @default(cuid())
+  userId      String
+  householdId String
+  channel     AlertChannel
+  type        AlertType
+  refKey      String
+  sentAt      DateTime     @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, householdId, channel, type, refKey])
+  @@index([householdId])
+  @@map("sent_alerts")
 }

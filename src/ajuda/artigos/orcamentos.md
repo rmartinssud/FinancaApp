@@ -3,8 +3,8 @@ titulo: Orçamentos
 categoria: Planejamento
 ordem: 9
 resumo: Limites de gastos e metas de receita, filtros, alertas, cartão por data da compra ou da fatura, e o que cada número quer dizer.
-palavras: arquivados, desarquivar, reativar orçamento, pausado, parte de, orçamento, orcamento, meta, limite de gastos, estourado, alerta, previsto, pendente, efetivado, saldo, 50/30/20, agrupado, percentual das receitas, mês da fatura, data da compra, transferir saldo, copiar, arquivar, excluir, meta recomendada
-relacionados: categorias, cartoes-de-credito, inicio, perguntas-frequentes, objetivos
+palavras: alerta por e-mail, aviso por email, arquivados, desarquivar, reativar orçamento, pausado, parte de, orçamento, orcamento, meta, limite de gastos, estourado, alerta, previsto, pendente, efetivado, saldo, 50/30/20, agrupado, percentual das receitas, mês da fatura, data da compra, transferir saldo, copiar, arquivar, excluir, meta recomendada
+relacionados: categorias, cartoes-de-credito, inicio, alertas-por-email, objetivos
 ---
 
 Um orçamento é um limite de gastos (ou uma meta de receita) para um período. Ex.: "Mercado: até R$ 800,00 por mês".
@@ -28,7 +28,7 @@ Um orçamento é um limite de gastos (ou uma meta de receita) para um período. 
 
 ## Opções
 
-- **Alerta**: avisa quando o usado chega a um percentual da meta. O padrão é **80%**.
+- **Alerta**: avisa quando o usado chega a um percentual da meta. O padrão é **80%**. Além do aviso na tela, você pode receber um **e-mail** nesse momento e quando o orçamento passa de 100%. Veja [Alertas por e-mail](artigo:alertas-por-email).
 - **Exibir no Início**: o orçamento aparece no card **Orçamentos do mês** do Início.
 - **Previsto**: os lançamentos **pendentes** também contam. Vem **ligado**.
 - **Considerar contas ignoradas nos totais**: inclui lançamentos de contas marcadas como "Ignorar nos totais".

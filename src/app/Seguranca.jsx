@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { FaShieldHalved, FaCircleCheck } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import Campo from "../auth/Campo.jsx";
 import BotaoEnviar from "../auth/BotaoEnviar.jsx";
 import Alerta from "../auth/Alerta.jsx";
+import AlertasEmail from "./componentes/AlertasEmail.jsx";
 import { authClient, useSession } from "../lib/auth-client.js";
 import { traduzirErro } from "../lib/erros.js";
 
@@ -41,6 +43,14 @@ function Seguranca() {
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  // Link "Gerenciar alertas" dos e-mails (/app/seguranca#alertas): rola até a seção
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== "#alertas") return;
+    const t = setTimeout(() => document.getElementById("alertas")?.scrollIntoView({ block: "start" }), 300);
+    return () => clearTimeout(t);
+  }, [hash]);
 
   const segredo = totpURI ? new URL(totpURI).searchParams.get("secret") : "";
 
@@ -180,6 +190,8 @@ function Seguranca() {
           )}
         </div>
       </section>
+
+      <AlertasEmail className={`mt-6 max-w-2xl ${cartao}`} />
     </AppLayout>
   );
 }
