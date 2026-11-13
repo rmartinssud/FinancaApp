@@ -105,6 +105,18 @@ describe("dívidas: cadastro, pagamentos e plano pela API", () => {
     expect((await agent.get(`/api/debts/${d.id}`)).status).toBe(404);
   });
 
+  it("Início: home=true traz até 3 ativas marcadas \"Exibir no Início\" e o total devido de todas", async () => {
+    const { agent } = await familiaLogada(app);
+    for (const n of ["A", "B", "C", "D"]) await criarDivida(agent, { name: `Dívida ${n}`, currentBalance: "100.00" });
+    const oculta = await criarDivida(agent, { name: "Oculta", currentBalance: "50.00", showOnHome: false });
+    expect(oculta.showOnHome).toBe(false);
+    const inicio = await agent.get("/api/debts?home=true");
+    expect(inicio.status).toBe(200);
+    expect(inicio.body.total).toBe(4);
+    expect(inicio.body.debts.map((d: { name: string }) => d.name)).toEqual(["Dívida A", "Dívida B", "Dívida C"]);
+    expect(inicio.body.totals.currentBalance).toBe("450.00");
+  });
+
   it("pagamento cria DESPESA em Lançamentos, baixa o saldo e quita no zero; apagar o lançamento devolve o saldo", async () => {
     const { agent, carteiraId } = await familiaLogada(app);
     const d = await criarDivida(agent, { currentBalance: "300.00" });

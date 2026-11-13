@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import {
+  FaTableCellsLarge,
   FaBarsStaggered,
   FaLayerGroup,
   FaUserTie,
@@ -14,6 +15,7 @@ import {
   FaRotateLeft,
 } from "react-icons/fa6";
 import FolhaCheia from "./FolhaCheia.jsx";
+import Interruptor from "./Interruptor.jsx";
 import BotaoApagar from "./BotaoApagar.jsx";
 import { classeCampo, Linha, SelectLimpo } from "./LinhasForm.jsx";
 import { IconeDivida } from "./CartaoDivida.jsx";
@@ -66,6 +68,7 @@ function FormDivida({ divida = null, temPagamentos = false, onFechar, onSalvo, o
   const [dia, setDia] = useState(divida?.dueDay ? String(divida.dueDay) : "");
   const [conta, setConta] = useState(divida?.accountId ?? "");
   const [obs, setObs] = useState(divida?.notes ?? "");
+  const [noInicio, setNoInicio] = useState(divida?.showOnHome ?? true);
   const [contas, setContas] = useState([]);
   const [erros, setErros] = useState({});
   const [erro, setErro] = useState("");
@@ -102,6 +105,7 @@ function FormDivida({ divida = null, temPagamentos = false, onFechar, onSalvo, o
       dueDay: dia ? Number(dia) : null,
       notes: obs.trim() || null,
       accountId: conta || null,
+      showOnHome: noInicio,
     };
     setSalvando(true);
     try {
@@ -229,6 +233,11 @@ function FormDivida({ divida = null, temPagamentos = false, onFechar, onSalvo, o
             className={`${classeCampo} resize-none text-base`}
           />
         </Linha>
+
+        <div className="flex min-h-[60px] items-center gap-4 border-b border-slate-100 px-5 py-2">
+          <FaTableCellsLarge aria-hidden="true" className="w-6 shrink-0 text-xl text-slate-500" />
+          <Interruptor texto="Exibir no Início" ligado={noInicio} onMudar={setNoInicio} className="min-w-0 flex-1" />
+        </div>
 
         <div className="mx-5 mt-5 flex items-start gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900">
           <FaCircleInfo aria-hidden="true" className="mt-0.5 shrink-0 text-lg text-blue-600" />

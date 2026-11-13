@@ -35,3 +35,7 @@ Mostra os orçamentos marcados com **Exibir no Início**, com quanto já foi usa
 ## Objetivos
 
 Mostra até 3 objetivos ativos marcados com **Exibir no Início**, com quanto já foi guardado e quanto falta. Veja [Objetivos](artigo:objetivos).
+
+## Dívidas
+
+Mostra quanto você deve no total e até 3 dívidas ativas marcadas com **Exibir no Início**, com o saldo devedor e quanto já foi pago. O **Plano de quitação** abre a simulação. Veja [Planejador de dívidas](artigo:dividas).

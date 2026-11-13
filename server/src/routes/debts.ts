@@ -32,6 +32,7 @@ const dividaSchema = z.object({
   dueDay: z.number().int().min(1, "Use um dia de 1 a 31.").max(31, "Use um dia de 1 a 31.").nullable().default(null),
   notes: z.string().trim().max(500).nullable().default(null),
   accountId: z.string().min(1).nullable().default(null),
+  showOnHome: z.boolean().default(true),
 });
 type DadosDivida = z.infer<typeof dividaSchema>;
 
@@ -68,9 +69,14 @@ const campos = (d: DadosDivida) => ({
   dueDay: d.dueDay,
   notes: d.notes || null,
   accountId: d.accountId,
+  showOnHome: d.showOnHome,
 });
 
-const filtroLista = z.object({ status: z.enum(["ACTIVE", "PAID", "ARCHIVED"]).optional() });
+const filtroLista = z.object({
+  status: z.enum(["ACTIVE", "PAID", "ARCHIVED"]).optional(),
+  // home=true: só as ativas marcadas "Exibir no Início", até 3 (os totais seguem sendo de todas as ativas)
+  home: z.enum(["true", "false"]).optional(),
+});
 
 // GET /api/debts?status=ACTIVE → dívidas com saldo atual, totais e quantas há em cada situação
 debtsRouter.get("/", validateQuery(filtroLista), async (req, res) => {
@@ -81,9 +87,11 @@ debtsRouter.get("/", validateQuery(filtroLista), async (req, res) => {
   const lista = await comSaldo(todas);
   const counts = { ACTIVE: 0, PAID: 0, ARCHIVED: 0 };
   for (const d of lista) counts[d.status] += 1;
-  const debts = f.status ? lista.filter((d) => d.status === f.status) : lista;
   const ativas = lista.filter((d) => d.status === "ACTIVE");
+  const noInicio = ativas.filter((d) => d.showOnHome);
+  const debts = f.home === "true" ? noInicio.slice(0, 3) : f.status ? lista.filter((d) => d.status === f.status) : lista;
   res.json({
+    ...(f.home === "true" ? { total: noInicio.length } : {}),
     counts,
     totals: {
       currentBalance: ativas.reduce((s, d) => s.plus(d.currentBalance), ZERO).toFixed(2),

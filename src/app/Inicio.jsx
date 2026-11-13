@@ -6,6 +6,7 @@ import SeletorMes from "./componentes/SeletorMes.jsx";
 import { LinhaConta, Saldo } from "./componentes/ListaContas.jsx";
 import { ConteudoOrcamento } from "./componentes/CartaoOrcamento.jsx";
 import { ConteudoObjetivo } from "./componentes/CartaoObjetivo.jsx";
+import { ConteudoDivida } from "./componentes/CartaoDivida.jsx";
 import DespesasPorCategoria from "./componentes/DespesasPorCategoria.jsx";
 import { cartao } from "./componentes/estilos.js";
 import { useMe } from "./useMe.js";
@@ -63,6 +64,7 @@ function Inicio() {
   const [resumo, setResumo] = useState(null);
   const [orcamentos, setOrcamentos] = useState(null);
   const [objetivos, setObjetivos] = useState(null);
+  const [dividas, setDividas] = useState(null);
   const [erro, setErro] = useState("");
 
   const carregar = useCallback(() => {
@@ -78,6 +80,10 @@ function Inicio() {
     api("/goals?home=true")
       .then(setObjetivos)
       .catch(() => setObjetivos(null));
+    // Dívidas ativas marcadas "Exibir no Início" (até 3); sem nenhuma, o cartão não aparece
+    api("/debts?home=true")
+      .then(setDividas)
+      .catch(() => setDividas(null));
   }, [mes]);
 
   useEffect(() => {
@@ -197,6 +203,47 @@ function Inicio() {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/* Dívidas ativas (as marcadas "Exibir no Início", até 3) */}
+      {dividas?.debts.length > 0 && (
+        <section aria-labelledby="titulo-dividas" className={`${cartao} mt-6`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 id="titulo-dividas" className="font-heading text-xl font-bold text-slate-900">
+                Dívidas
+              </h2>
+              <p className="text-sm text-slate-600">
+                Você deve <strong className="whitespace-nowrap text-slate-900">{formatarReais(dividas.totals.currentBalance)}</strong>
+              </p>
+            </div>
+            <Link
+              to="/app/dividas"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 font-bold text-primary hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            >
+              {dividas.total > dividas.debts.length ? `Ver todas (${dividas.total})` : "Ver todas"}
+            </Link>
+          </div>
+          <ul className="mt-2 grid gap-x-6 divide-y divide-slate-100 lg:grid-cols-3 lg:divide-y-0">
+            {dividas.debts.map((d) => (
+              <li key={d.id}>
+                <Link
+                  to={`/app/dividas/${d.id}`}
+                  aria-label={`${d.name}: ver detalhes`}
+                  className="block rounded-2xl py-3 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 lg:px-2"
+                >
+                  <ConteudoDivida divida={d} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Link
+            to="/app/dividas/plano"
+            className="mt-2 inline-flex min-h-11 items-center rounded-full pr-3 text-sm font-bold text-primary hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+          >
+            Ver plano de quitação
+          </Link>
         </section>
       )}
 

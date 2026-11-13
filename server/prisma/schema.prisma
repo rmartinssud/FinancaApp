@@ -636,6 +636,8 @@ model Debt {
   dueDay              Int? // dia do vencimento (1 a 31)
   notes               String?
   status              DebtStatus @default(ACTIVE)
+  // Aparece no card "Dívidas" do Início (até 3 ativas)
+  showOnHome          Boolean    @default(true)
   // Conta ou cartão relacionado (só referência). Apagar a conta só desvincula.
   accountId           String?
   createdById         String?

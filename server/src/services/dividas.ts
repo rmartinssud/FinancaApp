@@ -53,6 +53,7 @@ export function serializarDivida(d: DividaComConta, pago: Prisma.Decimal) {
     creditor: d.creditor,
     type: d.type,
     status: d.status,
+    showOnHome: d.showOnHome,
     currentBalance: s.currentBalance.toFixed(2),
     originalBalance: d.startingBalance.toFixed(2),
     paidAmount: s.paid.toFixed(2),

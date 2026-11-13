@@ -22,6 +22,7 @@ Toque no **+** e preencha:
 - **Parcela ou pagamento mínimo por mês**: a parcela do empréstimo ou financiamento, ou o mínimo da fatura.
 - **Dia do vencimento** (opcional).
 - **Credor**, **conta ou cartão relacionado** e **observações** (todos opcionais, só para você se lembrar).
+- **Exibir no Início**: mostra a dívida no card **Dívidas** do Início (vem ligado).
 
 ### Como achar a taxa ao mês
 

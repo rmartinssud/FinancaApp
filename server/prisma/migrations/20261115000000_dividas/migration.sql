@@ -17,6 +17,7 @@ CREATE TABLE "debts" (
     "dueDay" INTEGER,
     "notes" TEXT,
     "status" "DebtStatus" NOT NULL DEFAULT 'ACTIVE',
+    "showOnHome" BOOLEAN NOT NULL DEFAULT true,
     "accountId" TEXT,
     "createdById" TEXT,
     "paidAt" TIMESTAMP(3),
