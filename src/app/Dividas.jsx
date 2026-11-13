@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { FaPlus, FaFileInvoiceDollar, FaRoute, FaChevronRight } from "react-icons/fa6";
+import { FaPlus, FaFileInvoiceDollar, FaRoute, FaChevronRight, FaArrowUpRightFromSquare } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
 import BotaoAjuda from "./componentes/BotaoAjuda.jsx";
 import Alternador from "./componentes/Alternador.jsx";
@@ -132,6 +132,19 @@ function Dividas() {
           </ul>
         </section>
       )}
+
+      <a
+        href="https://www.serasa.com.br/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${cartao} mt-6 flex items-center gap-3 !py-4 transition hover:bg-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30`}
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-slate-800">Consultar score e dívidas no Serasa</span>
+          <span className="block text-xs text-slate-500">Veja seu score e se há dívidas no seu CPF. Abre o site do Serasa.</span>
+        </span>
+        <FaArrowUpRightFromSquare aria-hidden="true" className="shrink-0 text-slate-400" />
+      </a>
 
       {podeEditar && (
         <button
