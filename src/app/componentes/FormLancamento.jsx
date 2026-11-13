@@ -375,10 +375,11 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
     }
   }
 
-  async function apagar() {
+  async function apagar(escopo) {
     setApagando(true);
     try {
-      await api(`/transactions/${lancamento.id}`, { method: "DELETE" });
+      const sufixo = escopo === "futuros" ? "?escopo=futuros" : "";
+      await api(`/transactions/${lancamento.id}${sufixo}`, { method: "DELETE" });
       onSalvo(null);
     } catch (falha) {
       setErro(falha.message);
@@ -463,7 +464,7 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
           textoGrupo && (
             <Linha Icone={FaRepeat} rotulo="Repetição" idCampo={id("repeticao")}>
               <p id={id("repeticao")} className="text-slate-700">
-                {textoGrupo} · alterar ou apagar mexe só neste lançamento.
+                {textoGrupo} · alterar mexe só neste lançamento.
               </p>
             </Linha>
           )
@@ -788,7 +789,20 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
 
         {editando && (
           <div className="flex justify-center pt-6">
-            <BotaoApagar texto="Apagar lançamento" pergunta="Apagar este lançamento (e os anexos dele)? Isso não pode ser desfeito." onConfirmar={apagar} carregando={apagando} />
+            {lancamento.groupId ? (
+              <BotaoApagar
+                texto="Apagar lançamento"
+                pergunta="Este lançamento se repete. Apagar só este ou este e os próximos? Os anexos vão junto e isso não pode ser desfeito."
+                opcoes={[
+                  { rotulo: "Só este", valor: "este" },
+                  { rotulo: "Este e os próximos", valor: "futuros" },
+                ]}
+                onConfirmar={apagar}
+                carregando={apagando}
+              />
+            ) : (
+              <BotaoApagar texto="Apagar lançamento" pergunta="Apagar este lançamento (e os anexos dele)? Isso não pode ser desfeito." onConfirmar={apagar} carregando={apagando} />
+            )}
           </div>
         )}
       </form>

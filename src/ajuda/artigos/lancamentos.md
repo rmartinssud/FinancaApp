@@ -48,6 +48,11 @@ Em **Repetição**, escolha como o lançamento se repete:
 
 Toque no lançamento para abrir. Mude o que quiser e toque em **Salvar**, ou use **Apagar lançamento**.
 
-> Editar ou apagar mexe **só no lançamento escolhido**. As outras parcelas ou repetições continuam como estão.
+> Editar mexe **só no lançamento escolhido**. As outras parcelas ou repetições continuam como estão.
+
+Ao apagar um lançamento que se repete (parcelado, repetido ou fixa mensal), o app pergunta:
+
+- **Só este**: apaga apenas o lançamento aberto. Os outros meses continuam.
+- **Este e os próximos**: apaga este e todos os meses seguintes do mesmo grupo. Os meses anteriores ficam. Use quando a conta acabou, por exemplo um aluguel que você deixou de pagar.
 
 Quer conhecer subcategoria, tags, anexos e as outras opções? Veja [Campos extras do lançamento](artigo:campos-extras-do-lancamento).
