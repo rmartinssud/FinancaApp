@@ -3,8 +3,8 @@ titulo: Cartões de crédito
 categoria: Cartões de crédito
 ordem: 7
 resumo: Fechamento, vencimento, em qual fatura cai cada compra, parcelas e como pagar a fatura.
-palavras: editar compra fatura paga, tag não salva, cartão, cartao de credito, fatura, limite, fechamento, vencimento, melhor dia de compra, parcela, parcelado, compra em andamento, pagar fatura, desfazer pagamento, despesa cartão, subcategoria, tags, observações, anexo, ignorar
-relacionados: lancamentos, transferencias, perguntas-frequentes, orcamentos, campos-extras-do-lancamento, calendario
+palavras: aviso de vencimento, alerta de fatura, lembrete, editar compra fatura paga, tag não salva, cartão, cartao de credito, fatura, limite, fechamento, vencimento, melhor dia de compra, parcela, parcelado, compra em andamento, pagar fatura, desfazer pagamento, despesa cartão, subcategoria, tags, observações, anexo, ignorar
+relacionados: lancamentos, alertas-por-email, transferencias, orcamentos, perguntas-frequentes, campos-extras-do-lancamento, calendario
 ---
 
 ## Cadastrar um cartão
@@ -51,6 +51,10 @@ A fatura aparece no [Calendário](artigo:calendario) no dia do vencimento.
 ## Compra parcelada que já estava em andamento
 
 Começou a usar o app com uma compra parcelada pela metade? Ligue **Compra já em andamento**: o app cria **só as parcelas a partir da fatura atual**, sem lançar as que você já pagou. Também dá para usar **Lançar compra em andamento** na tela da fatura.
+
+## Aviso de vencimento por e-mail
+
+Alguns dias antes do vencimento (o padrão é **3 dias**), o Famicash manda um **e-mail** com o valor a pagar da fatura. Sai uma vez por fatura e só se ainda houver valor a pagar. Para ligar, desligar ou mudar os dias, veja [Alertas por e-mail](artigo:alertas-por-email).
 
 ## Pagar a fatura
 

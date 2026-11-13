@@ -45,6 +45,10 @@ Só se você quiser. Por padrão o depósito **só fica anotado no objetivo**. S
 
 Sim. Em **Dívidas**, cada pagamento registrado vira uma **despesa** em Lançamentos (categoria **Dívidas**), sai do saldo da conta e baixa o saldo devedor. Se você apagar essa despesa em Lançamentos, o pagamento é desfeito e o saldo devedor volta. Veja [Dívidas e plano de quitação](artigo:dividas).
 
+## Como recebo avisos por e-mail?
+
+Na tela **Segurança** (toque no seu nome, no menu), em **Alertas por e-mail**, ligue os avisos de **orçamento**, **fatura do cartão** e **contas a pagar**. Veja [Alertas por e-mail](artigo:alertas-por-email).
+
 ## Não achei minha dúvida
 
 Use a busca no topo da [Central de Ajuda](artigo:) ou veja os outros artigos da lista.

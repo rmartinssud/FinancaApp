@@ -28,7 +28,7 @@ O convite é de **uso único** e vale por **7 dias**. Em **Convites pendentes** 
 
 - **Dono**: tudo, inclusive convidar e remover pessoas.
 - **Membro**: lança, edita e apaga finanças; não gerencia pessoas.
-- **Visualizador**: somente leitura, só vê.
+- **Visualizador**: somente leitura, só vê. Não recebe [alertas por e-mail](artigo:alertas-por-email).
 
 > O **último dono** não pode sair. Para sair, passe o papel de Dono para outra pessoa antes.
 
