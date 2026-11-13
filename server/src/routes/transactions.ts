@@ -427,6 +427,7 @@ transactionsRouter.patch("/:id", validateBody(edicaoLancamento), async (req, res
 // DELETE /api/transactions/:id → apaga o lançamento (e os anexos dele).
 // Parcela de compra no cartão: apaga a compra inteira (todas as parcelas).
 // Pagamento de fatura: desfaz o pagamento (a fatura volta a ficar em aberto).
+// Repetição: ?escopo=futuros apaga também os próximos lançamentos do mesmo grupo.
 transactionsRouter.delete("/:id", async (req, res) => {
   const atual = await prisma.transaction.findFirst({ where: { id: String(req.params.id), ...scope(req) } });
   if (!atual) return res.status(404).json({ error: "Lançamento não encontrado." });
@@ -442,6 +443,17 @@ transactionsRouter.delete("/:id", async (req, res) => {
     }
     const chaves = await chavesDos({ ...scope(req), purchaseId: atual.purchaseId });
     await prisma.transaction.deleteMany({ where: { ...scope(req), purchaseId: atual.purchaseId } });
+    await apagarArquivos(chaves);
+    return res.status(204).end();
+  }
+
+  // Repetição (parcelar, repetir ou fixa mensal): ?escopo=futuros apaga este e os próximos do grupo
+  const escopo = String(req.query.escopo ?? "este");
+  if (escopo !== "este" && escopo !== "futuros") return res.status(400).json({ error: "Escopo inválido." });
+  if (escopo === "futuros" && atual.groupId) {
+    const where: Prisma.TransactionWhereInput = { ...scope(req), groupId: atual.groupId, date: { gte: atual.date } };
+    const chaves = await chavesDos(where);
+    await prisma.transaction.deleteMany({ where });
     await apagarArquivos(chaves);
     return res.status(204).end();
   }

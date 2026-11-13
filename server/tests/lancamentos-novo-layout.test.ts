@@ -166,6 +166,22 @@ describe("Repetição: parcelar, repetir e fixa mensal", () => {
     expect((await agent.get("/api/transactions?month=2026-03")).body).toHaveLength(0);
   });
 
+  it("apagar com escopo=futuros apaga este e os próximos do grupo, e mantém os anteriores", async () => {
+    const { agent, post } = await base("Lia Futuros");
+    const grupo = (await post({ amount: "40", recurrence: "FIXED", date: "2026-11-05" })).body.group as Lanc[];
+    expect(grupo).toHaveLength(12);
+    expect((await agent.delete(`/api/transactions/${grupo[3].id}?escopo=futuros`)).status).toBe(204);
+    expect((await agent.get("/api/transactions?month=2027-01")).body).toHaveLength(1);
+    expect((await agent.get("/api/transactions?month=2027-02")).body).toHaveLength(0);
+    expect((await agent.get("/api/transactions?month=2027-10")).body).toHaveLength(0);
+    // Escopo inválido
+    expect((await agent.delete(`/api/transactions/${grupo[0].id}?escopo=todos`)).status).toBe(400);
+    // escopo=futuros num lançamento sem grupo apaga só ele
+    const avulso = (await post({ amount: "5", date: "2026-11-06" })).body.id as string;
+    expect((await agent.delete(`/api/transactions/${avulso}?escopo=futuros`)).status).toBe(204);
+    expect(((await agent.get("/api/transactions?month=2026-11")).body as Lanc[]).map((l) => l.amount)).toEqual(["40.00"]);
+  });
+
   it("valida: parcelar/repetir pedem de 2 a 48 vezes; transferência não repete", async () => {
     const { agent, post } = await base("Kaio Valida");
     expect((await post({ amount: "10", recurrence: "INSTALLMENT" })).status).toBe(400);
