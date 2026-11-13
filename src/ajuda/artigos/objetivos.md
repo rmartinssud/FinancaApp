@@ -4,7 +4,7 @@ categoria: Planejamento
 ordem: 10
 resumo: Junte dinheiro para uma meta (viagem, reserva, carro): depósitos e retiradas, quanto guardar por mês, ritmo, conta vinculada e o card do Início.
 palavras: editar depósito, corrigir depósito, editar retirada, objetivo, objetivos, meta, guardar dinheiro, poupar, reserva de emergência, cofrinho, depositar, depósito, retirar, retirada, quanto guardar por mês, no ritmo, atrasado, data alvo, conta vinculada, investimento, concluir, arquivar, reativar, excluir
-relacionados: orcamentos, transferencias, contas, inicio
+relacionados: orcamentos, transferencias, contas, inicio, dividas
 ---
 
 Um objetivo é um valor que você quer juntar, como "Viagem: R$ 5.000,00 até julho" ou "Reserva de emergência". Você anota o que for guardando e o app mostra quanto já tem, quanto falta e quanto guardar por mês.

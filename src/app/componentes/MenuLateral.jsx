@@ -15,6 +15,7 @@ import {
   FaUsers,
   FaPiggyBank,
   FaCircleQuestion,
+  FaFileInvoiceDollar,
 } from "react-icons/fa6";
 import logo from "../../assets/logo-famicash.webp";
 import SeletorEspaco from "./SeletorEspaco.jsx";
@@ -36,6 +37,7 @@ const SECOES_MENU = [
     itens: [
       { para: "/app/orcamentos", texto: "Orçamentos", Icone: FaPercent },
       { para: "/app/objetivos", texto: "Objetivos", Icone: FaBullseye },
+      { para: "/app/dividas", texto: "Dívidas", Icone: FaFileInvoiceDollar },
     ],
   },
   {

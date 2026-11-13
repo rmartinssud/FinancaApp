@@ -3,8 +3,8 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo
-relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos
+palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve
+relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas
 ---
 
 ## Por que a compra do cartão caiu na fatura seguinte?
@@ -40,6 +40,10 @@ Quando chega a data, o pendente vira efetivado sozinho, como um débito automát
 ## Depositar num objetivo muda o saldo da conta?
 
 Só se você quiser. Por padrão o depósito **só fica anotado no objetivo**. Se o objetivo tem uma conta vinculada, você pode ligar **Registrar também como transferência**: aí o dinheiro sai de uma conta e entra na conta do objetivo. Mesmo assim, **não conta como receita nem despesa**. Veja [Objetivos](artigo:objetivos).
+
+## Registrar o pagamento de uma dívida conta como despesa?
+
+Sim. Em **Dívidas**, cada pagamento registrado vira uma **despesa** em Lançamentos (categoria **Dívidas**), sai do saldo da conta e baixa o saldo devedor. Se você apagar essa despesa em Lançamentos, o pagamento é desfeito e o saldo devedor volta. Veja [Dívidas e plano de quitação](artigo:dividas).
 
 ## Não achei minha dúvida
 

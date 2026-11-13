@@ -22,6 +22,9 @@ const OrcamentoDetalhes = lazy(() => import("./app/OrcamentoDetalhes.jsx"));
 const OrcamentosArquivados = lazy(() => import("./app/OrcamentosArquivados.jsx"));
 const Objetivos = lazy(() => import("./app/Objetivos.jsx"));
 const ObjetivoDetalhes = lazy(() => import("./app/ObjetivoDetalhes.jsx"));
+const Dividas = lazy(() => import("./app/Dividas.jsx"));
+const DividaDetalhes = lazy(() => import("./app/DividaDetalhes.jsx"));
+const PlanoDividas = lazy(() => import("./app/PlanoDividas.jsx"));
 const Familia = lazy(() => import("./app/Familia.jsx"));
 const Tags = lazy(() => import("./app/Tags.jsx"));
 const Estatisticas = lazy(() => import("./app/Estatisticas.jsx"));
@@ -64,6 +67,9 @@ function Rotas() {
           <Route path="/app/orcamentos/:id" element={<RotaProtegida><OrcamentoDetalhes /></RotaProtegida>} />
           <Route path="/app/objetivos" element={<RotaProtegida><Objetivos /></RotaProtegida>} />
           <Route path="/app/objetivos/:id" element={<RotaProtegida><ObjetivoDetalhes /></RotaProtegida>} />
+          <Route path="/app/dividas" element={<RotaProtegida><Dividas /></RotaProtegida>} />
+          <Route path="/app/dividas/plano" element={<RotaProtegida><PlanoDividas /></RotaProtegida>} />
+          <Route path="/app/dividas/:id" element={<RotaProtegida><DividaDetalhes /></RotaProtegida>} />
           <Route path="/app/familia" element={<RotaProtegida><Familia /></RotaProtegida>} />
           <Route path="/app/tags" element={<RotaProtegida><Tags /></RotaProtegida>} />
           <Route path="/app/estatisticas" element={<RotaProtegida><Estatisticas /></RotaProtegida>} />

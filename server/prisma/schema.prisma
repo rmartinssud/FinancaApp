@@ -180,6 +180,7 @@ model Household {
   budgets      Budget[]
   tags         Tag[]
   goals        Goal[]
+  debts        Debt[]
 
   @@map("households")
 }
@@ -252,6 +253,7 @@ model FinancialAccount {
   cardsPaidByThis FinancialAccount[] @relation("CardPayment")
   budgetLinks     BudgetAccount[]
   goals           Goal[]
+  debts           Debt[]
 
   @@index([householdId])
   @@map("financial_accounts")
@@ -281,55 +283,56 @@ model Category {
 }
 
 model Transaction {
-  id                String            @id @default(cuid())
-  householdId       String
-  accountId         String
-  categoryId        String?
+  id                     String            @id @default(cuid())
+  householdId            String
+  accountId              String
+  categoryId             String?
   // Quem lançou (vazio em lançamentos de quem apagou a conta)
-  createdById       String?
-  type              TransactionType
-  amount            Decimal           @db.Decimal(12, 2)
-  description       String
-  date              DateTime
-  status            TransactionStatus @default(CONFIRMED)
-  installmentNumber Int? // parcela atual (ex.: 2 de 10)
-  installmentTotal  Int?
+  createdById            String?
+  type                   TransactionType
+  amount                 Decimal           @db.Decimal(12, 2)
+  description            String
+  date                   DateTime
+  status                 TransactionStatus @default(CONFIRMED)
+  installmentNumber      Int? // parcela atual (ex.: 2 de 10)
+  installmentTotal       Int?
   // Transferência: accountId = origem, toAccountId = destino
-  toAccountId       String?
+  toAccountId            String?
   // Cartão: mês da fatura ("AAAA-MM", mês do vencimento). Compras (EXPENSE) e
   // pagamentos de fatura (TRANSFER para o cartão) guardam o mês aqui.
-  invoiceMonth      String?
+  invoiceMonth           String?
   // Cartão: as parcelas de uma mesma compra têm o mesmo purchaseId
-  purchaseId        String?
+  purchaseId             String?
   // Ajuste de saldo (Contas → "Ajustar saldo"): mexe no saldo da conta,
   // mas não conta como receita nem despesa no resumo do mês.
-  isAdjustment      Boolean           @default(false)
+  isAdjustment           Boolean           @default(false)
   // Observações livres do lançamento
-  notes             String?
+  notes                  String?
   // Receita/despesa repetida (parcelar, repetir ou fixa mensal): os lançamentos do
   // grupo têm o mesmo groupId. Editar ou apagar mexe só no lançamento escolhido.
-  groupId           String?
-  recurrence        Recurrence?
-  source            TransactionSource @default(APP)
+  groupId                String?
+  recurrence             Recurrence?
+  source                 TransactionSource @default(APP)
   // Data em que o lançamento foi registrado / da compra (só informativa; o mês vem de "date")
-  launchDate        DateTime?
+  launchDate             DateTime?
   // Encargos (juros/multa) e desconto. "amount" já é o valor efetivo: valor + encargos − desconto
-  fees              Decimal?          @db.Decimal(12, 2)
-  discount          Decimal?          @db.Decimal(12, 2)
+  fees                   Decimal?          @db.Decimal(12, 2)
+  discount               Decimal?          @db.Decimal(12, 2)
   // Não efetivar automaticamente: fica pendente mesmo depois da data
-  noAutoConfirm     Boolean           @default(false)
+  noAutoConfirm          Boolean           @default(false)
   // Onde o lançamento fica de fora
-  ignoreInStatistics     Boolean @default(false) // Estatísticas e Gráficos + "Despesas por categoria" do Início
-  ignoreInBudgets        Boolean @default(false) // Orçamentos
-  ignoreInMonthlySavings Boolean @default(false) // Economia mensal
-  ignoreInTotals         Boolean @default(false) // somas de receitas/despesas do mês (o saldo da conta continua real)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  ignoreInStatistics     Boolean           @default(false) // Estatísticas e Gráficos + "Despesas por categoria" do Início
+  ignoreInBudgets        Boolean           @default(false) // Orçamentos
+  ignoreInMonthlySavings Boolean           @default(false) // Economia mensal
+  ignoreInTotals         Boolean           @default(false) // somas de receitas/despesas do mês (o saldo da conta continua real)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
   splits      TransactionSplit[]
   tags        TransactionTag[]
   attachments TransactionAttachment[]
   goalEntries GoalEntry[]
+  debtPayment DebtPayment?
 
   household Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
   account   FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -597,4 +600,75 @@ model GoalEntry {
   @@index([goalId, date])
   @@index([transactionId])
   @@map("goal_entries")
+}
+
+// ─────────────────────────────────────────────
+// Dívidas (planejador de quitação)
+// ─────────────────────────────────────────────
+
+enum DebtType {
+  CARTAO // cartão de crédito (rotativo, parcelamento de fatura)
+  EMPRESTIMO // empréstimo pessoal, consignado
+  FINANCIAMENTO // carro, casa
+  CHEQUE_ESPECIAL
+  PESSOAL // com amigos ou família
+  OUTRA
+}
+
+enum DebtStatus {
+  ACTIVE
+  PAID // quitada (saldo chegou a zero)
+  ARCHIVED
+}
+
+// Saldo devedor atual = startingBalance − soma dos pagamentos registrados (valor do lançamento de cada um).
+// startingBalance é o saldo antes dos pagamentos registrados no app; ao editar o "saldo atual",
+// guardamos saldo informado + já pago. Assim apagar um pagamento (ou o lançamento dele) devolve o saldo sozinho.
+model Debt {
+  id                  String     @id @default(cuid())
+  householdId         String
+  name                String
+  creditor            String? // credor (banco, loja, pessoa)
+  type                DebtType   @default(OUTRA)
+  startingBalance     Decimal    @db.Decimal(12, 2)
+  interestRateMonthly Decimal    @default(0) @db.Decimal(7, 4) // % ao mês: 2.5 = 2,5% a.m.
+  minimumPayment      Decimal    @default(0) @db.Decimal(12, 2) // parcela ou pagamento mínimo por mês
+  dueDay              Int? // dia do vencimento (1 a 31)
+  notes               String?
+  status              DebtStatus @default(ACTIVE)
+  // Aparece no card "Dívidas" do Início (até 3 ativas)
+  showOnHome          Boolean    @default(true)
+  // Conta ou cartão relacionado (só referência). Apagar a conta só desvincula.
+  accountId           String?
+  createdById         String?
+  paidAt              DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  household Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  account   FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  payments  DebtPayment[]
+
+  @@index([householdId, status])
+  @@index([accountId])
+  @@map("debts")
+}
+
+// Pagamento de uma dívida: sempre junto com uma despesa (EXPENSE) em Lançamentos.
+// Os dois são a mesma coisa: apagar o lançamento apaga o pagamento (Cascade) e o saldo devedor volta.
+// "amount" é o valor no momento do registro; o saldo usa o valor atual do lançamento.
+model DebtPayment {
+  id            String   @id @default(cuid())
+  debtId        String
+  transactionId String   @unique
+  amount        Decimal  @db.Decimal(12, 2)
+  date          DateTime
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  debt        Debt        @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([debtId, date])
+  @@map("debt_payments")
 }
