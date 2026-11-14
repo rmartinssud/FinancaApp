@@ -34,6 +34,7 @@ const Calendario = lazy(() => import("./app/Calendario.jsx"));
 const Convite = lazy(() => import("./pages/Convite.jsx"));
 const Ajuda = lazy(() => import("./app/Ajuda.jsx"));
 const AjudaPublica = lazy(() => import("./pages/AjudaPublica.jsx"));
+const Privacidade = lazy(() => import("./pages/Privacidade.jsx"));
 
 function Rotas() {
   return (
@@ -54,6 +55,7 @@ function Rotas() {
           {/* Central de Ajuda aberta (sem login) */}
           <Route path="/ajuda" element={<AjudaPublica />} />
           <Route path="/ajuda/:slug" element={<AjudaPublica />} />
+          <Route path="/privacidade" element={<Privacidade />} />
 
           {/* Área logada */}
           <Route path="/app" element={<RotaProtegida><Inicio /></RotaProtegida>} />
