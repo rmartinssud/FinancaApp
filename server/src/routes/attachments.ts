@@ -3,9 +3,12 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { armazenamento, apagarArquivos } from "../services/armazenamento.js";
+import { AnexoRecusado, LIMITE_ANEXO, LIMITE_ENVIO, otimizarAnexo, trocarExtensao } from "../services/otimizarAnexo.js";
 
 // ─────────────────────────────────────────────
-// Anexos de lançamento: foto (JPG, PNG, WEBP, HEIC) ou PDF, até 3 MB cada.
+// Anexos de lançamento: foto (JPG, PNG, WEBP, HEIC) ou PDF, até 3 MB GRAVADOS cada.
+// Recebemos até 15 MB: foto ou PDF acima de 3 MB é reduzido antes de gravar (services/otimizarAnexo.ts);
+// se não couber em 3 MB, recusamos. O navegador já manda as fotos reduzidas na maioria dos casos.
 // Upload: POST /api/transactions/:id/attachments com o arquivo no corpo (cru),
 // o tipo em Content-Type e o nome em X-File-Name (encodeURIComponent).
 // Download só para quem está no espaço do lançamento.
@@ -14,7 +17,7 @@ import { armazenamento, apagarArquivos } from "../services/armazenamento.js";
 // Tipos que qualquer navegador mostra na tela (o resto, como HEIC, vai como download)
 const ABRE_NA_TELA = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
-export const LIMITE_ANEXO = 3 * 1024 * 1024;
+export { LIMITE_ANEXO, LIMITE_ENVIO };
 export const MAX_ANEXOS = 10;
 
 // Descobre o tipo pelos primeiros bytes (não confia só no Content-Type)
@@ -30,16 +33,17 @@ export function tipoDoArquivo(b: Buffer): { mime: string; ext: string } | null {
   return null;
 }
 
-const lerCorpo = express.raw({ type: () => true, limit: LIMITE_ANEXO });
+const lerCorpo = express.raw({ type: () => true, limit: LIMITE_ENVIO });
+const MSG_ENVIO_GRANDE = "Arquivo grande demais. Envie arquivos de até 15 MB (fotos e PDFs acima de 3 MB são reduzidos automaticamente).";
 
-// Corpo cru com limite de 3 MB e mensagem clara (413) em vez do erro genérico
+// Corpo cru com limite de 15 MB e mensagem clara (413) em vez do erro genérico
 function corpoDoArquivo(req: Request, res: Response, next: NextFunction) {
   const tamanho = Number(req.header("content-length") ?? 0);
-  if (tamanho > LIMITE_ANEXO) return res.status(413).json({ error: "Arquivo grande demais. O limite é 3 MB por arquivo." });
+  if (tamanho > LIMITE_ENVIO) return res.status(413).json({ error: MSG_ENVIO_GRANDE });
   lerCorpo(req, res, (err?: unknown) => {
     if (err) {
       const status = (err as { status?: number }).status;
-      if (status === 413) return res.status(413).json({ error: "Arquivo grande demais. O limite é 3 MB por arquivo." });
+      if (status === 413) return res.status(413).json({ error: MSG_ENVIO_GRANDE });
       return res.status(400).json({ error: "Não foi possível ler o arquivo enviado." });
     }
     next();
@@ -76,17 +80,30 @@ uploadRouter.post("/", corpoDoArquivo, async (req, res) => {
 
   const dados = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
   if (!dados.length) return res.status(400).json({ error: "Envie um arquivo." });
-  if (dados.length > LIMITE_ANEXO) return res.status(413).json({ error: "Arquivo grande demais. O limite é 3 MB por arquivo." });
-  const tipo = tipoDoArquivo(dados);
-  if (!tipo) return res.status(400).json({ error: "Tipo de arquivo não aceito. Envie uma foto (JPG, PNG, WEBP ou HEIC) ou um PDF." });
+  if (dados.length > LIMITE_ENVIO) return res.status(413).json({ error: MSG_ENVIO_GRANDE });
+  const tipoRecebido = tipoDoArquivo(dados);
+  if (!tipoRecebido) return res.status(400).json({ error: "Tipo de arquivo não aceito. Envie uma foto (JPG, PNG, WEBP ou HEIC) ou um PDF." });
 
   const quantos = await prisma.transactionAttachment.count({ where: { transactionId: lancamento.id } });
   if (quantos >= MAX_ANEXOS) return res.status(400).json({ error: `Cada lançamento aceita até ${MAX_ANEXOS} anexos.` });
 
-  const chave = await armazenamento().salvar(dados, tipo.ext);
+  // Acima de 3 MB: reduz (foto → JPEG; PDF → Ghostscript) ou recusa. Nunca grava acima de 3 MB.
+  let pronto;
+  try {
+    pronto = await otimizarAnexo(dados, tipoRecebido);
+  } catch (e) {
+    if (e instanceof AnexoRecusado) return res.status(e.status).json({ error: e.message });
+    throw e;
+  }
+  const { tipo } = pronto;
+  if (pronto.dados.length > LIMITE_ANEXO) return res.status(413).json({ error: "Arquivo grande demais. O limite é 3 MB por arquivo." });
+  let nome = nomeOriginal(req, tipo.ext);
+  if (tipo.ext !== tipoRecebido.ext) nome = trocarExtensao(nome, tipo.ext);
+
+  const chave = await armazenamento().salvar(pronto.dados, tipo.ext);
   try {
     const anexo = await prisma.transactionAttachment.create({
-      data: { transactionId: lancamento.id, originalName: nomeOriginal(req, tipo.ext), mime: tipo.mime, size: dados.length, storageKey: chave },
+      data: { transactionId: lancamento.id, originalName: nome, mime: tipo.mime, size: pronto.dados.length, storageKey: chave },
     });
     res.status(201).json(serializarAnexo(anexo));
   } catch (e) {

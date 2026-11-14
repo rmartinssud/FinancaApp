@@ -46,7 +46,7 @@ export function createApp() {
   // Rotas do Better Auth (/api/auth/...). Vêm ANTES do express.json()
   app.all("/api/auth/*splat", authLimiter, toNodeHandler(auth));
 
-  // Upload de anexo: corpo cru (até 3 MB), antes do express.json()
+  // Upload de anexo: corpo cru (até 15 MB; grava no máximo 3 MB), antes do express.json()
   app.use("/api/transactions/:id/attachments", uploadRouter);
 
   // Webhook do WhatsApp (Meta): corpo cru para conferir a assinatura, antes do express.json()

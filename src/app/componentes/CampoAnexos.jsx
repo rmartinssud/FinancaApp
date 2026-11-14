@@ -1,15 +1,27 @@
 import { useId, useRef, useState } from "react";
 import { FaPaperclip, FaFilePdf, FaImage, FaFile, FaXmark, FaDownload } from "react-icons/fa6";
-import { ACEITOS, abreNoNavegador, problemaDoArquivo, tamanhoEmTexto, tipoDoIcone, urlDoAnexo } from "../../lib/anexos.js";
+import { ACEITOS, LIMITE_ANEXO, abreNoNavegador, problemaDoArquivo, tamanhoEmTexto, tipoDoIcone, urlDoAnexo } from "../../lib/anexos.js";
+import { deveOtimizar, otimizarImagem } from "../../lib/otimizarImagem.js";
 
 const MAX_ANEXOS = 10;
+
+// Arquivos novos que foram reduzidos aqui no navegador (para mostrar "otimizada")
+const OTIMIZADOS = new WeakSet();
+
+// Texto à direita de um anexo novo: tamanho final e o que vai acontecer
+function situacaoDoNovo(arquivo) {
+  const tamanho = tamanhoEmTexto(arquivo.size);
+  if (OTIMIZADOS.has(arquivo)) return `${tamanho} · otimizada`;
+  if (arquivo.size > LIMITE_ANEXO) return `${tamanho} · reduz no envio`;
+  return `${tamanho} · a enviar`;
+}
 
 // Um anexo (salvo ou ainda para enviar).
 // Foto comum (JPG/PNG/WEBP) e PDF abrem no navegador; HEIC (e outros) mostram ícone de arquivo e "Baixar",
 // porque a maioria dos navegadores não mostra HEIC.
 const ICONES = { pdf: [FaFilePdf, "text-red-600"], imagem: [FaImage, "text-primary"], arquivo: [FaFile, "text-slate-500"] };
 
-function ItemAnexo({ nome, tamanho, mime, id, onRemover, rotuloRemover, pendente }) {
+function ItemAnexo({ nome, tamanho, mime, id, onRemover, rotuloRemover, pendente, arquivo }) {
   const [Icone, cor] = ICONES[tipoDoIcone(mime, nome)];
   const abre = abreNoNavegador(mime);
   const href = id ? urlDoAnexo(id) : null;
@@ -17,7 +29,7 @@ function ItemAnexo({ nome, tamanho, mime, id, onRemover, rotuloRemover, pendente
     <>
       <Icone aria-hidden="true" className={`shrink-0 ${cor}`} />
       <span className="min-w-0 flex-1 truncate">{nome}</span>
-      <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">{pendente ? "a enviar" : tamanhoEmTexto(tamanho)}</span>
+      <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">{pendente ? situacaoDoNovo(arquivo) : tamanhoEmTexto(tamanho)}</span>
     </>
   );
   const classeLink =
@@ -75,20 +87,46 @@ export function ListaAnexos({ anexos, onRemover }) {
   );
 }
 
-function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo }) {
+// onOcupado(true/false): avisa o formulário enquanto otimiza as fotos (para não salvar no meio)
+function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo, onOcupado }) {
   const idEntrada = useId();
   const entrada = useRef(null);
   const [erro, setErro] = useState("");
+  const [otimizando, setOtimizando] = useState(false);
+  const [aviso, setAviso] = useState("");
   const total = salvos.length + novos.length;
 
-  function escolher(e) {
+  async function escolher(e) {
     const arquivos = [...(e.target.files ?? [])];
     e.target.value = "";
     const problemas = arquivos.map(problemaDoArquivo).filter(Boolean);
     const bons = arquivos.filter((a) => !problemaDoArquivo(a)).slice(0, Math.max(0, MAX_ANEXOS - total));
     if (arquivos.length - problemas.length > bons.length) problemas.push(`Até ${MAX_ANEXOS} anexos por lançamento.`);
     setErro(problemas.join(" "));
-    if (bons.length) onAdicionar(bons);
+    setAviso("");
+    if (!bons.length) return;
+
+    // Fotos grandes: reduz aqui antes de enviar (o servidor reduz o que ainda passar de 3 MB)
+    if (!bons.some(deveOtimizar)) return onAdicionar(bons);
+    setOtimizando(true);
+    onOcupado?.(true);
+    const prontos = [];
+    const avisos = [];
+    try {
+      for (const arquivo of bons) {
+        const r = await otimizarImagem(arquivo);
+        if (r.otimizado) {
+          OTIMIZADOS.add(r.arquivo);
+          avisos.push(`“${r.arquivo.name}”: ${tamanhoEmTexto(r.tamanhoOriginal)} → ${tamanhoEmTexto(r.arquivo.size)}`);
+        }
+        prontos.push(r.arquivo);
+      }
+    } finally {
+      setOtimizando(false);
+      onOcupado?.(false);
+    }
+    if (avisos.length) setAviso(`Imagem otimizada: ${avisos.join("; ")}.`);
+    onAdicionar(prontos);
   }
 
   return (
@@ -103,7 +141,7 @@ function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo
             Adicionar anexo
             <input id={idEntrada} ref={entrada} type="file" accept={ACEITOS} multiple onChange={escolher} className="sr-only" />
           </label>
-          <span className="block text-sm text-slate-500">Foto ou PDF, até 3 MB cada</span>
+          <span className="block text-sm text-slate-500">Foto ou PDF. Arquivos acima de 3 MB são reduzidos automaticamente.</span>
         </div>
       </div>
       {(salvos.length > 0 || novos.length > 0) && (
@@ -124,6 +162,7 @@ function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo
               key={`${arquivo.name}-${i}`}
               nome={arquivo.name}
               mime={arquivo.type}
+              arquivo={arquivo}
               pendente
               onRemover={() => onRemoverNovo(i)}
               rotuloRemover={`Tirar ${arquivo.name}`}
@@ -131,6 +170,9 @@ function CampoAnexos({ salvos, novos, onAdicionar, onRemoverNovo, onRemoverSalvo
           ))}
         </ul>
       )}
+      <p role="status" aria-live="polite" className="ml-10 text-sm text-slate-600 empty:hidden">
+        {otimizando ? "Otimizando imagem..." : aviso}
+      </p>
       {erro && <p className="ml-10 mt-1 text-sm text-red-600">{erro}</p>}
     </div>
   );

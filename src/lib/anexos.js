@@ -1,6 +1,9 @@
-// Anexos de lançamento: foto (JPG, PNG, WEBP, HEIC) ou PDF, até 3 MB cada (o servidor confere de novo)
+// Anexos de lançamento: foto (JPG, PNG, WEBP, HEIC) ou PDF.
+// Cada anexo fica com até 3 MB: fotos maiores são reduzidas aqui no navegador (otimizarImagem.js) e o
+// servidor reduz o que ainda passar (foto ou PDF). Por isso aceitamos escolher arquivos de até 15 MB.
 
-export const LIMITE_ANEXO = 3 * 1024 * 1024;
+export const LIMITE_ANEXO = 3 * 1024 * 1024; // tamanho máximo gravado
+export const LIMITE_ENVIO = 15 * 1024 * 1024; // tamanho máximo que dá para escolher/enviar
 export const ACEITOS = "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.heic,.heif";
 const TIPOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
 
@@ -8,7 +11,7 @@ const TIPOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/hei
 export function problemaDoArquivo(arquivo) {
   const heic = /\.(heic|heif)$/i.test(arquivo.name);
   if (!TIPOS.includes(arquivo.type) && !heic) return `“${arquivo.name}”: envie uma foto (JPG, PNG, WEBP ou HEIC) ou um PDF.`;
-  if (arquivo.size > LIMITE_ANEXO) return `“${arquivo.name}” passa de 3 MB.`;
+  if (arquivo.size > LIMITE_ENVIO) return `“${arquivo.name}” passa de 15 MB. Envie um arquivo menor.`;
   if (arquivo.size === 0) return `“${arquivo.name}” está vazio.`;
   return "";
 }

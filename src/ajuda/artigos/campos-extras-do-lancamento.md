@@ -3,7 +3,7 @@ titulo: Campos extras do lançamento
 categoria: Lançamentos
 ordem: 5
 resumo: Subcategoria, tags, multicategorias, encargos e desconto, anexos e as opções de ignorar.
-palavras: subcategoria, tags, etiqueta, multicategorias, dividir categoria, data lançamento, encargos, juros, multa, desconto, anexo, foto, pdf, comprovante, não efetivar automaticamente, débito automático, boleto, ignorar em estatísticas, ignorar em orçamentos, ignorar em economia mensal, ignorar nos totais
+palavras: anexo grande, arquivo grande, 3 mb, 15 mb, reduzir foto, comprimir, otimizar imagem, otimizando imagem, subcategoria, tags, etiqueta, multicategorias, dividir categoria, data lançamento, encargos, juros, multa, desconto, anexo, foto, pdf, comprovante, não efetivar automaticamente, débito automático, boleto, ignorar em estatísticas, ignorar em orçamentos, ignorar em economia mensal, ignorar nos totais
 relacionados: lancamentos, categorias, orcamentos, estatisticas-e-economia, cartoes-de-credito, relatorios, calendario
 ---
 
@@ -36,7 +36,13 @@ O que vale (no saldo, nos totais e nos orçamentos) é o **valor final**, já co
 
 ## Anexos
 
-Toque em **Adicionar anexo** para guardar uma foto ou um PDF (ex.: o comprovante ou o boleto). Cada arquivo pode ter até **3 MB**, e cada lançamento até **10 anexos**.
+Toque em **Adicionar anexo** para guardar uma foto ou um PDF (ex.: o comprovante ou o boleto). Cada anexo fica guardado com até **3 MB**, e cada lançamento aceita até **10 anexos**.
+
+Arquivo maior que 3 MB? Não precisa reduzir antes: o Famicash **otimiza sozinho**.
+
+- **Fotos** (JPG, PNG, WEBP e HEIC): enquanto aparece **Otimizando imagem...**, a foto é reduzida mantendo o texto do cupom legível. Depois você vê o tamanho final ao lado do nome (ex.: **1,1 MB · otimizada**). A foto otimizada é salva em JPG e já em pé.
+- **PDFs**: são comprimidos ao salvar o lançamento. Se mesmo assim passarem de 3 MB, o app avisa; nesse caso, tire uma **foto** do comprovante ou envie um PDF menor.
+- Dá para escolher arquivos de até **15 MB**. Acima disso, o app pede um arquivo menor.
 
 Fotos JPG, PNG e WEBP e PDFs abrem direto no navegador. Fotos **HEIC** (o formato do iPhone) e outros tipos aparecem com um ícone e o botão **Baixar**, porque muitos navegadores não mostram esse formato.
 

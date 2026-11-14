@@ -3,8 +3,8 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, áudio, audio, resposta em áudio, nota de voz, prefiro texto, privacidade, lgpd, excluir conta, apagar conta, dados
-relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
+palavras: anexo, comprovante grande, foto grande, passa de 3 mb, otimizar imagem, assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, áudio, audio, resposta em áudio, nota de voz, prefiro texto, privacidade, lgpd, excluir conta, apagar conta, dados
+relacionados: campos-extras-do-lancamento, cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
 ---
 
 ## Por que a compra do cartão caiu na fatura seguinte?
@@ -60,6 +60,10 @@ Não. Ele entende o que você escreveu, falou ou fotografou e monta o lançament
 ## O assistente do WhatsApp responde em áudio?
 
 Sim. Quando você manda um **áudio**, ele responde também com uma **mensagem de voz**, com o mesmo texto junto. Lançamentos continuam chegando com os botões **Confirmar**, **Corrigir** e **Cancelar**. Prefere só texto (ou sempre áudio)? Escreva **prefiro respostas em texto** ou **responda em áudio**, ou mude em **Segurança › WhatsApp › Respostas do assistente**. Veja [Famicash no WhatsApp](artigo:whatsapp).
+
+## Minha foto do comprovante passa de 3 MB. E agora?
+
+Pode anexar assim mesmo. Fotos maiores que 3 MB são **otimizadas automaticamente** (aparece **Otimizando imagem...** e, depois, o tamanho final), mantendo o texto legível. PDFs grandes são comprimidos ao salvar; se não couberem em 3 MB, o app avisa e sugere enviar uma foto. O limite para escolher um arquivo é **15 MB**. Veja [Campos extras do lançamento](artigo:campos-extras-do-lancamento).
 
 ## Como o Famicash cuida dos meus dados? Posso apagar minha conta?
 
