@@ -414,3 +414,33 @@ Os arquivos ficam no disco do servidor, na pasta `UPLOADS_DIR` (padrão `/data/a
 | `GET /api/stats?from=&to=&type=&includePending=&categoryId=` | Total e divisões por categoria, subcategoria, conta e tag. |
 | `GET /api/stats/evolution?month=&months=&includePending=` | Receitas × despesas mês a mês, saldo e acumulado. |
 | `GET /api/savings?month=&months=&includePending=` | Economia mensal, média, melhor e pior mês. |
+
+## WhatsApp (Meta WhatsApp Cloud API)
+
+Bot para lançar por mensagem ("gastei 45,90 mercado"), comandos **saldo**, **resumo** e **ajuda**, e alertas no WhatsApp. Código em `server/src/services/whatsapp/` e `server/src/routes/whatsapp.ts`; tela em Segurança › WhatsApp. Artigo de ajuda: `src/ajuda/artigos/whatsapp.md`.
+
+### Variáveis (server)
+
+| Variável | Para quê |
+| --- | --- |
+| `WHATSAPP_TOKEN` | Token permanente do usuário do sistema (Bearer da Graph API) |
+| `WHATSAPP_PHONE_NUMBER_ID` | ID do número no Meta (não é o telefone) |
+| `WHATSAPP_VERIFY_TOKEN` | Texto que você inventa e repete no cadastro do webhook no Meta |
+| `WHATSAPP_APP_SECRET` | Chave secreta do app Meta (confere o `X-Hub-Signature-256`) |
+| `WHATSAPP_GRAPH_VERSION` | Opcional, padrão `v21.0` |
+| `WHATSAPP_BOT_NUMBER` | Opcional, número mostrado no app (padrão `+55 21 3955-2279`) |
+| `AI_PROVIDER` / `GEMINI_API_KEY` / `GEMINI_MODEL` | Opcional: áudio e foto via Google Gemini (padrão `gemini-flash-latest`). Sem chave, o bot avisa que chega em breve |
+
+Sem as quatro primeiras, o WhatsApp fica desligado (webhook responde 404, a tela mostra "em breve").
+
+### Webhook no Meta
+
+- URL de retorno: `https://famicash.com/api/whatsapp/webhook`, token de verificação = `WHATSAPP_VERIFY_TOKEN`, assinar o campo **messages**.
+- O servidor responde 200 na hora e processa depois; cada mensagem é processada uma vez (tabela `whatsapp_inbound`).
+
+### Fluxo
+
+1. Ligar: o app gera um código de 6 dígitos (10 min, só o hash fica salvo); a pessoa manda o código **do mesmo número** (com ou sem o 9 do celular). Um número = uma pessoa.
+2. Lançar: o texto vira um rascunho (`whatsapp_drafts`, 30 min) com botões Confirmar / Editar categoria / Cancelar. O lançamento (`source = WHATSAPP`) só é criado no Confirmar. Cartão segue a regra da fatura (no fechamento ou depois → fatura seguinte). Visualizador não lança.
+3. Alertas: canal `WHATSAPP` com modelos aprovados (`server/src/services/whatsapp/modelos.ts`); opt-in por tipo em Segurança › Alertas no WhatsApp.
+4. Planos (Fase 9): `podeUsarWhatsApp()` em `server/src/services/whatsapp/plano.ts` é o ponto único (hoje libera todo mundo).

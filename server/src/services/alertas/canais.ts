@@ -1,17 +1,20 @@
 import type { AlertChannel } from "@prisma/client";
-import { env } from "../../env.js";
+import { env, whatsappConfig } from "../../env.js";
 import { sendEmail } from "../../lib/email.js";
+import { enviarModelo } from "../whatsapp/cliente.js";
+import { MODELOS, type ChaveModelo } from "../whatsapp/modelos.js";
 
 // ─────────────────────────────────────────────
 // Canais de alerta.
 //
 // As regras (o que avisar e quando) montam uma MensagemAlerta, que não sabe nada de e-mail.
-// Cada canal transforma a mensagem no seu formato e entrega. Hoje só existe o e-mail;
-// para ligar o WhatsApp no futuro: novo valor em AlertChannel (schema.prisma), um objeto
-// CanalAlerta com id "WHATSAPP" e incluir em CANAIS. Nada nas regras precisa mudar.
+// Cada canal transforma a mensagem no seu formato e entrega:
+// - EMAIL: HTML + texto (montarEmail);
+// - WHATSAPP: modelo (template) aprovado pelo Meta, com os parâmetros de MensagemAlerta.whatsapp.
+//   Só para quem ligou o número e ligou o tipo de alerta no WhatsApp (ver preferencias.ts).
 // ─────────────────────────────────────────────
 
-export type Destinatario = { userId: string; nome: string; email: string };
+export type Destinatario = { userId: string; nome: string; email: string; whatsapp?: string | null };
 
 export type ItemAlerta = { rotulo: string; valor?: string; detalhe?: string };
 
@@ -24,6 +27,8 @@ export type MensagemAlerta = {
   grupos?: { titulo?: string; itens: ItemAlerta[] }[];
   botao: { texto: string; caminho: string }; // caminho dentro do app, ex.: /app/orcamentos/abc
   espaco: string; // nome do espaço (Pessoal, Família...)
+  // WhatsApp: qual modelo e os valores das variáveis a partir do {{2}} ({{1}} = primeiro nome, o canal põe)
+  whatsapp?: { modelo: ChaveModelo; parametros: string[] };
 };
 
 export interface CanalAlerta {
@@ -116,5 +121,30 @@ export const canalEmail: CanalAlerta = {
   },
 };
 
-// Canais ligados (a ordem não importa). WhatsApp entra aqui no futuro.
-export const CANAIS: CanalAlerta[] = [canalEmail];
+// Mensagem do modelo para o WhatsApp: nome, parâmetros do corpo e o sufixo do botão de link
+export function montarWhatsApp(dest: Destinatario, m: MensagemAlerta) {
+  if (!m.whatsapp) return null;
+  const modelo = MODELOS[m.whatsapp.modelo];
+  const primeiroNome = dest.nome.trim().split(/\s+/)[0] || "Olá";
+  return {
+    nome: modelo.nome,
+    idioma: modelo.idioma,
+    corpo: [primeiroNome, ...m.whatsapp.parametros],
+    botaoUrl: m.botao.caminho.replace(/^\//, ""),
+  };
+}
+
+export const canalWhatsApp: CanalAlerta = {
+  id: "WHATSAPP",
+  async enviar(dest, m) {
+    if (!dest.whatsapp) throw new Error("Pessoa sem WhatsApp ligado.");
+    const envio = montarWhatsApp(dest, m);
+    if (!envio) return; // alerta sem modelo de WhatsApp: só vai por e-mail
+    await enviarModelo(dest.whatsapp, envio);
+  },
+};
+
+// Canais ligados agora (a ordem não importa). WhatsApp só com as variáveis do Meta configuradas.
+export function canaisAtivos(): CanalAlerta[] {
+  return whatsappConfig() ? [canalEmail, canalWhatsApp] : [canalEmail];
+}
