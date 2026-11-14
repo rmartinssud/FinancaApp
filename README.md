@@ -431,12 +431,20 @@ Bot para lançar por mensagem ("gastei 45,90 mercado"), comandos **saldo**, **re
 | `WHATSAPP_BOT_NUMBER` | Opcional, número mostrado no app (padrão `+55 21 3955-2279`) |
 | `AI_PROVIDER` / `GEMINI_API_KEY` / `GEMINI_MODEL` | Opcional: assistente de IA, áudio e foto via Google Gemini (padrão `gemini-flash-latest`). Sem chave, o bot funciona só com comandos e avisa que áudio/foto chegam em breve |
 | `WHATSAPP_ASSISTENTE` | Opcional: `off` desliga o assistente de IA (volta ao bot de comandos). Vazio = ligado quando há chave |
+| `WHATSAPP_AUDIO_RESPOSTA` | Opcional: `off` desliga a resposta em áudio (nota de voz). Vazio = ligada quando há chave do Gemini |
+| `GEMINI_TTS_MODEL` / `GEMINI_TTS_VOICE` | Opcional: voz do Gemini TTS (padrão `gemini-3.8-flash-tts` e voz `Sulafat`; mais barato: `gemini-3.8-flash-lite-tts`) |
+| `FFMPEG_PATH` | Opcional: caminho do ffmpeg (padrão `ffmpeg` no PATH; a imagem Docker do server já instala) |
 
 Sem as quatro primeiras, o WhatsApp fica desligado (webhook responde 404, a tela mostra "em breve").
 
 ### Assistente de IA (Gemini com function calling)
 
 `server/src/services/whatsapp/agente.ts` recebe cada mensagem (texto, áudio transcrito, foto lida), monta o prompt com as regras, os dados do espaço e o índice da Central de Ajuda, e roda um loop de ferramentas (`ferramentas.ts`): resumo, orçamentos, objetivos, cartões e faturas, contas a pagar, dívidas, histórico por categoria, busca de lançamentos, simulação de compra parcelada, ajuda e rascunho (preparar/alterar/cancelar). Tudo filtrado pelo espaço do número ligado; Visualizador só consulta. **Nada é gravado sem Confirmar** (botão ou "sim", decidido no bot, sem IA). Memória curta em `whatsapp_chat_messages` (lida por 45 min, apagada depois de 1 dia). Limites: 6 voltas, 60 s, 2048 tokens de saída por volta; tokens de cada mensagem vão para o log (`WhatsApp IA: ... tokens`). Se a IA falhar, o bot cai no parser clássico.
+
+### Lida, "digitando..." e resposta em áudio
+
+- Ao receber cada mensagem, o bot manda `{"status":"read","message_id":…,"typing_indicator":{"type":"text"}}` para `/{phone_number_id}/messages` (marca como lida e mostra "digitando..."). O indicador some na resposta ou em ~25 s; renovamos a cada 20 s enquanto processa. Falhas só vão para o log.
+- Resposta em áudio (`server/src/services/whatsapp/voz.ts`): quando a pessoa manda áudio (modo **AUTO**, padrão) ou escolheu **AUDIO**, o assistente manda uma nota de voz + o mesmo texto. O texto é preparado para fala (sem `*negrito*`/emojis, `R$ 45,90` → "quarenta e cinco reais e noventa centavos", datas e % por extenso, até ~150 palavras ≈ 60 s), vai para `ProvedorIA.sintetizarFala` (Gemini TTS, WAV/PCM 24 kHz 16-bit mono), o ffmpeg converte para OGG/Opus mono 32 kbps, sobe em `/{phone_number_id}/media` e sai como `{"type":"audio","audio":{"id":…,"voice":true}}`. Rascunhos continuam com os botões em texto (o áudio lê um resumo curto antes). Qualquer falha cai para texto. Preferência por número em `whatsapp_links.replyMode` (`AUTO`/`TEXT`/`AUDIO`): muda falando com o bot (ferramenta `preferencia_de_resposta`) ou em Segurança › WhatsApp. Log de custo sem conteúdo nem telefone: `WhatsApp TTS: ... segundos=… tts_ms=…`.
 
 O conhecimento do app vem dos artigos `src/ajuda/artigos/*.md`. A imagem Docker da API só leva `server/`, então existe uma cópia em `server/ajuda/artigos`: depois de mudar a Ajuda, rode `npm --prefix server run ajuda:sync` (um teste falha se a cópia ficar diferente).
 

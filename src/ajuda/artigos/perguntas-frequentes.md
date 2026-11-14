@@ -3,7 +3,7 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, privacidade, lgpd, excluir conta, apagar conta, dados
+palavras: assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, áudio, audio, resposta em áudio, nota de voz, prefiro texto, privacidade, lgpd, excluir conta, apagar conta, dados
 relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
 ---
 
@@ -56,6 +56,10 @@ Sim. Ligue seu número em **Segurança › WhatsApp** e mande mensagens como **g
 ## O assistente do WhatsApp pode lançar sozinho?
 
 Não. Ele entende o que você escreveu, falou ou fotografou e monta o lançamento, mas **nada é salvo sem você confirmar** (botão **Confirmar** ou responder **sim**). Antes disso, dá para corrigir conversando, como **foi no cartão Santander** ou **muda para ontem**. Você também pode perguntar **como estão minhas finanças?** ou simular uma compra parcelada; a decisão é sempre sua. Veja [Famicash no WhatsApp](artigo:whatsapp).
+
+## O assistente do WhatsApp responde em áudio?
+
+Sim. Quando você manda um **áudio**, ele responde também com uma **mensagem de voz**, com o mesmo texto junto. Lançamentos continuam chegando com os botões **Confirmar**, **Corrigir** e **Cancelar**. Prefere só texto (ou sempre áudio)? Escreva **prefiro respostas em texto** ou **responda em áudio**, ou mude em **Segurança › WhatsApp › Respostas do assistente**. Veja [Famicash no WhatsApp](artigo:whatsapp).
 
 ## Como o Famicash cuida dos meus dados? Posso apagar minha conta?
 

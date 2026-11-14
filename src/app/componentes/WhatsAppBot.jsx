@@ -12,11 +12,17 @@ const avisarMudanca = () => window.dispatchEvent(new Event(EVENTO_WHATSAPP));
 
 const EXEMPLOS = ["gastei 45,90 mercado", "50 uber ontem", "recebi 1200 salário", "30 no cartão Nubank ifood", "saldo", "resumo"];
 
+const MODOS_RESPOSTA = [
+  { valor: "AUTO", nome: "Automático: áudio quando eu mandar áudio" },
+  { valor: "TEXT", nome: "Sempre em texto" },
+  { valor: "AUDIO", nome: "Sempre em áudio (com o texto junto)" },
+];
+
 const seletor =
   "min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-800 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20";
 
 // Seção "WhatsApp" (tela Segurança): liga o número ao Famicash com um código de 6 dígitos,
-// escolhe o espaço padrão do bot e desliga.
+// escolhe o espaço padrão do bot, como o assistente responde (texto ou áudio) e desliga.
 function WhatsAppBot({ className = "" }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
@@ -87,6 +93,17 @@ function WhatsAppBot({ className = "" }) {
     try {
       setDados(await api("/whatsapp/link", enviarJson("PUT", { householdId })));
       setAviso("Espaço padrão salvo.");
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
+
+  async function mudarResposta(replyMode) {
+    setErro("");
+    setAviso("");
+    try {
+      setDados(await api("/whatsapp/link", enviarJson("PUT", { replyMode })));
+      setAviso("Preferência de resposta salva.");
     } catch (e) {
       setErro(e.message);
     }
@@ -218,6 +235,22 @@ function WhatsAppBot({ className = "" }) {
               </select>
               <span className="mt-2 block text-sm text-slate-500">É onde o bot lança e de onde vêm o saldo e o resumo.</span>
             </label>
+
+            {dados.audioReplies && (
+              <label className="block">
+                <span className="mb-2 block font-medium text-slate-800">Respostas do assistente</span>
+                <select value={link.replyMode ?? "AUTO"} onChange={(e) => mudarResposta(e.target.value)} className={seletor}>
+                  {MODOS_RESPOSTA.map((m) => (
+                    <option key={m.valor} value={m.valor}>
+                      {m.nome}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-2 block text-sm text-slate-500">
+                  Em áudio, o texto vai junto. Lançamentos para confirmar sempre chegam com os botões. Também dá para pedir no WhatsApp: “prefiro respostas em texto”.
+                </span>
+              </label>
+            )}
 
             <div>
               <p className="text-sm font-bold text-slate-800">

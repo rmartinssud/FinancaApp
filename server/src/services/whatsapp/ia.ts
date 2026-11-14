@@ -7,6 +7,7 @@ import { env } from "../../env.js";
 // AI_PROVIDER (padrão "gemini") e ligado só com GEMINI_API_KEY. Para outro provedor
 // (ex.: OpenAI): um objeto ProvedorIA novo e um "case" em provedorIA(). Nada no bot muda.
 // Sem chave: provedorIA() devolve null; o bot usa o parser de comandos e avisa que áudio e foto chegam em breve.
+// sintetizarFala(): voz do assistente (nota de voz). Sem ela (ou se falhar), a resposta vai só em texto.
 // conversar(): o assistente (agente.ts) usa function calling. Sem ela (ou se falhar), o bot cai no parser.
 // ─────────────────────────────────────────────
 
@@ -46,6 +47,14 @@ export type PedidoConversa = {
 export type UsoTokens = { entrada: number; saida: number; total: number };
 export type RespostaConversa = { partes: ParteConversa[]; uso: UsoTokens | null; motivo?: string };
 
+// Voz sintetizada (TTS). audio: WAV ou PCM cru (16-bit, mono); o bot converte para OGG/Opus com o ffmpeg.
+export type FalaSintetizada = {
+  audio: Buffer;
+  mime: string; // "audio/wav" ou "audio/L16;codec=pcm;rate=24000"
+  modelo: string;
+  tokens?: UsoTokens | null;
+};
+
 export interface ProvedorIA {
   nome: string;
   // Assistente: conversa com chamadas de ferramenta (function calling). Opcional: sem ela, o bot usa o parser.
@@ -54,6 +63,8 @@ export interface ProvedorIA {
   transcrever(audio: Buffer, mime: string): Promise<string>;
   // Foto de cupom, nota ou comprovante → dados estruturados
   lerComprovante(imagem: Buffer, mime: string, contexto: { hoje: string; categorias: string[]; legenda?: string }): Promise<DadosComprovante>;
+  // Texto → fala em pt-BR (nota de voz). Opcional: sem ela, o assistente responde só em texto.
+  sintetizarFala?(texto: string, opcoes?: { sinal?: AbortSignal }): Promise<FalaSintetizada>;
 }
 
 export class ErroIA extends Error {
@@ -71,6 +82,10 @@ export class ErroIA extends Error {
 // Alias do Flash mais recente (o Google atualiza sozinho). Para fixar uma versão: GEMINI_MODEL.
 export const MODELO_GEMINI_PADRAO = "gemini-flash-latest";
 const URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
+// Voz: Gemini 3.8 Flash TTS (ai.google.dev/gemini-api/docs/speech-generation). Mais barato: gemini-3.8-flash-lite-tts.
+export const MODELO_TTS_PADRAO = "gemini-3.8-flash-tts";
+// Voz pré-pronta (o idioma é detectado pelo texto). "Sulafat" = calorosa. Lista na documentação do Gemini.
+export const VOZ_TTS_PADRAO = "Sulafat";
 
 type ParteGemini = {
   text?: string;
@@ -107,7 +122,9 @@ function doGemini(partes: ParteGemini[]): ParteConversa[] {
   return saida;
 }
 
-export function criarProvedorGemini(chave: string, modelo = MODELO_GEMINI_PADRAO): ProvedorIA {
+type OpcoesGemini = { modeloTts?: string; voz?: string };
+
+export function criarProvedorGemini(chave: string, modelo = MODELO_GEMINI_PADRAO, { modeloTts = MODELO_TTS_PADRAO, voz = VOZ_TTS_PADRAO }: OpcoesGemini = {}): ProvedorIA {
   async function gerar(partes: Record<string, unknown>[], esquema?: Record<string, unknown>) {
     const r = await fetch(`${URL_GEMINI}/${encodeURIComponent(modelo)}:generateContent`, {
       method: "POST",
@@ -133,6 +150,37 @@ export function criarProvedorGemini(chave: string, modelo = MODELO_GEMINI_PADRAO
 
   return {
     nome: "gemini",
+    async sintetizarFala(texto, { sinal } = {}) {
+      // generateContent com saída em áudio. O texto vai como transcrição literal (sem instruções de estilo).
+      const r = await fetch(`${URL_GEMINI}/${encodeURIComponent(modeloTts)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: texto }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } } },
+          },
+        }),
+        signal: sinal ?? AbortSignal.timeout(30_000),
+      });
+      const corpo = (await r.json().catch(() => ({}))) as RespostaGemini;
+      if (!r.ok) throw new ErroIA(corpo.error?.message ?? `Gemini TTS respondeu ${r.status}`, r.status);
+      const partes = (corpo.candidates?.[0]?.content?.parts ?? []) as (ParteGemini & {
+        inlineData?: { mimeType?: string; data?: string };
+        inline_data?: { mime_type?: string; data?: string };
+      })[];
+      const p = partes.find((x) => x.inlineData?.data || x.inline_data?.data);
+      const dados = p?.inlineData?.data ?? p?.inline_data?.data;
+      if (!dados) throw new ErroIA("Gemini TTS não devolveu áudio.");
+      const u = corpo.usageMetadata;
+      return {
+        audio: Buffer.from(dados, "base64"),
+        mime: p?.inlineData?.mimeType ?? p?.inline_data?.mime_type ?? "audio/L16;codec=pcm;rate=24000",
+        modelo: modeloTts,
+        tokens: u ? { entrada: u.promptTokenCount ?? 0, saida: u.candidatesTokenCount ?? 0, total: u.totalTokenCount ?? 0 } : null,
+      };
+    },
     async conversar({ sistema, mensagens, ferramentas, semFerramentas, maxTokens = 2048, sinal }) {
       const r = await fetch(`${URL_GEMINI}/${encodeURIComponent(modelo)}:generateContent`, {
         method: "POST",
@@ -232,7 +280,12 @@ export function provedorIA(): ProvedorIA | null {
   const qual = env.AI_PROVIDER || "gemini";
   switch (qual) {
     case "gemini":
-      return env.GEMINI_API_KEY ? criarProvedorGemini(env.GEMINI_API_KEY, env.GEMINI_MODEL || MODELO_GEMINI_PADRAO) : null;
+      return env.GEMINI_API_KEY
+        ? criarProvedorGemini(env.GEMINI_API_KEY, env.GEMINI_MODEL || MODELO_GEMINI_PADRAO, {
+            modeloTts: env.GEMINI_TTS_MODEL || MODELO_TTS_PADRAO,
+            voz: env.GEMINI_TTS_VOICE || VOZ_TTS_PADRAO,
+          })
+        : null;
     default:
       return null;
   }

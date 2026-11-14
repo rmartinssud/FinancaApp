@@ -753,13 +753,15 @@ model SentAlert {
 // waId: o número como o WhatsApp manda no webhook (no Brasil às vezes vem sem o 9). É para ele que o bot responde.
 // householdId: espaço padrão onde o bot lança. Sair do espaço deixa vazio (o bot pede para escolher outro no app).
 model WhatsAppLink {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  phone       String   @unique
-  waId        String   @unique
+  id          String            @id @default(cuid())
+  userId      String            @unique
+  phone       String            @unique
+  waId        String            @unique
   householdId String?
-  linkedAt    DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Como o assistente responde: AUTO = áudio quando a pessoa manda áudio; TEXT = sempre texto; AUDIO = sempre áudio + texto
+  replyMode   WhatsAppReplyMode @default(AUTO)
+  linkedAt    DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   household Household? @relation(fields: [householdId], references: [id], onDelete: SetNull)
@@ -832,6 +834,13 @@ model WhatsAppDraft {
 
   @@index([waId, status])
   @@map("whatsapp_drafts")
+}
+
+// Preferência de resposta do assistente no WhatsApp (texto ou nota de voz)
+enum WhatsAppReplyMode {
+  AUTO
+  TEXT
+  AUDIO
 }
 
 enum WhatsAppChatRole {

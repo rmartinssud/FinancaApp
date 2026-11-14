@@ -10,6 +10,7 @@ import { processarEmSegundoPlano, type PayloadWebhook } from "../services/whatsa
 import { formatarTelefone, normalizarTelefone } from "../services/whatsapp/telefone.js";
 import { ESPERA_NOVO_CODIGO_SEG, VALIDADE_CODIGO_MIN, gerarCodigo, numeroDeOutraPessoa } from "../services/whatsapp/vinculo.js";
 import { podeUsarWhatsApp } from "../services/whatsapp/plano.js";
+import { provedorComVoz } from "../services/whatsapp/voz.js";
 import { espacosDoUsuario } from "./familia.js";
 
 // ─────────────────────────────────────────────
@@ -87,8 +88,10 @@ async function situacao(userId: string, householdAtivo: string) {
     enabled,
     botNumber,
     botLink: botNumber ? `https://wa.me/${soDigitos(botNumber)}` : null,
+    // Resposta em áudio disponível agora (IA com voz e WHATSAPP_AUDIO_RESPOSTA diferente de "off")?
+    audioReplies: Boolean(provedorComVoz()),
     link: link
-      ? { phone: formatarTelefone(link.phone), household: espacoValido, linkedAt: link.linkedAt.toISOString() }
+      ? { phone: formatarTelefone(link.phone), household: espacoValido, linkedAt: link.linkedAt.toISOString(), replyMode: link.replyMode }
       : null,
     pending: codigo && codigo.expiresAt > new Date() ? { phone: formatarTelefone(codigo.phone), expiresAt: codigo.expiresAt.toISOString() } : null,
     households: espacos.map((e) => ({ id: e.id, name: e.name, role: e.role, active: e.active })),
@@ -140,17 +143,25 @@ whatsappRouter.post("/link", validateBody(inicio), async (req, res) => {
   });
 });
 
-const ajuste = z.object({ householdId: z.string().min(1) });
+const ajuste = z
+  .object({
+    householdId: z.string().min(1).optional(),
+    // Respostas do assistente: AUTO (áudio quando a pessoa manda áudio), TEXT (sempre texto), AUDIO (sempre áudio + texto)
+    replyMode: z.enum(["AUTO", "TEXT", "AUDIO"]).optional(),
+  })
+  .refine((d) => d.householdId !== undefined || d.replyMode !== undefined, { message: "Nada para mudar." });
 
-// PUT /api/whatsapp/link { householdId } → muda o espaço padrão do bot
+// PUT /api/whatsapp/link { householdId?, replyMode? } → muda o espaço padrão do bot e/ou o jeito de responder
 whatsappRouter.put("/link", validateBody(ajuste), async (req, res) => {
-  const { householdId } = req.body as z.infer<typeof ajuste>;
+  const { householdId, replyMode } = req.body as z.infer<typeof ajuste>;
   const userId = req.user!.id;
   const link = await prisma.whatsAppLink.findUnique({ where: { userId } });
   if (!link) return res.status(404).json({ error: "Seu WhatsApp não está ligado." });
-  const membro = await prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId } } });
-  if (!membro) return res.status(403).json({ error: "Você não faz parte deste espaço." });
-  await prisma.whatsAppLink.update({ where: { userId }, data: { householdId } });
+  if (householdId) {
+    const membro = await prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId } } });
+    if (!membro) return res.status(403).json({ error: "Você não faz parte deste espaço." });
+  }
+  await prisma.whatsAppLink.update({ where: { userId }, data: { ...(householdId ? { householdId } : {}), ...(replyMode ? { replyMode } : {}) } });
   res.json(await situacao(userId, req.household!.id));
 });
 
