@@ -37,6 +37,9 @@ model User {
   invitesSent      HouseholdInvite[] @relation("InviteSentBy")
   alertPreferences AlertPreference[]
   sentAlerts       SentAlert[]
+  whatsappLink     WhatsAppLink?
+  whatsappCode     WhatsAppLinkCode?
+  whatsappDrafts   WhatsAppDraft[]
 
   @@map("users")
 }
@@ -186,6 +189,9 @@ model Household {
 
   alertPreferences AlertPreference[]
   sentAlerts       SentAlert[]
+  whatsappLinks    WhatsAppLink[]
+  whatsappCodes    WhatsAppLinkCode[]
+  whatsappDrafts   WhatsAppDraft[]
 
   @@map("households")
 }
@@ -682,9 +688,10 @@ model DebtPayment {
 // Alertas (por e-mail; o canal fica separado para dar para ligar WhatsApp depois)
 // ─────────────────────────────────────────────
 
-// Por onde o alerta sai. Hoje só EMAIL; WHATSAPP entra aqui no futuro.
+// Por onde o alerta sai. WHATSAPP: só para quem ligou o número e ligou o tipo de alerta (opt-in).
 enum AlertChannel {
   EMAIL
+  WHATSAPP
 }
 
 enum AlertType {
@@ -733,4 +740,94 @@ model SentAlert {
   @@unique([userId, householdId, channel, type, refKey])
   @@index([householdId])
   @@map("sent_alerts")
+}
+
+// ─────────────────────────────────────────────
+// Bot do WhatsApp (Meta WhatsApp Cloud API)
+// ─────────────────────────────────────────────
+
+// Número de WhatsApp ligado a uma pessoa (um número = uma pessoa).
+// phone: o número que a pessoa digitou no app (E.164 sem "+", ex.: 5521999998888).
+// waId: o número como o WhatsApp manda no webhook (no Brasil às vezes vem sem o 9). É para ele que o bot responde.
+// householdId: espaço padrão onde o bot lança. Sair do espaço deixa vazio (o bot pede para escolher outro no app).
+model WhatsAppLink {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  phone       String   @unique
+  waId        String   @unique
+  householdId String?
+  linkedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household? @relation(fields: [householdId], references: [id], onDelete: SetNull)
+
+  @@index([householdId])
+  @@map("whatsapp_links")
+}
+
+// Código de 6 dígitos para ligar o número (um por pessoa, vale 10 minutos).
+// Guardamos só o hash; o código aparece no app uma vez. attempts: códigos errados vindos desse número.
+model WhatsAppLinkCode {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  phone       String
+  householdId String
+  codeHash    String
+  attempts    Int      @default(0)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@map("whatsapp_link_codes")
+}
+
+// Mensagens recebidas já processadas (o Meta pode reenviar o mesmo webhook): id = wamid
+model WhatsAppInbound {
+  id         String   @id
+  waId       String
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+  @@map("whatsapp_inbound")
+}
+
+enum WhatsAppDraftStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+}
+
+// Rascunho do lançamento enviado pelo WhatsApp: só vira lançamento ao tocar em "Confirmar".
+// accountId: conta ou cartão. invoiceMonth: fatura (só cartão), calculada pela data da compra.
+model WhatsAppDraft {
+  id               String              @id @default(cuid())
+  userId           String
+  householdId      String
+  waId             String
+  type             TransactionType
+  amount           Decimal             @db.Decimal(12, 2)
+  description      String
+  date             DateTime
+  accountId        String
+  categoryId       String?
+  installments     Int                 @default(1)
+  invoiceMonth     String?
+  status           WhatsAppDraftStatus @default(PENDING)
+  // Esperando a pessoa escolher a categoria (lista ou texto)
+  awaitingCategory Boolean             @default(false)
+  // Lançamento criado (1ª parcela, no cartão)
+  transactionId    String?
+  expiresAt        DateTime
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([waId, status])
+  @@map("whatsapp_drafts")
 }

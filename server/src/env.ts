@@ -24,6 +24,18 @@ const schema = z.object({
   AUTH_RATE_LIMIT: z.coerce.number().optional(),
   // Pasta dos anexos dos lançamentos (no Coolify: volume persistente montado aqui)
   UPLOADS_DIR: z.string().min(1).default("/data/anexos"),
+  // Bot do WhatsApp (Meta WhatsApp Cloud API). Sem as quatro primeiras, o WhatsApp fica desligado.
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+  WHATSAPP_APP_SECRET: z.string().optional(),
+  WHATSAPP_GRAPH_VERSION: z.string().default("v21.0"),
+  // Número do bot como aparece para as pessoas (tela do app e mensagens)
+  WHATSAPP_BOT_NUMBER: z.string().default("+55 21 3955-2279"),
+  // Áudio e foto no WhatsApp: provedor de IA (hoje só "gemini", o padrão). Sem chave, o bot avisa que chega em breve.
+  AI_PROVIDER: z.enum(["gemini", ""]).optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -38,3 +50,10 @@ export const isProduction = env.NODE_ENV === "production";
 export const authRateLimit = env.AUTH_RATE_LIMIT ?? (isProduction ? 30 : 1000);
 export const cookieSecure = env.COOKIE_SECURE ? env.COOKIE_SECURE === "true" : isProduction;
 export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+
+// WhatsApp ligado? (lido na hora, para os testes poderem desligar)
+export function whatsappConfig() {
+  const { WHATSAPP_TOKEN: token, WHATSAPP_PHONE_NUMBER_ID: phoneNumberId, WHATSAPP_VERIFY_TOKEN: verifyToken, WHATSAPP_APP_SECRET: appSecret } = env;
+  if (!token || !phoneNumberId || !verifyToken || !appSecret) return null;
+  return { token, phoneNumberId, verifyToken, appSecret, graphVersion: env.WHATSAPP_GRAPH_VERSION, botNumber: env.WHATSAPP_BOT_NUMBER };
+}

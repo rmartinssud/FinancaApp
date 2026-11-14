@@ -3,7 +3,7 @@ import { prisma } from "../../lib/prisma.js";
 import { Decimal, ZERO, somarMeses } from "../../lib/money.js";
 import { Calculadora, ativoNoMes, type Orcamento } from "../orcamentos.js";
 import { datasDaFatura } from "../cartoes.js";
-import { CANAIS, type CanalAlerta, type MensagemAlerta } from "./canais.js";
+import { canaisAtivos, type CanalAlerta, type MensagemAlerta } from "./canais.js";
 import { inscritosDoEspaco, DIAS_FATURA_MAX, type Inscrito } from "./preferencias.js";
 import {
   agruparContas,
@@ -57,7 +57,7 @@ class Envio {
   async mandar(canal: CanalAlerta, espaco: Espaco, pessoa: Inscrito, type: AlertType, refKey: string, montar: () => MensagemAlerta) {
     if (!(await reservar(pessoa.userId, espaco.id, canal, type, refKey))) return false;
     try {
-      await canal.enviar({ userId: pessoa.userId, nome: pessoa.nome, email: pessoa.email }, montar());
+      await canal.enviar({ userId: pessoa.userId, nome: pessoa.nome, email: pessoa.email, whatsapp: pessoa.whatsapp }, montar());
       this.r.enviados++;
       this.r.porTipo[type]++;
       return true;
@@ -121,6 +121,10 @@ function mensagemOrcamento(a: AvisoOrcamento, espaco: Espaco): MensagemAlerta {
     ],
     botao: { texto: "Ver orçamento", caminho: `/app/orcamentos/${a.b.id}${a.b.period === "MONTHLY" ? `?mes=${a.mes}` : ""}` },
     espaco: espaco.name,
+    whatsapp: {
+      modelo: estourou ? "orcamentoEstourou" : "orcamentoAlerta",
+      parametros: [a.b.name, espaco.name, pct, formatarReais(a.meta), formatarReais(a.usado)],
+    },
   };
 }
 
@@ -181,6 +185,10 @@ function mensagemFatura(a: AvisoFatura, espaco: Espaco): MensagemAlerta {
     grupos: [{ itens }],
     botao: { texto: "Ver fatura", caminho: `/app/cartoes/${a.cartao.id}?mes=${a.mes}` },
     espaco: espaco.name,
+    whatsapp: {
+      modelo: "faturaVencendo",
+      parametros: [a.cartao.name, espaco.name, `${formatarDia(a.vencimento)} (${quando.replace(/^vence /, "")})`, formatarReais(aPagar)],
+    },
   };
 }
 
@@ -224,6 +232,10 @@ function mensagemContas(grupos: ReturnType<typeof agruparContas>, hoje: string, 
     ],
     botao: { texto: "Ver lançamentos", caminho: `/app/lancamentos?mes=${hoje.slice(0, 7)}` },
     espaco: espaco.name,
+    whatsapp: {
+      modelo: "contasDoDia",
+      parametros: [espaco.name, qtd === 1 ? "1 conta" : `${qtd} contas`, partes.join(" e "), formatarReais(total)],
+    },
   };
 }
 
@@ -231,7 +243,7 @@ function mensagemContas(grupos: ReturnType<typeof agruparContas>, hoje: string, 
 
 type Opcoes = { agora?: Date; canais?: CanalAlerta[]; ignorarHorario?: boolean; householdIds?: string[] };
 
-export async function rodarAlertas({ agora = new Date(), canais = CANAIS, ignorarHorario = false, householdIds }: Opcoes = {}): Promise<Resultado> {
+export async function rodarAlertas({ agora = new Date(), canais = canaisAtivos(), ignorarHorario = false, householdIds }: Opcoes = {}): Promise<Resultado> {
   const envio = new Envio();
   if (!ignorarHorario && !dentroDoHorario(agora)) return envio.r;
   const hoje = diaLocal(agora);

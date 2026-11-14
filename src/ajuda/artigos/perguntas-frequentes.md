@@ -3,8 +3,8 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve
-relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas
+palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp
+relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
 ---
 
 ## Por que a compra do cartão caiu na fatura seguinte?
@@ -47,7 +47,11 @@ Sim. Em **Dívidas**, cada pagamento registrado vira uma **despesa** em Lançame
 
 ## Como recebo avisos por e-mail?
 
-Na tela **Segurança** (toque no seu nome, no menu), em **Alertas por e-mail**, ligue os avisos de **orçamento**, **fatura do cartão** e **contas a pagar**. Veja [Alertas por e-mail](artigo:alertas-por-email).
+Na tela **Segurança** (toque no seu nome, no menu), em **Alertas por e-mail**, ligue os avisos de **orçamento**, **fatura do cartão** e **contas a pagar**. Veja [Alertas por e-mail](artigo:alertas-por-email). Também dá para receber no **WhatsApp**, em **Alertas no WhatsApp** (começam desligados).
+
+## Dá para lançar pelo WhatsApp?
+
+Sim. Ligue seu número em **Segurança › WhatsApp** e mande mensagens como **gastei 45,90 mercado** ou **30 no cartão Nubank ifood** para o Famicash (+55 21 3955-2279). O bot mostra um resumo e só lança quando você toca em **Confirmar**. Mande **saldo** ou **resumo** para ver os números do mês. Veja [Famicash no WhatsApp](artigo:whatsapp).
 
 ## Não achei minha dúvida
 
