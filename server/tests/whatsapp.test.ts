@@ -26,7 +26,7 @@ const PHONE_ID = env.WHATSAPP_PHONE_NUMBER_ID!;
 type Chamada = { url: string; corpo: Record<string, any> | null; headers: Record<string, string> };
 let chamadas: Chamada[] = [];
 // Respostas extras (mídia e Gemini) por pedaço de URL
-let respostas: { trecho: string; resposta: () => Response }[] = [];
+let respostas: { trecho: string; resposta: (corpo: Record<string, any> | null) => Response }[] = [];
 
 beforeEach(() => {
   chamadas = [];
@@ -42,7 +42,7 @@ beforeEach(() => {
     }
     chamadas.push({ url, corpo, headers });
     const extra = respostas.find((r) => url.includes(r.trecho));
-    if (extra) return extra.resposta();
+    if (extra) return extra.resposta(corpo);
     if (url.startsWith("https://graph.facebook.com/") && url.endsWith("/messages")) {
       return new Response(JSON.stringify({ messaging_product: "whatsapp", messages: [{ id: `wamid.saida${chamadas.length}` }] }), { status: 200 });
     }
@@ -534,10 +534,15 @@ describe("whatsapp: áudio e foto", () => {
     respostas.push({ trecho: `/v21.0/${id}`, resposta: () => new Response(JSON.stringify({ url: `https://lookaside.fbsbx.com/media/${id}`, mime_type: mime, file_size: 1000 }), { status: 200 }) });
     respostas.push({ trecho: `lookaside.fbsbx.com/media/${id}`, resposta: () => new Response(Buffer.from("bytes-falsos"), { status: 200, headers: { "Content-Type": mime } }) });
   };
+  // Transcrição/leitura respondem "texto". O assistente (pedido com ferramentas) falha de propósito:
+  // assim estes testes cobrem o caminho clássico (parser) que o bot usa quando a IA de conversa cai.
   const gemini = (texto: string) =>
     respostas.push({
       trecho: "generativelanguage.googleapis.com",
-      resposta: () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: texto }] } }] }), { status: 200 }),
+      resposta: (corpo) =>
+        corpo?.tools
+          ? new Response(JSON.stringify({ error: { message: "indisponível" } }), { status: 503 })
+          : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: texto }] } }] }), { status: 200 }),
     });
 
   it("sem IA configurada: avisa que chega em breve (áudio e foto sem legenda)", async () => {
@@ -573,6 +578,8 @@ describe("whatsapp: áudio e foto", () => {
     expect(textoDe(m)).toContain("🏷️ Saúde");
     const chamada = chamadas.find((c) => c.url.includes("generativelanguage"))!;
     expect(chamada.url).toBe(`https://generativelanguage.googleapis.com/v1beta/models/${MODELO_GEMINI_PADRAO}:generateContent`);
+    // Depois da transcrição, tentou o assistente (falhou) e caiu no parser
+    expect(chamadas.filter((c) => c.url.includes("generativelanguage") && c.corpo?.tools)).toHaveLength(1);
     expect(MODELO_GEMINI_PADRAO).toBe("gemini-flash-latest");
     expect(chamada.headers["x-goog-api-key"]).toBe("chave-teste");
     const partes = chamada.corpo!.contents[0].parts;
