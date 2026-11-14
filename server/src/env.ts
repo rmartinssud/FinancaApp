@@ -36,6 +36,9 @@ const schema = z.object({
   AI_PROVIDER: z.enum(["gemini", ""]).optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().optional(),
+  // Assistente de IA no WhatsApp (conversa, perguntas e simulações). Liga sozinho quando há IA; "off" desliga
+  // e o bot volta ao parser de comandos (áudio e foto continuam usando a IA).
+  WHATSAPP_ASSISTENTE: z.enum(["on", "off", ""]).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

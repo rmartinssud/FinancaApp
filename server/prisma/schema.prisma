@@ -33,13 +33,14 @@ model User {
 
   // Espaço ativo (o último usado). Se a pessoa sair dele, voltamos ao mais antigo.
   lastHouseholdId  String?
-  lastHousehold    Household?        @relation("LastHousehold", fields: [lastHouseholdId], references: [id], onDelete: SetNull)
-  invitesSent      HouseholdInvite[] @relation("InviteSentBy")
+  lastHousehold    Household?            @relation("LastHousehold", fields: [lastHouseholdId], references: [id], onDelete: SetNull)
+  invitesSent      HouseholdInvite[]     @relation("InviteSentBy")
   alertPreferences AlertPreference[]
   sentAlerts       SentAlert[]
   whatsappLink     WhatsAppLink?
   whatsappCode     WhatsAppLinkCode?
   whatsappDrafts   WhatsAppDraft[]
+  whatsappChat     WhatsAppChatMessage[]
 
   @@map("users")
 }
@@ -192,6 +193,7 @@ model Household {
   whatsappLinks    WhatsAppLink[]
   whatsappCodes    WhatsAppLinkCode[]
   whatsappDrafts   WhatsAppDraft[]
+  whatsappChat     WhatsAppChatMessage[]
 
   @@map("households")
 }
@@ -830,4 +832,29 @@ model WhatsAppDraft {
 
   @@index([waId, status])
   @@map("whatsapp_drafts")
+}
+
+enum WhatsAppChatRole {
+  USER
+  ASSISTANT
+}
+
+// Memória curta do assistente do WhatsApp: as últimas trocas da conversa (texto só).
+// O assistente lê as últimas ~10 trocas dos últimos 45 minutos, do mesmo espaço.
+// A limpeza (limparWhatsApp) apaga o que tem mais de 1 dia.
+model WhatsAppChatMessage {
+  id          String           @id @default(cuid())
+  waId        String
+  userId      String
+  householdId String
+  role        WhatsAppChatRole
+  content     String
+  createdAt   DateTime         @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([waId, createdAt])
+  @@index([createdAt])
+  @@map("whatsapp_chat_messages")
 }

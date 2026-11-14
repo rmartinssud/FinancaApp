@@ -10,7 +10,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ajuda:sync": "node scripts/sincronizar-ajuda.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

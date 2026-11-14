@@ -52,6 +52,8 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
+      # Assistente de IA no WhatsApp: liga sozinho com GEMINI_API_KEY; "off" volta ao bot de comandos
+      WHATSAPP_ASSISTENTE: ${WHATSAPP_ASSISTENTE:-}
     volumes:
       - anexos:/data/anexos
     depends_on:

@@ -20,6 +20,8 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+# Artigos da Central de Ajuda (cópia de src/ajuda/artigos): conhecimento do assistente do WhatsApp
+COPY ajuda ./ajuda
 COPY package.json ./
 # Anexos dos lançamentos (foto/PDF). Em produção monte um volume persistente aqui
 # (no Coolify: Storages → Volume, destino /data/anexos). Sem volume, os anexos somem a cada deploy.
