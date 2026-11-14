@@ -3,7 +3,8 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
 import { armazenamento, apagarArquivos } from "../services/armazenamento.js";
-import { AnexoRecusado, LIMITE_ANEXO, LIMITE_ENVIO, otimizarAnexo, trocarExtensao } from "../services/otimizarAnexo.js";
+import { AnexoRecusado, LIMITE_ANEXO, LIMITE_ENVIO } from "../services/otimizarAnexo.js";
+import { MAX_ANEXOS, gravarAnexo, tipoDoArquivo } from "../services/anexos.js";
 
 // ─────────────────────────────────────────────
 // Anexos de lançamento: foto (JPG, PNG, WEBP, HEIC) ou PDF, até 3 MB GRAVADOS cada.
@@ -18,20 +19,7 @@ import { AnexoRecusado, LIMITE_ANEXO, LIMITE_ENVIO, otimizarAnexo, trocarExtensa
 const ABRE_NA_TELA = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 export { LIMITE_ANEXO, LIMITE_ENVIO };
-export const MAX_ANEXOS = 10;
-
-// Descobre o tipo pelos primeiros bytes (não confia só no Content-Type)
-export function tipoDoArquivo(b: Buffer): { mime: string; ext: string } | null {
-  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { mime: "image/jpeg", ext: "jpg" };
-  if (b.length >= 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { mime: "image/png", ext: "png" };
-  if (b.length >= 12 && b.toString("latin1", 0, 4) === "RIFF" && b.toString("latin1", 8, 12) === "WEBP") return { mime: "image/webp", ext: "webp" };
-  if (b.length >= 5 && b.toString("latin1", 0, 5) === "%PDF-") return { mime: "application/pdf", ext: "pdf" };
-  if (b.length >= 12 && b.toString("latin1", 4, 8) === "ftyp") {
-    const marca = b.toString("latin1", 8, 12);
-    if (["heic", "heix", "hevc", "heim", "heis", "mif1", "msf1"].includes(marca)) return { mime: "image/heic", ext: "heic" };
-  }
-  return null;
-}
+export { MAX_ANEXOS, tipoDoArquivo };
 
 const lerCorpo = express.raw({ type: () => true, limit: LIMITE_ENVIO });
 const MSG_ENVIO_GRANDE = "Arquivo grande demais. Envie arquivos de até 15 MB (fotos e PDFs acima de 3 MB são reduzidos automaticamente).";
@@ -58,16 +46,15 @@ export const serializarAnexo = (a: { id: string; originalName: string; mime: str
   createdAt: a.createdAt.toISOString(),
 });
 
-function nomeOriginal(req: Request, ext: string) {
+// Nome mandado pelo app (X-File-Name, encodeURIComponent)
+function nomeOriginal(req: Request) {
   let nome = req.header("x-file-name") ?? "";
   try {
     nome = decodeURIComponent(nome);
   } catch {
     // nome mal codificado: usa o padrão
   }
-  // eslint-disable-next-line no-control-regex
-  nome = nome.replace(/[\u0000-\u001f\\/"]/g, "").trim().slice(0, 120);
-  return nome || `anexo.${ext}`;
+  return nome;
 }
 
 // Upload (montado no router de lançamentos: /api/transactions/:id/attachments)
@@ -81,33 +68,12 @@ uploadRouter.post("/", corpoDoArquivo, async (req, res) => {
   const dados = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
   if (!dados.length) return res.status(400).json({ error: "Envie um arquivo." });
   if (dados.length > LIMITE_ENVIO) return res.status(413).json({ error: MSG_ENVIO_GRANDE });
-  const tipoRecebido = tipoDoArquivo(dados);
-  if (!tipoRecebido) return res.status(400).json({ error: "Tipo de arquivo não aceito. Envie uma foto (JPG, PNG, WEBP ou HEIC) ou um PDF." });
-
-  const quantos = await prisma.transactionAttachment.count({ where: { transactionId: lancamento.id } });
-  if (quantos >= MAX_ANEXOS) return res.status(400).json({ error: `Cada lançamento aceita até ${MAX_ANEXOS} anexos.` });
-
-  // Acima de 3 MB: reduz (foto → JPEG; PDF → Ghostscript) ou recusa. Nunca grava acima de 3 MB.
-  let pronto;
+  // Tipo, limite de 10 por lançamento, otimização acima de 3 MB: services/anexos.ts (o WhatsApp usa o mesmo)
   try {
-    pronto = await otimizarAnexo(dados, tipoRecebido);
-  } catch (e) {
-    if (e instanceof AnexoRecusado) return res.status(e.status).json({ error: e.message });
-    throw e;
-  }
-  const { tipo } = pronto;
-  if (pronto.dados.length > LIMITE_ANEXO) return res.status(413).json({ error: "Arquivo grande demais. O limite é 3 MB por arquivo." });
-  let nome = nomeOriginal(req, tipo.ext);
-  if (tipo.ext !== tipoRecebido.ext) nome = trocarExtensao(nome, tipo.ext);
-
-  const chave = await armazenamento().salvar(pronto.dados, tipo.ext);
-  try {
-    const anexo = await prisma.transactionAttachment.create({
-      data: { transactionId: lancamento.id, originalName: nome, mime: tipo.mime, size: pronto.dados.length, storageKey: chave },
-    });
+    const { anexo } = await gravarAnexo(lancamento.id, dados, nomeOriginal(req));
     res.status(201).json(serializarAnexo(anexo));
   } catch (e) {
-    await apagarArquivos([chave]);
+    if (e instanceof AnexoRecusado) return res.status(e.status).json({ error: e.message });
     throw e;
   }
 });

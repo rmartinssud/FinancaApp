@@ -2,8 +2,8 @@
 titulo: Famicash no WhatsApp
 categoria: Lançamentos
 ordem: 5.5
-resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, áudio ou foto. Converse com o assistente sobre suas finanças (ele responde em áudio quando você manda áudio), simule compras e receba alertas no WhatsApp. Nada é salvo sem você confirmar.
-palavras: whatsapp, zap, wpp, bot, robô, robo, assistente, assistente financeiro, ia, inteligência artificial, inteligencia artificial, perguntar, conversar, como estão minhas finanças, simular, simulação, simulacao, vale a pena comprar, parcelar, corrigir, sim, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, alertas no whatsapp, resposta em áudio, resposta em audio, nota de voz, mensagem de voz, falar, ouvir, prefiro texto, responder em texto, responder em áudio, digitando, lida, visto, tracinhos azuis
+resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, áudio, foto ou PDF do comprovante (que pode virar anexo do lançamento). Converse com o assistente sobre suas finanças (ele responde em áudio quando você manda áudio), simule compras e receba alertas no WhatsApp. Nada é salvo sem você confirmar.
+palavras: whatsapp, zap, wpp, bot, robô, robo, assistente, assistente financeiro, ia, inteligência artificial, inteligencia artificial, perguntar, conversar, como estão minhas finanças, simular, simulação, simulacao, vale a pena comprar, parcelar, corrigir, sim, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, pdf, documento, arquivo, anexo, anexar, anexar comprovante, guardar comprovante, recibo, alertas no whatsapp, resposta em áudio, resposta em audio, nota de voz, mensagem de voz, falar, ouvir, prefiro texto, responder em texto, responder em áudio, digitando, lida, visto, tracinhos azuis
 relacionados: lancamentos, cartoes-de-credito, alertas-por-email, familia-e-espacos
 ---
 
@@ -124,15 +124,34 @@ No espaço escolhido ao ligar o número. Para trocar, vá em **Segurança › Wh
 
 Quem é **Visualizador** (somente leitura) no espaço pode ver o **saldo** e o **resumo** e fazer perguntas ao assistente, mas não lança. Veja [Família e espaços](artigo:familia-e-espacos).
 
-## Áudio e foto
+## Áudio, foto e PDF
 
 - **Foto com legenda**: mande a foto do cupom com a legenda **45,90 mercado** e o bot lança pela legenda.
 - **Áudio**: fale como escreveria, ex.: "gastei quarenta e cinco e noventa no mercado". O bot mostra o que entendeu. Também dá para **perguntar** por áudio.
 - **Foto sem legenda**: o bot lê o cupom, a nota ou o comprovante (Pix, boleto) e acha o valor, a data, a loja e sugere a categoria.
+- **PDF ou imagem como documento**: mande o comprovante em **PDF** (ex.: Pix, boleto pago, conta de luz) ou uma imagem como arquivo (JPG, PNG, WEBP ou HEIC, a foto do iPhone). O bot lê do mesmo jeito que a foto. Arquivos de até **10 MB**; outros tipos (planilha, ZIP etc.) não são lidos.
 
 Se o áudio e a foto ainda não estiverem disponíveis para você, o bot avisa e você pode escrever a mensagem.
 
-Mesmo com áudio ou foto, o bot sempre mostra o resumo e espera o **Confirmar**.
+Mesmo com áudio, foto ou PDF, o bot sempre mostra o resumo e espera o **Confirmar**.
+
+### Anexar o comprovante ao lançamento
+
+Quando o lançamento veio de uma **foto** ou de um **PDF**, depois que você toca em **Confirmar** o bot pergunta:
+
+> ✅ Lançado! Despesa de R$ 87,35 em Carteira.
+> 📎 Quer anexar o comprovante a este lançamento? Ele fica guardado junto, em Lançamentos no app.
+
+- **Anexar comprovante**: o arquivo vira um **anexo** do lançamento, igual a um anexo feito no app. Responder **anexa** (ou **sim**, se não houver outro lançamento esperando confirmação) também funciona.
+- **Não anexar**: o lançamento continua salvo, sem anexo. Responder **não** também funciona.
+
+Regras do anexo (as mesmas do app):
+
+- Cada lançamento aceita até **10 anexos** de até **3 MB**. Foto maior é reduzida e foto HEIC vira JPG; PDF maior é comprimido.
+- Na **compra no cartão** parcelada, o comprovante vai para a **1ª parcela** e aparece na compra.
+- Se o arquivo não puder ser anexado (PDF grande demais mesmo comprimido, limite de 10 anexos), o bot avisa e o **lançamento continua salvo**, sem o anexo. Você pode anexar pelo app, em **Lançamentos**.
+- Quem é **Visualizador** não lança nem anexa.
+- O arquivo fica guardado só para essa pergunta: some ao anexar, ao responder **Não anexar**, se o lançamento for cancelado ou depois de **1 dia**. A resposta por texto (**anexa**/**não**) vale por **30 minutos**; o botão vale até o arquivo sumir. Veja [Campos extras do lançamento](artigo:campos-extras-do-lancamento).
 
 ## Respostas em áudio
 
@@ -169,6 +188,8 @@ Em **Segurança › WhatsApp**, toque em **Desligar WhatsApp**. O bot para de re
 - **"Código incorreto ou vencido"**: gere um novo código no app e mande de novo, do mesmo número.
 - **"Qual cartão?"**: você tem mais de um cartão. Escreva o nome, ex.: **30 no cartão Nubank ifood**.
 - **Não entendeu a mensagem**: coloque o **valor em número**, ex.: **gastei 45,90 mercado**.
+- **Não perguntou se quero anexar**: a pergunta só aparece para lançamentos feitos a partir de foto ou PDF. Lançou por texto ou áudio? Anexe pelo app, em **Lançamentos**.
+- **"Esse comprovante já foi resolvido ou expirou"**: você já respondeu, cancelou o lançamento ou passou 1 dia. Anexe pelo app, em **Lançamentos**.
 - **Não quero receber áudio**: escreva **prefiro respostas em texto** ou mude em **Segurança › WhatsApp › Respostas do assistente**.
 - **Veio só texto, sem o áudio**: às vezes a voz não fica pronta a tempo; a resposta em texto é a mesma.
 - **O assistente errou um dado**: antes de confirmar, toque em **Corrigir** ou escreva a correção. Os números das respostas vêm do app; se algo parecer diferente, confira em **Lançamentos**.
