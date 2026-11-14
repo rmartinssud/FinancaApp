@@ -76,6 +76,7 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
   const [dataLancamento, setDataLancamento] = useState(editando ? "" : hoje());
   const [anexosSalvos, setAnexosSalvos] = useState([]);
   const [anexosNovos, setAnexosNovos] = useState([]);
+  const [otimizandoAnexos, setOtimizandoAnexos] = useState(false);
   const [ignorar, setIgnorar] = useState({ ignoreInStatistics: false, ignoreInBudgets: false, ignoreInMonthlySavings: false });
   const [maisInfo, setMaisInfo] = useState(false);
   const [data, setData] = useState(hoje());
@@ -168,6 +169,7 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
 
   async function salvar(e) {
     e.preventDefault();
+    if (otimizandoAnexos) return; // espera terminar de otimizar as fotos
     const novosErros = {};
     if (!cartaoId) novosErros.cardId = "Escolha o cartão.";
     if (!quantia || Number(quantia) <= 0) novosErros.amount = "Digite um valor maior que zero.";
@@ -463,6 +465,7 @@ function FormDespesaCartao({ purchaseId = null, cartaoInicial = "", parcelasInic
                 onAdicionar={(arquivos) => setAnexosNovos((lista) => [...lista, ...arquivos])}
                 onRemoverNovo={(i) => setAnexosNovos((lista) => lista.filter((_, j) => j !== i))}
                 onRemoverSalvo={removerAnexoSalvo}
+                onOcupado={setOtimizandoAnexos}
               />
             </div>
             <Interruptor texto="Ignorar em Estatísticas e Gráficos" ligado={ignorar.ignoreInStatistics} onMudar={mudarIgnorar("ignoreInStatistics")} />

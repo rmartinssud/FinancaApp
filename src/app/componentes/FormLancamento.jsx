@@ -215,6 +215,7 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
   const [verEncargos, setVerEncargos] = useState(Boolean(lancamento?.fees || lancamento?.discount));
   const [anexosSalvos, setAnexosSalvos] = useState(lancamento?.attachments ?? []);
   const [anexosNovos, setAnexosNovos] = useState([]);
+  const [otimizandoAnexos, setOtimizandoAnexos] = useState(false);
   const [naoEfetivar, setNaoEfetivar] = useState(lancamento?.noAutoConfirm ?? false);
   const [ignorar, setIgnorar] = useState({
     ignoreInStatistics: lancamento?.ignoreInStatistics ?? false,
@@ -292,6 +293,7 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
 
   async function salvar(e) {
     e.preventDefault();
+    if (otimizandoAnexos) return; // espera terminar de otimizar as fotos
     const quantia = paraApi(valor);
     const novosErros = {};
     if (!descricao.trim()) novosErros.description = "Escreva uma descrição.";
@@ -752,6 +754,7 @@ function FormReceitaDespesa({ lancamento, tipo, onFechar, onSalvo }) {
             onAdicionar={(arquivos) => setAnexosNovos((lista) => [...lista, ...arquivos])}
             onRemoverNovo={(i) => setAnexosNovos((lista) => lista.filter((_, j) => j !== i))}
             onRemoverSalvo={removerAnexoSalvo}
+            onOcupado={setOtimizandoAnexos}
           />
 
           <LinhaInterruptor

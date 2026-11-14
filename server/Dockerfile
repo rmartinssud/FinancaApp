@@ -15,7 +15,9 @@ RUN npm run build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 # ffmpeg: converte a voz do assistente do WhatsApp (Gemini TTS) para OGG/Opus (nota de voz)
-RUN apk add --no-cache openssl ffmpeg
+# ghostscript: comprime PDFs de anexo acima de 3 MB (/ebook) antes de gravar
+# (fotos usam o sharp, que já vem com a libvips pré-compilada para Alpine/musl via npm: nada a instalar)
+RUN apk add --no-cache openssl ffmpeg ghostscript
 ENV NODE_ENV=production
 # node_modules completo: inclui o Prisma CLI (para "migrate deploy") e o client já gerado
 COPY --from=build /app/node_modules ./node_modules
