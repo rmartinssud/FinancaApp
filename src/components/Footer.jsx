@@ -24,7 +24,7 @@ const colunas = [
   {
     titulo: "Legal",
     links: [
-      { label: "Privacidade (LGPD)", href: "#" },
+      { label: "Privacidade (LGPD)", href: "/privacidade" },
       { label: "Termos de uso", href: "#" },
     ],
   },
