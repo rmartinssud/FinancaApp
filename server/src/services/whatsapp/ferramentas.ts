@@ -13,6 +13,7 @@ import { acharCategoria, acharConta, categoriaPeloNome, type CategoriaSimples, t
 import { VALIDADE_RASCUNHO_MIN, categoriasDoEspaco, contasDoEspaco, hojeLocal, nomeFatura, rascunhoPendente, textoDoRascunho } from "./rascunhos.js";
 import { buscarNaAjuda, artigosDaAjuda } from "./conhecimento.js";
 import type { FerramentaIA } from "./ia.js";
+import { provedorComVoz, type ModoResposta } from "./voz.js";
 
 // ─────────────────────────────────────────────
 // Ferramentas do assistente do WhatsApp (function calling).
@@ -32,10 +33,12 @@ export type ContextoAgente = {
   householdId: string;
   espaco: string;
   role: MemberRole;
+  // Preferência de resposta (texto/áudio) salva no número ligado
+  modoResposta?: ModoResposta;
 };
 
-// O que aconteceu no turno (o bot usa para mandar os botões do rascunho)
-export type EstadoTurno = { rascunhoId: string | null; cancelouRascunho: boolean; ferramentas: string[] };
+// O que aconteceu no turno (o bot usa para mandar os botões do rascunho e decidir texto/áudio)
+export type EstadoTurno = { rascunhoId: string | null; cancelouRascunho: boolean; ferramentas: string[]; modoResposta?: ModoResposta };
 
 type Args = Record<string, unknown>;
 type Ferramenta = FerramentaIA & { escrita?: boolean; executar(ctx: ContextoAgente, args: Args, estado: EstadoTurno): Promise<Record<string, unknown>> };
@@ -839,6 +842,39 @@ const ajuda: Ferramenta = {
   },
 };
 
+// Texto ou áudio: vale para quem tem qualquer acesso (não mexe em dados do espaço, só no número ligado)
+const MODOS: Record<string, ModoResposta> = { auto: "AUTO", texto: "TEXT", audio: "AUDIO" };
+const preferenciaDeResposta: Ferramenta = {
+  nome: "preferencia_de_resposta",
+  descricao:
+    "Muda como você responde a esta pessoa no WhatsApp: 'texto' (sempre só texto), 'audio' (sempre nota de voz + texto) ou 'auto' (áudio quando ela manda áudio, o padrão). " +
+    "Use só quando ela pedir (ex.: 'prefiro respostas em texto', 'não precisa mandar áudio', 'responda em áudio', 'pode mandar áudio sempre').",
+  parametros: {
+    type: "OBJECT",
+    properties: { modo: { type: "STRING", enum: ["auto", "texto", "audio"], description: "auto, texto ou audio" } },
+    required: ["modo"],
+  },
+  async executar(ctx, args, estado) {
+    const modo = MODOS[normalizar(String(args.modo ?? "")).trim()];
+    if (!modo) return { erro: "Use modo auto, texto ou audio." };
+    const r = await prisma.whatsAppLink.updateMany({ where: { waId: ctx.waId, userId: ctx.userId }, data: { replyMode: modo } });
+    if (!r.count) return { erro: "Não achei o número ligado. A pessoa pode mudar em famicash.com › Segurança › WhatsApp." };
+    estado.modoResposta = modo;
+    const textos = {
+      AUTO: "Pronto: respondo em áudio quando a pessoa mandar áudio, e em texto quando ela escrever.",
+      TEXT: "Pronto: as respostas vão só em texto.",
+      AUDIO: "Pronto: as respostas vão em áudio, com o texto junto.",
+    };
+    return {
+      ok: true,
+      modo: args.modo,
+      mensagem: textos[modo],
+      ...(modo !== "TEXT" && !provedorComVoz() ? { aviso: "A resposta em áudio está desligada no momento; por enquanto as respostas continuam em texto." } : {}),
+      dica: "Também dá para mudar em famicash.com › Segurança › WhatsApp.",
+    };
+  },
+};
+
 export const FERRAMENTAS: Ferramenta[] = [
   resumoFinanceiro,
   orcamentos,
@@ -853,6 +889,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   alterarRascunho,
   cancelarRascunho,
   ajuda,
+  preferenciaDeResposta,
 ];
 
 // Ferramentas que a pessoa pode usar (Visualizador: só consultas)

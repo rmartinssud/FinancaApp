@@ -13,7 +13,8 @@ import { acharCategoria, acharConta, categoriaPeloNome, montarDescricao, type Co
 import { VALIDADE_RASCUNHO_MIN, categoriasDoEspaco, contasDoEspaco, hojeLocal, nomeFatura, rascunhoPendente, textoDoRascunho } from "./rascunhos.js";
 import { ErroAgente, assistenteDisponivel, lembrar, responderComAgente } from "./agente.js";
 import { normalizar } from "./parser.js";
-import { baixarMidia, enviarBotoes, enviarLista, enviarTexto, type LinhaLista } from "./cliente.js";
+import { baixarMidia, enviarBotoes, enviarLista, enviarTexto, marcarLidaEDigitando, type LinhaLista } from "./cliente.js";
+import { enviarVoz, provedorComVoz, querResponderEmAudio, type ModoResposta } from "./voz.js";
 import { confirmarVinculo } from "./vinculo.js";
 import { podeUsarWhatsApp } from "./plano.js";
 import { provedorIA, type DadosComprovante } from "./ia.js";
@@ -29,6 +30,9 @@ import { provedorIA, type DadosComprovante } from "./ia.js";
 //   corrige em linguagem natural, responde "como estão minhas finanças?" e simula compras. Ele só mexe em
 //   rascunhos; gravar continua sendo no Confirmar (ou "sim"). Se a IA falhar, cai no parser de sempre.
 // - Áudio e foto sem IA configurada: respondemos que chega em breve.
+// - Ao receber: marca como lida e mostra "digitando..." (renovado a cada ~20 s); falha nisso nunca trava a resposta.
+// - Voz (voz.ts): quem manda áudio recebe a resposta do assistente também em áudio (nota de voz), além do texto.
+//   Preferência por número: AUTO (padrão), TEXT ou AUDIO. Rascunhos continuam com os botões em texto.
 // Cada mensagem é processada uma vez só (id da mensagem do WhatsApp em whatsapp_inbound).
 // ─────────────────────────────────────────────
 
@@ -89,15 +93,32 @@ export async function processarWebhook(payload: PayloadWebhook) {
       for (const msg of v.messages) {
         if (!msg?.id || !msg.from) continue;
         if (!(await primeiraVez(msg.id, msg.from))) continue;
+        const pararDigitando = await iniciarDigitando(msg.id);
         try {
           await tratarMensagem(msg);
         } catch (e) {
           console.error(`WhatsApp: erro na mensagem ${msg.id}`, e);
           await enviarTexto(msg.from, "Ops, algo deu errado por aqui. Tente de novo daqui a pouco.").catch(() => undefined);
+        } finally {
+          pararDigitando();
         }
       }
     }
   }
+}
+
+// ── Lida + "digitando..." ──────────────────────
+
+// O indicador dura até ~25 s ou até a resposta; renovamos a cada 20 s enquanto processamos (testes encurtam)
+export const RITMO_DIGITANDO = { ms: 20_000 };
+
+async function iniciarDigitando(messageId: string) {
+  const mandar = () =>
+    marcarLidaEDigitando(messageId).catch((e) => console.warn(`WhatsApp: falha ao marcar lida/digitando (${e instanceof Error ? e.message : e})`));
+  await mandar();
+  const timer = setInterval(() => void mandar(), RITMO_DIGITANDO.ms);
+  timer.unref();
+  return () => clearInterval(timer);
 }
 
 // Grava o id da mensagem. false = já processada (o Meta reenviou)
@@ -121,7 +142,14 @@ type Contexto = {
   householdId: string;
   espaco: string;
   role: MemberRole;
+  modoResposta: ModoResposta;
+  // A mensagem desta vez chegou em áudio? (AUTO responde em áudio)
+  entradaEmAudio?: boolean;
 };
+
+// Resposta em áudio nesta mensagem? (modo: a preferência, que o assistente pode ter acabado de mudar)
+const emAudio = (ctx: Contexto, modo = ctx.modoResposta) => querResponderEmAudio(modo, Boolean(ctx.entradaEmAudio));
+const falar = (ctx: Contexto, texto: string) => enviarVoz(ctx.waId, texto, { userId: ctx.userId });
 
 const ajudaTexto = (espaco: string) =>
   [
@@ -141,6 +169,7 @@ const ajudaTexto = (espaco: string) =>
           "• vou estourar o orçamento do mercado?",
           "• se eu comprar uma TV de R$ 3.000 em 10x no cartão, atrapalha?",
           "Nada é lançado sem você confirmar. ✅",
+          ...(provedorComVoz() ? ["Mandou áudio? Respondo em áudio também (prefere só texto? diga *prefiro respostas em texto*)."] : []),
           "",
         ]
       : []),
@@ -163,7 +192,16 @@ async function carregarContexto(waId: string): Promise<Contexto | { erro: string
     include: { household: { select: { name: true } } },
   });
   if (!membro) return { erro: `Você não faz mais parte do espaço padrão do WhatsApp. Escolha outro em ${SITE} › Segurança › WhatsApp.` };
-  return { waId, link, userId: link.userId, nome: link.user.name, householdId: link.householdId, espaco: membro.household.name, role: membro.role };
+  return {
+    waId,
+    link,
+    userId: link.userId,
+    nome: link.user.name,
+    householdId: link.householdId,
+    espaco: membro.household.name,
+    role: membro.role,
+    modoResposta: link.replyMode,
+  };
 }
 
 // ── Roteamento ────────────────────────────────
@@ -238,9 +276,11 @@ async function tratarTexto(ctx: Contexto, texto: string, origem?: string, entrad
       case "ajuda":
         return void (await enviarTexto(ctx.waId, ajudaTexto(ctx.espaco)));
       case "saldo":
-        return void (await enviarTexto(ctx.waId, await textoSaldo(ctx)));
-      case "resumo":
-        return void (await enviarTexto(ctx.waId, await textoResumo(ctx)));
+      case "resumo": {
+        const resposta = leitura.comando === "saldo" ? await textoSaldo(ctx) : await textoResumo(ctx);
+        if (emAudio(ctx)) await falar(ctx, resposta);
+        return void (await enviarTexto(ctx.waId, resposta));
+      }
       case "cancelar": {
         const r = await prisma.whatsAppDraft.updateMany({ where: { waId: ctx.waId, status: "PENDING" }, data: { status: "CANCELED", awaitingCategory: false } });
         const resposta = r.count ? "Cancelado. Nada foi lançado." : "Não há nada para cancelar.";
@@ -290,10 +330,13 @@ async function tratarTexto(ctx: Contexto, texto: string, origem?: string, entrad
 async function tratarComAssistente(ctx: Contexto, entrada: string, prefixo?: string): Promise<boolean> {
   let texto = "";
   let rascunhoId: string | null = null;
+  let modo = ctx.modoResposta;
   try {
-    const r = await responderComAgente(ctx, entrada);
+    const r = await responderComAgente(ctx, entrada, undefined, { emAudio: emAudio(ctx) });
     texto = r.texto;
     rascunhoId = r.estado.rascunhoId;
+    // "prefiro respostas em texto" já vale para esta resposta
+    if (r.estado.modoResposta) modo = r.estado.modoResposta;
   } catch (e) {
     console.warn(`WhatsApp IA: assistente falhou, usando o parser (${e instanceof Error ? e.message : e})`);
     // Falhou depois de montar o rascunho: mostra o rascunho mesmo assim
@@ -303,9 +346,12 @@ async function tratarComAssistente(ctx: Contexto, entrada: string, prefixo?: str
 
   const rascunho = rascunhoId ? await prisma.whatsAppDraft.findFirst({ where: { id: rascunhoId, status: "PENDING" } }) : null;
   const corpo = [prefixo, texto].filter(Boolean).join("\n\n");
+  const voz = emAudio(ctx, modo);
   let memoria = texto;
   if (rascunho) {
     const resumo = await textoDoRascunho(rascunho, ctx.espaco);
+    // Áudio: um resumo curto antes; os botões continuam em texto (mensagem interativa)
+    if (voz) await falar(ctx, `${texto || resumoFalado(rascunho)} ${CONFIRA_BOTOES}`);
     memoria = [texto, `[Rascunho mostrado com os botões Confirmar/Corrigir/Cancelar]\n${resumo}`].filter(Boolean).join("\n\n");
     // O corpo dos botões aceita até 1024 caracteres: texto longo vai antes, numa mensagem só dele
     if (corpo && corpo.length + resumo.length > 1000) {
@@ -315,11 +361,20 @@ async function tratarComAssistente(ctx: Contexto, entrada: string, prefixo?: str
       await enviarBotoesDoAssistente(ctx, rascunho, corpo ? `${corpo}\n\n${resumo}` : resumo);
     }
   } else {
+    if (voz && texto) await falar(ctx, texto);
     await enviarTexto(ctx.waId, corpo || "Pronto.");
   }
   await anotar(ctx, "USER", entrada);
   await anotar(ctx, "ASSISTANT", memoria);
   return true;
+}
+
+const CONFIRA_BOTOES = "Confira na mensagem abaixo e toque em Confirmar, se estiver certo.";
+
+// Uma frase para o áudio do rascunho: "Despesa de R$ 45,00, Almoço, em 3x."
+function resumoFalado(r: WhatsAppDraft) {
+  const parcelas = r.installments > 1 ? `, em ${r.installments}x` : "";
+  return `Preparei ${r.type === "INCOME" ? "uma receita" : "uma despesa"} de ${formatarReais(r.amount)}, ${r.description}${parcelas}.`;
 }
 
 function enviarBotoesDoAssistente(ctx: Contexto, r: WhatsAppDraft, corpo: string) {
@@ -394,6 +449,8 @@ async function criarRascunho(ctx: Contexto, l: LancamentoLido, origem?: string) 
       expiresAt: new Date(Date.now() + VALIDADE_RASCUNHO_MIN * 60 * 1000),
     },
   });
+  // Sem o assistente (parser), mas com voz: um resumo curto em áudio antes dos botões
+  if (emAudio(ctx)) await falar(ctx, `${resumoFalado(rascunho)} ${CONFIRA_BOTOES}`);
   await enviarResumoRascunho(ctx, rascunho, origem);
 }
 
@@ -604,7 +661,7 @@ async function tratarAudio(ctx: Contexto, audio: { id: string; mime_type?: strin
     return void (await enviarTexto(ctx.waId, "Não consegui ouvir esse áudio. Tente de novo ou escreva a mensagem."));
   }
   if (!texto) return void (await enviarTexto(ctx.waId, "Não consegui entender o áudio. Pode escrever?"));
-  await tratarTexto(ctx, texto, `🎤 Entendi: “${texto.slice(0, 300)}”`, `(Mensagem de áudio, transcrita) ${texto}`);
+  await tratarTexto({ ...ctx, entradaEmAudio: true }, texto, `🎤 Entendi: “${texto.slice(0, 300)}”`, `(Mensagem de áudio, transcrita) ${texto}`);
 }
 
 // Frase equivalente ao que a IA leu, para passar pelo mesmo caminho do texto

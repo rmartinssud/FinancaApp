@@ -14,7 +14,8 @@ RUN npm run build
 # ---------- runtime ----------
 FROM node:22-alpine AS runtime
 WORKDIR /app
-RUN apk add --no-cache openssl
+# ffmpeg: converte a voz do assistente do WhatsApp (Gemini TTS) para OGG/Opus (nota de voz)
+RUN apk add --no-cache openssl ffmpeg
 ENV NODE_ENV=production
 # node_modules completo: inclui o Prisma CLI (para "migrate deploy") e o client já gerado
 COPY --from=build /app/node_modules ./node_modules

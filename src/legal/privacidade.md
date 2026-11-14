@@ -39,14 +39,14 @@ Só com empresas que nos ajudam a operar o serviço, e apenas o necessário:
 - **Resend:** envio dos e-mails do sistema.
 - **Cloudflare:** DNS do domínio e encaminhamento do e-mail de contato.
 - **Meta (WhatsApp Business):** entrega das mensagens entre você e o bot, se você usar o WhatsApp.
-- **Google (Gemini):** leitura das mensagens, áudios e fotos enviados ao bot para identificar valor, data e categoria e, quando você faz uma pergunta ao assistente, os números do espaço necessários para responder (saldos, totais, orçamentos, faturas, objetivos, dívidas). O conteúdo é enviado só para esse processamento.
+- **Google (Gemini):** leitura das mensagens, áudios e fotos enviados ao bot para identificar valor, data e categoria e, quando você faz uma pergunta ao assistente, os números do espaço necessários para responder (saldos, totais, orçamentos, faturas, objetivos, dívidas). Quando o assistente responde em áudio, o texto da resposta também é enviado ao Google para gerar a voz. O conteúdo é enviado só para esse processamento.
 
 Alguns desses fornecedores ficam fora do Brasil. Nesses casos a transferência segue o art. 33 da LGPD, com fornecedores que adotam padrões de proteção adequados. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir.
 
 ## Por quanto tempo guardamos
 
 - Seus dados financeiros ficam guardados enquanto sua conta existir.
-- Áudios e fotos enviados ao WhatsApp não ficam guardados: são processados e descartados. Fica só o lançamento criado a partir deles.
+- Áudios e fotos enviados ao WhatsApp não ficam guardados: são processados e descartados. Fica só o lançamento criado a partir deles. Os áudios de resposta do assistente também não ficam guardados no Famicash (só na sua conversa do WhatsApp).
 - O texto das últimas mensagens da conversa com o assistente do WhatsApp fica guardado por até 1 dia, para ele lembrar do assunto; depois é apagado.
 - Registros de acesso ficam guardados por 6 meses, como pede o Marco Civil da Internet.
 - Quando você pede a exclusão da conta, apagamos seus dados em até 30 dias, salvo o que a lei obrigar a manter.

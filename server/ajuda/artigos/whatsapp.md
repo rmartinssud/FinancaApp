@@ -2,8 +2,8 @@
 titulo: Famicash no WhatsApp
 categoria: Lançamentos
 ordem: 5.5
-resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, áudio ou foto. Converse com o assistente sobre suas finanças, simule compras e receba alertas no WhatsApp. Nada é salvo sem você confirmar.
-palavras: whatsapp, zap, wpp, bot, robô, robo, assistente, assistente financeiro, ia, inteligência artificial, inteligencia artificial, perguntar, conversar, como estão minhas finanças, simular, simulação, simulacao, vale a pena comprar, parcelar, corrigir, sim, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, alertas no whatsapp
+resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, áudio ou foto. Converse com o assistente sobre suas finanças (ele responde em áudio quando você manda áudio), simule compras e receba alertas no WhatsApp. Nada é salvo sem você confirmar.
+palavras: whatsapp, zap, wpp, bot, robô, robo, assistente, assistente financeiro, ia, inteligência artificial, inteligencia artificial, perguntar, conversar, como estão minhas finanças, simular, simulação, simulacao, vale a pena comprar, parcelar, corrigir, sim, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, alertas no whatsapp, resposta em áudio, resposta em audio, nota de voz, mensagem de voz, falar, ouvir, prefiro texto, responder em texto, responder em áudio, digitando, lida, visto, tracinhos azuis
 relacionados: lancamentos, cartoes-de-credito, alertas-por-email, familia-e-espacos
 ---
 
@@ -134,6 +134,27 @@ Se o áudio e a foto ainda não estiverem disponíveis para você, o bot avisa e
 
 Mesmo com áudio ou foto, o bot sempre mostra o resumo e espera o **Confirmar**.
 
+## Respostas em áudio
+
+Mandou um **áudio**? O assistente responde também com uma **mensagem de voz**, e o **mesmo texto** vai junto, para quando você não puder ouvir.
+
+- **Perguntas e conversas** ("como estão minhas finanças?"): vêm em áudio + texto. Respostas longas ficam com até cerca de **1 minuto** de áudio; o resto está no texto.
+- **Lançamentos para confirmar**: o áudio lê um resumo curto e, logo abaixo, chega a mensagem com os botões **Confirmar**, **Corrigir** e **Cancelar**, como sempre.
+- **Confirmações, erros e listas de categorias** continuam só em texto.
+- Se o áudio não puder ser gerado na hora, a resposta chega só em texto, normalmente.
+
+Você escolhe como prefere receber:
+
+- **Automático** (padrão): áudio quando você manda áudio; texto quando você escreve.
+- **Sempre em texto**: nunca manda áudio.
+- **Sempre em áudio**: manda áudio (com o texto junto) mesmo quando você escreve.
+
+Para mudar, peça no próprio WhatsApp, por texto ou áudio: **prefiro respostas em texto**, **responda em áudio** ou **volte ao automático**. Ou vá em **Segurança › WhatsApp › Respostas do assistente**.
+
+## Lida e "digitando..."
+
+Quando a sua mensagem chega, ela fica marcada como **lida** (os tracinhos azuis, se você usa a confirmação de leitura) e aparece **digitando...** enquanto o Famicash prepara a resposta. Perguntas que pedem mais cálculo podem levar alguns segundos.
+
 ## Alertas no WhatsApp
 
 Além do e-mail, você pode receber os alertas de **orçamento**, **fatura do cartão** e **contas a pagar** no WhatsApp. Eles começam **desligados**: em **Segurança › Alertas no WhatsApp**, ligue só os que quiser (com o número já ligado). Os horários e as regras são os mesmos dos e-mails. Veja [Alertas por e-mail](artigo:alertas-por-email).
@@ -148,4 +169,6 @@ Em **Segurança › WhatsApp**, toque em **Desligar WhatsApp**. O bot para de re
 - **"Código incorreto ou vencido"**: gere um novo código no app e mande de novo, do mesmo número.
 - **"Qual cartão?"**: você tem mais de um cartão. Escreva o nome, ex.: **30 no cartão Nubank ifood**.
 - **Não entendeu a mensagem**: coloque o **valor em número**, ex.: **gastei 45,90 mercado**.
+- **Não quero receber áudio**: escreva **prefiro respostas em texto** ou mude em **Segurança › WhatsApp › Respostas do assistente**.
+- **Veio só texto, sem o áudio**: às vezes a voz não fica pronta a tempo; a resposta em texto é a mesma.
 - **O assistente errou um dado**: antes de confirmar, toque em **Corrigir** ou escreva a correção. Os números das respostas vêm do app; se algo parecer diferente, confira em **Lançamentos**.

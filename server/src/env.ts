@@ -39,6 +39,13 @@ const schema = z.object({
   // Assistente de IA no WhatsApp (conversa, perguntas e simulações). Liga sozinho quando há IA; "off" desliga
   // e o bot volta ao parser de comandos (áudio e foto continuam usando a IA).
   WHATSAPP_ASSISTENTE: z.enum(["on", "off", ""]).optional(),
+  // Resposta em áudio (nota de voz) do assistente: liga sozinha quando há IA com voz; "off" desliga (só texto).
+  WHATSAPP_AUDIO_RESPOSTA: z.enum(["on", "off", ""]).optional(),
+  // Voz (TTS) do Gemini: modelo e voz pré-pronta. Sem valor: os padrões de ia.ts.
+  GEMINI_TTS_MODEL: z.string().optional(),
+  GEMINI_TTS_VOICE: z.string().optional(),
+  // Caminho do ffmpeg (converte a voz para OGG/Opus). Padrão: "ffmpeg" no PATH (a imagem Docker já traz).
+  FFMPEG_PATH: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

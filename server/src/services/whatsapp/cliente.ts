@@ -136,3 +136,46 @@ export async function baixarMidia(mediaId: string): Promise<{ dados: Buffer; mim
   if (dados.length > MAX_MIDIA) throw new ErroWhatsApp("Arquivo grande demais.", 413);
   return { dados, mime: (info.mime_type ?? arq.headers.get("content-type") ?? "application/octet-stream").split(";")[0].trim() };
 }
+
+// Marca a mensagem recebida como lida (✓✓ azul) e mostra "digitando..." para a pessoa.
+// O indicador some quando respondemos ou depois de ~25 s (developers.facebook.com/docs/whatsapp/cloud-api/typing-indicators).
+// Mandar de novo com o mesmo message_id renova o "digitando...".
+export async function marcarLidaEDigitando(messageId: string, digitando = true) {
+  const c = config();
+  const r = await fetch(urlGraph(`${c.phoneNumberId}/messages`), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${c.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      status: "read",
+      message_id: messageId,
+      ...(digitando ? { typing_indicator: { type: "text" } } : {}),
+    }),
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!r.ok) throw await lerErro(r);
+}
+
+// Sobe um arquivo para o WhatsApp (POST /{phone_number_id}/media, multipart) e devolve o id da mídia
+export async function subirMidia(dados: Buffer, mime: string, nomeArquivo: string) {
+  const c = config();
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", mime);
+  form.append("file", new Blob([new Uint8Array(dados)], { type: mime }), nomeArquivo);
+  const r = await fetch(urlGraph(`${c.phoneNumberId}/media`), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${c.token}` },
+    body: form,
+    signal: AbortSignal.timeout(TEMPO_LIMITE),
+  });
+  if (!r.ok) throw await lerErro(r);
+  const corpo = (await r.json().catch(() => ({}))) as { id?: string };
+  if (!corpo.id) throw new ErroWhatsApp("Upload sem id da mídia.", 502);
+  return corpo.id;
+}
+
+// Nota de voz (OGG/Opus já enviado com subirMidia). voice: true = ícone de microfone e download automático.
+export function enviarAudio(para: string, mediaId: string, voz = true) {
+  return enviar(para, { type: "audio", audio: { id: mediaId, ...(voz ? { voice: true } : {}) } });
+}
