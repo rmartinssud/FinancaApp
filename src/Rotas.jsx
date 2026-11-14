@@ -35,6 +35,11 @@ const Convite = lazy(() => import("./pages/Convite.jsx"));
 const Ajuda = lazy(() => import("./app/Ajuda.jsx"));
 const AjudaPublica = lazy(() => import("./pages/AjudaPublica.jsx"));
 const Privacidade = lazy(() => import("./pages/Privacidade.jsx"));
+const EducacaoPublica = lazy(() => import("./pages/EducacaoPublica.jsx"));
+const Educacao = lazy(() => import("./app/Educacao.jsx"));
+const AdminEducacao = lazy(() => import("./app/admin/AdminEducacao.jsx"));
+const EditorConteudo = lazy(() => import("./app/admin/EditorConteudo.jsx"));
+const EditorCurso = lazy(() => import("./app/admin/EditorCurso.jsx"));
 
 function Rotas() {
   return (
@@ -56,6 +61,12 @@ function Rotas() {
           <Route path="/ajuda" element={<AjudaPublica />} />
           <Route path="/ajuda/:slug" element={<AjudaPublica />} />
           <Route path="/privacidade" element={<Privacidade />} />
+          {/* Educação financeira aberta (sem login; o conteúdo "só para cadastrados" mostra o convite) */}
+          <Route path="/educacao" element={<EducacaoPublica pagina="home" />} />
+          <Route path="/educacao/cursos" element={<EducacaoPublica pagina="cursos" />} />
+          <Route path="/educacao/cursos/:slug" element={<EducacaoPublica pagina="curso" />} />
+          <Route path="/educacao/cursos/:slug/:aula" element={<EducacaoPublica pagina="aula" />} />
+          <Route path="/educacao/:slug" element={<EducacaoPublica pagina="conteudo" />} />
 
           {/* Área logada */}
           <Route path="/app" element={<RotaProtegida><Inicio /></RotaProtegida>} />
@@ -81,6 +92,15 @@ function Rotas() {
           <Route path="/app/seguranca" element={<RotaProtegida><Seguranca /></RotaProtegida>} />
           <Route path="/app/ajuda" element={<RotaProtegida><Ajuda /></RotaProtegida>} />
           <Route path="/app/ajuda/:slug" element={<RotaProtegida><Ajuda /></RotaProtegida>} />
+          <Route path="/app/educacao" element={<RotaProtegida><Educacao pagina="home" /></RotaProtegida>} />
+          <Route path="/app/educacao/cursos" element={<RotaProtegida><Educacao pagina="cursos" /></RotaProtegida>} />
+          <Route path="/app/educacao/cursos/:slug" element={<RotaProtegida><Educacao pagina="curso" /></RotaProtegida>} />
+          <Route path="/app/educacao/cursos/:slug/:aula" element={<RotaProtegida><Educacao pagina="aula" /></RotaProtegida>} />
+          <Route path="/app/educacao/:slug" element={<RotaProtegida><Educacao pagina="conteudo" /></RotaProtegida>} />
+          {/* Painel da Educação financeira (equipe: EDITOR e ADMIN; a API confere de novo) */}
+          <Route path="/app/admin/educacao" element={<RotaProtegida><AdminEducacao /></RotaProtegida>} />
+          <Route path="/app/admin/educacao/conteudos/:id" element={<RotaProtegida><EditorConteudo /></RotaProtegida>} />
+          <Route path="/app/admin/educacao/cursos/:id" element={<RotaProtegida><EditorCurso /></RotaProtegida>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

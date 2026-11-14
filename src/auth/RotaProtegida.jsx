@@ -1,6 +1,7 @@
 import { useRef } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { useSession } from "../lib/auth-client.js";
+import { caminhoSeguro } from "../lib/voltar.js";
 
 // Tela de carregamento simples enquanto a sessão é consultada
 export function Carregando() {
@@ -32,9 +33,11 @@ export function RotaProtegida({ children }) {
 }
 
 // O contrário: telas de login/cadastro não aparecem para quem já entrou
+// (já logado e com ?voltar=/educacao/...: vai direto para lá)
 export function SomenteVisitante({ children }) {
   const { sessao, carregando } = usePrimeiraCarga();
+  const [params] = useSearchParams();
   if (carregando) return <Carregando />;
-  if (sessao) return <Navigate to="/app" replace />;
+  if (sessao) return <Navigate to={caminhoSeguro(params.get("voltar")) ?? "/app"} replace />;
   return children;
 }

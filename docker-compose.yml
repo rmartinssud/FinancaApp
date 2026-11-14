@@ -54,6 +54,9 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-}
       # Assistente de IA no WhatsApp: liga sozinho com GEMINI_API_KEY; "off" volta ao bot de comandos
       WHATSAPP_ASSISTENTE: ${WHATSAPP_ASSISTENTE:-}
+      # Educação financeira: administradores da plataforma (emails separados por vírgula) e endereço público do site
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      SITE_URL: ${SITE_URL:-}
     volumes:
       - anexos:/data/anexos
     depends_on:

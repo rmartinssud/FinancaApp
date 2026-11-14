@@ -43,6 +43,14 @@ model User {
   whatsappReceipts WhatsAppReceipt[]
   whatsappChat     WhatsAppChatMessage[]
 
+  // Papel na PLATAFORMA (não tem nada a ver com os papéis dos espaços): quem cuida da Educação financeira.
+  // ADMIN também vem da variável ADMIN_EMAILS (ver services/educacao/papeis.ts).
+  platformRole     PlatformRole  @default(USER)
+  eduCriados       EduContent[]  @relation("EduContentCreatedBy")
+  eduCursosCriados EduCourse[]   @relation("EduCourseCreatedBy")
+  eduProgresso     EduProgress[]
+  eduAutor         EduAuthor?
+
   @@map("users")
 }
 
@@ -842,17 +850,17 @@ model WhatsAppDraft {
 // do lançamento se a pessoa quiser (pergunta depois do Confirmar). Apagado ao anexar,
 // ao responder "Não anexar", com o rascunho cancelado ou depois de 1 dia (limparWhatsApp).
 model WhatsAppReceipt {
-  id        String         @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   waId      String
   // Rascunho criado a partir do comprovante (null enquanto o bot ainda está montando)
-  draftId   String?        @unique
+  draftId   String?   @unique
   data      Bytes
   mime      String
   fileName  String
   // Quando perguntamos "Anexar comprovante?" (depois do Confirmar)
   askedAt   DateTime?
-  createdAt DateTime       @default(now())
+  createdAt DateTime  @default(now())
 
   user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   draft WhatsAppDraft? @relation(fields: [draftId], references: [id], onDelete: Cascade)
@@ -892,4 +900,171 @@ model WhatsAppChatMessage {
   @@index([waId, createdAt])
   @@index([createdAt])
   @@map("whatsapp_chat_messages")
+}
+
+// ─────────────────────────────────────────────
+// Educação financeira (Fase 8): artigos, vídeos, materiais e cursos.
+// Conteúdo da PLATAFORMA (não pertence a um espaço). Gerido por EDITOR/ADMIN.
+// ─────────────────────────────────────────────
+
+enum PlatformRole {
+  USER // padrão: só lê
+  EDITOR // cria e edita o próprio conteúdo e envia para revisão
+  ADMIN // gerencia tudo, publica e dá o papel de EDITOR
+}
+
+enum ContentVisibility {
+  PUBLIC // qualquer pessoa na web (indexado pelo Google)
+  REGISTERED // precisa de conta Famicash (o plano grátis já inclui)
+  VIP // RESERVADO para um plano pago futuro: não aparece na interface e ninguém além do ADMIN vê
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Quem assina o conteúdo (pode ser um parceiro sem conta no Famicash)
+model EduAuthor {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  photoKey  String?  @unique
+  userId    String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contents EduContent[]
+  courses  EduCourse[]
+
+  @@map("edu_authors")
+}
+
+model EduCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  contents EduContent[]
+  courses  EduCourse[]
+
+  @@map("edu_categories")
+}
+
+// Artigo, vídeo ou os dois (o tipo sai do que foi preenchido: texto e/ou vídeo). Também é a "aula" de um curso.
+model EduContent {
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  title          String
+  summary        String            @default("")
+  body           String            @default("") // Markdown
+  videoUrl       String?
+  videoId        String? // ID do YouTube (embed youtube-nocookie)
+  coverKey       String?           @unique
+  visibility     ContentVisibility @default(PUBLIC)
+  status         ContentStatus     @default(DRAFT)
+  featured       Boolean           @default(false)
+  listed         Boolean           @default(true) // aparece na lista de artigos (aula só de curso: false)
+  tags           String[]          @default([])
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime? // no futuro = agendado
+  submittedAt    DateTime? // editor enviou para revisão
+  categoryId     String?
+  authorId       String?
+  createdById    String? // quem criou (EDITOR dono); some se a conta for apagada
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  category  EduCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author    EduAuthor?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdBy User?             @relation("EduContentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  materials EduMaterial[]
+  lessons   EduCourseLesson[]
+  progress  EduProgress[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@map("edu_contents")
+}
+
+model EduCourse {
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  title          String
+  summary        String            @default("")
+  description    String            @default("") // Markdown
+  coverKey       String?           @unique
+  visibility     ContentVisibility @default(PUBLIC)
+  status         ContentStatus     @default(DRAFT)
+  featured       Boolean           @default(false)
+  tags           String[]          @default([])
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime?
+  submittedAt    DateTime?
+  categoryId     String?
+  authorId       String?
+  createdById    String? // quem criou (EDITOR dono); some se a conta for apagada
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  category  EduCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author    EduAuthor?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdBy User?             @relation("EduCourseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  lessons   EduCourseLesson[]
+
+  @@index([status, publishedAt])
+  @@map("edu_courses")
+}
+
+// Aulas do curso, em ordem
+model EduCourseLesson {
+  id        String @id @default(cuid())
+  courseId  String
+  contentId String
+  position  Int
+
+  course  EduCourse  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  content EduContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, contentId])
+  @@index([contentId])
+  @@map("edu_course_lessons")
+}
+
+// Material para baixar (PDF, planilha...) preso a um conteúdo
+model EduMaterial {
+  id           String   @id @default(cuid())
+  contentId    String
+  title        String?
+  originalName String
+  mime         String
+  size         Int
+  storageKey   String   @unique
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  content EduContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@map("edu_materials")
+}
+
+// Aula/artigo concluído por um usuário
+model EduProgress {
+  userId      String
+  contentId   String
+  completedAt DateTime @default(now())
+
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content EduContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, contentId])
+  @@index([contentId])
+  @@map("edu_progress")
 }

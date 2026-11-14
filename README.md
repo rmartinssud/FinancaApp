@@ -459,3 +459,44 @@ O conhecimento do app vem dos artigos `src/ajuda/artigos/*.md`. A imagem Docker 
 2. Lançar: o texto vira um rascunho (`whatsapp_drafts`, 30 min) com botões Confirmar / Editar categoria / Cancelar. O lançamento (`source = WHATSAPP`) só é criado no Confirmar. Cartão segue a regra da fatura (no fechamento ou depois → fatura seguinte). Visualizador não lança.
 3. Alertas: canal `WHATSAPP` com modelos aprovados (`server/src/services/whatsapp/modelos.ts`); opt-in por tipo em Segurança › Alertas no WhatsApp.
 4. Planos (Fase 9): `podeUsarWhatsApp()` em `server/src/services/whatsapp/plano.ts` é o ponto único (hoje libera todo mundo).
+
+## Educação financeira (Fase 8)
+
+Artigos (texto), vídeos (YouTube) e os dois juntos, com **materiais para baixar** (PDF, planilhas XLSX/CSV, documentos; até 20 MB, sem compressão) e **cursos** com aulas em ordem e progresso por usuário.
+
+- Site aberto: `/educacao`, `/educacao/:slug`, `/educacao/cursos`, `/educacao/cursos/:curso`, `/educacao/cursos/:curso/:aula`.
+- Dentro do app: as mesmas telas em `/app/educacao/...` (menu → Aprender → Educação financeira).
+- Painel da equipe: `/app/admin/educacao` (menu → Equipe Famicash → Painel de conteúdo).
+
+### Quem vê o quê
+
+| Visibilidade | Sem login | Com conta (inclusive grátis) |
+| --- | --- | --- |
+| `PUBLIC` | tudo (indexado no Google/sitemap) | tudo |
+| `REGISTERED` | só título, resumo e capa + "Crie sua conta grátis para ver" | tudo |
+| `VIP` | reservado para um plano pago futuro: a interface não oferece; hoje só ADMIN abre | |
+
+Rascunhos e agendados (`publishedAt` no futuro) não aparecem para o público; a equipe vê a prévia. Aula fora da lista de artigos (`listed = false`) que só está em cursos `REGISTERED` herda a restrição.
+
+### Papéis da plataforma (não são os papéis dos espaços)
+
+- `User.platformRole`: `USER` (padrão), `EDITOR`, `ADMIN`.
+- **ADMIN** também vem da variável `ADMIN_EMAILS` (emails separados por vírgula, conta com email confirmado). Lido a cada pedido: tirar o email da variável e reiniciar tira o acesso.
+- **EDITOR**: dado por um ADMIN em Painel → Equipe (a pessoa precisa ter conta). Cria/edita o próprio conteúdo enquanto não está publicado e envia para revisão. Só ADMIN publica (agora ou agendado), arquiva e mexe em categorias e equipe.
+
+No Coolify (serviço `server`):
+
+```
+ADMIN_EMAILS=rmartins.sud@gmail.com,rmartins.iti@gmail.com
+SITE_URL=https://famicash.com   # opcional; padrão FRONTEND_URL
+```
+
+### SEO
+
+- `GET /api/seo/head?path=...`: título, descrição, canonical, Open Graph, Twitter e JSON-LD (`Article` / `Course`).
+- Em produção o Nginx serve `/educacao/*` a partir de `dist/educacao-ssi.html` (gerado por `scripts/gerar-html-seo.mjs` no `Dockerfile.web`) com SSI: o bloco `<!-- seo:inicio --> ... <!-- seo:fim -->` do `index.html` vira um include de `/api/seo/head`. Google e a prévia do WhatsApp veem as tags sem JavaScript; se a API cair, ficam as tags padrão.
+- `/sitemap.xml` e `/robots.txt` são servidos pela API (`/api/seo/...`) através do Nginx. O sitemap só leva o que é `PUBLIC` e está no ar (e as páginas da Central de Ajuda).
+
+### Exemplos (só dev/teste)
+
+`npm --prefix server run educacao:seed` cria 3 categorias, 2 artigos e um curso com 2 aulas. Recusa rodar com `NODE_ENV=production`: produção começa vazia (a página mostra "Os primeiros conteúdos estão chegando").

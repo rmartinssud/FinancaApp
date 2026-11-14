@@ -16,6 +16,8 @@ import {
   FaPiggyBank,
   FaCircleQuestion,
   FaFileInvoiceDollar,
+  FaGraduationCap,
+  FaPenToSquare,
 } from "react-icons/fa6";
 import logo from "../../assets/logo-famicash.webp";
 import SeletorEspaco from "./SeletorEspaco.jsx";
@@ -51,10 +53,20 @@ const SECOES_MENU = [
     ],
   },
   {
+    titulo: "Aprender",
+    itens: [{ para: "/app/educacao", texto: "Educação financeira", Icone: FaGraduationCap }],
+  },
+  {
     titulo: "Suporte",
     itens: [{ para: "/app/ajuda", texto: "Ajuda", Icone: FaCircleQuestion }],
   },
 ];
+
+// Só para a equipe de conteúdo (papel EDITOR ou ADMIN na plataforma)
+const SECAO_EQUIPE = {
+  titulo: "Equipe Famicash",
+  itens: [{ para: "/app/admin/educacao", texto: "Painel de conteúdo", Icone: FaPenToSquare }],
+};
 
 const classeItem = "flex min-h-12 w-full items-center gap-4 rounded-full px-5 text-[15px] font-medium transition";
 
@@ -96,7 +108,7 @@ function MenuLateral({ me, onSair, saindo, idTitulo }) {
       </div>
 
       <nav aria-label="Menu do app" className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
-        {SECOES_MENU.map((secao, i) => (
+        {[...SECOES_MENU, ...(me?.platformRole === "ADMIN" || me?.platformRole === "EDITOR" ? [SECAO_EQUIPE] : [])].map((secao, i) => (
           <div key={secao.titulo ?? i} className={i > 0 ? "mt-4" : ""}>
             {secao.titulo && <p className="px-5 pb-1 pt-2 text-sm font-bold text-slate-500">{secao.titulo}</p>}
             <ul className="space-y-0.5">
