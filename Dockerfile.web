@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npx vite build
+RUN npx vite build && node scripts/gerar-html-seo.mjs
 
 # ---------- runtime ----------
 FROM nginx:alpine

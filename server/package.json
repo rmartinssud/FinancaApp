@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "test": "vitest run",
-    "ajuda:sync": "node scripts/sincronizar-ajuda.mjs"
+    "ajuda:sync": "node scripts/sincronizar-ajuda.mjs",
+    "educacao:seed": "tsx scripts/seed-educacao.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

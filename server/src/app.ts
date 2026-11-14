@@ -22,6 +22,9 @@ import { reportsRouter } from "./routes/reports.js";
 import { calendarRouter } from "./routes/calendar.js";
 import { householdsRouter, familyRouter, invitesRouter } from "./routes/familia.js";
 import { whatsappRouter, whatsappWebhookRouter } from "./routes/whatsapp.js";
+import { educacaoRouter } from "./routes/educacao.js";
+import { adminEducacaoRouter } from "./routes/adminEducacao.js";
+import { seoRouter } from "./routes/seo.js";
 
 export function createApp() {
   const app = express();
@@ -52,6 +55,10 @@ export function createApp() {
   // Webhook do WhatsApp (Meta): corpo cru para conferir a assinatura, antes do express.json()
   app.use("/api/whatsapp/webhook", whatsappWebhookRouter);
 
+  // Painel da Educação financeira: capas e materiais (até 20 MB) chegam com o corpo cru,
+  // e o texto dos artigos pode passar de 100 KB (o router tem o próprio express.json)
+  app.use("/api/admin/educacao", adminEducacaoRouter);
+
   app.use(express.json({ limit: "100kb" }));
 
   // Informa ao frontend quais opções de login estão ligadas
@@ -81,6 +88,8 @@ export function createApp() {
   app.use("/api/family", familyRouter);
   app.use("/api/invites", invitesRouter);
   app.use("/api/whatsapp", whatsappRouter);
+  app.use("/api/educacao", educacaoRouter);
+  app.use("/api/seo", seoRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });

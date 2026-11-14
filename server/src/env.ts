@@ -46,6 +46,11 @@ const schema = z.object({
   GEMINI_TTS_VOICE: z.string().optional(),
   // Caminho do ffmpeg (converte a voz para OGG/Opus). Padrão: "ffmpeg" no PATH (a imagem Docker já traz).
   FFMPEG_PATH: z.string().optional(),
+  // Educação financeira: emails (separados por vírgula) que são ADMIN da plataforma. Lido na hora em
+  // services/educacao/papeis.ts; precisa ter o email confirmado. Ex.: "voce@gmail.com,outro@gmail.com"
+  ADMIN_EMAILS: z.string().optional(),
+  // Endereço público do site para o sitemap, o canonical e o Open Graph (padrão: FRONTEND_URL)
+  SITE_URL: z.string().url().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CHAVE_CONVITE } from "../lib/convite.js";
+import { usarVoltar } from "../lib/voltar.js";
 import { FaBars } from "react-icons/fa6";
 import logo from "../assets/logo-famicash.webp";
 import { signOut } from "../lib/auth-client.js";
@@ -30,7 +31,11 @@ function AppLayout({ children, onLancamentoSalvo, semBotaoNovo = false, barraInf
     if (token) {
       localStorage.removeItem(CHAVE_CONVITE);
       navigate(`/convite/${token}`, { replace: true });
+      return;
     }
+    // Criou a conta (ou entrou pelo Google) a partir de um conteúdo só para cadastrados: volta para ele
+    const voltar = usarVoltar();
+    if (voltar) navigate(voltar, { replace: true });
   }, [navigate]);
 
   async function sair() {

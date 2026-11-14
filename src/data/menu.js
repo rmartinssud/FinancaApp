@@ -4,5 +4,6 @@ export const linksMenu = [
   { label: "Features", href: "#funcionalidades" },
   { label: "Como funciona", href: "#como-funciona" },
   { label: "Planos", href: "#planos" },
+  { label: "Educação", href: "/educacao" },
   { label: "Fale Conosco", href: "#contato" },
 ];

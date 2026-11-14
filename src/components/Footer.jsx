@@ -18,6 +18,7 @@ const colunas = [
       { label: "Sobre Nós", href: "#sobre" },
       { label: "Dúvidas", href: "#faq" },
       { label: "Central de Ajuda", href: "/ajuda" },
+      { label: "Educação financeira", href: "/educacao" },
       { label: "Fale Conosco", href: "#contato" },
     ],
   },

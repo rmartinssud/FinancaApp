@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "../auth/AuthLayout.jsx";
 import Campo from "../auth/Campo.jsx";
 import BotaoEnviar from "../auth/BotaoEnviar.jsx";
@@ -7,13 +7,21 @@ import Alerta from "../auth/Alerta.jsx";
 import BotaoGoogle from "../auth/BotaoGoogle.jsx";
 import { authClient, signIn } from "../lib/auth-client.js";
 import { traduzirErro, emailValido } from "../lib/erros.js";
+import { guardarVoltar, usarVoltar } from "../lib/voltar.js";
 
 const linkClasse = "rounded font-bold text-primary underline-offset-4 hover:underline focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30";
 
 function Entrar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const destino = location.state?.de ?? "/app";
+  const [params] = useSearchParams();
+  // ?voltar=/educacao/... (conteúdo só para cadastrados): volta para lá depois de entrar (também pelo Google)
+  const [voltar] = useState(() => guardarVoltar(params));
+  const destino = voltar ?? location.state?.de ?? "/app";
+  const irParaDestino = () => {
+    usarVoltar(); // já vamos direto: apaga o guardado
+    navigate(destino, { replace: true });
+  };
 
   // Etapa 1: email e senha. Etapa 2: código do app autenticador (se o 2FA estiver ligado)
   const [etapa, setEtapa] = useState("senha");
@@ -40,7 +48,7 @@ function Entrar() {
 
     if (error) return setErroGeral(traduzirErro(error));
     if (data?.twoFactorRedirect) return setEtapa("codigo");
-    navigate(destino, { replace: true });
+    irParaDestino();
   }
 
   async function verificarCodigo(e) {
@@ -58,6 +66,7 @@ function Entrar() {
 
     if (error) return setErroGeral(traduzirErro(error));
     // Recarrega a página no app para ler a sessão nova do zero
+    usarVoltar();
     window.location.replace(destino);
   }
 
