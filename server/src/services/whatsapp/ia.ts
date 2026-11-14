@@ -1,12 +1,13 @@
 import { env } from "../../env.js";
 
 // ─────────────────────────────────────────────
-// IA para áudio e foto do WhatsApp, atrás de uma interface.
+// IA do WhatsApp (assistente, áudio e foto), atrás de uma interface.
 //
 // O bot só conhece ProvedorIA. Hoje existe um adaptador (Google Gemini), escolhido por
 // AI_PROVIDER (padrão "gemini") e ligado só com GEMINI_API_KEY. Para outro provedor
 // (ex.: OpenAI): um objeto ProvedorIA novo e um "case" em provedorIA(). Nada no bot muda.
-// Sem chave: provedorIA() devolve null e o bot responde que áudio e foto chegam em breve.
+// Sem chave: provedorIA() devolve null; o bot usa o parser de comandos e avisa que áudio e foto chegam em breve.
+// conversar(): o assistente (agente.ts) usa function calling. Sem ela (ou se falhar), o bot cai no parser.
 // ─────────────────────────────────────────────
 
 // O que a IA tirou do comprovante / nota / foto
@@ -18,8 +19,37 @@ export type DadosComprovante = {
   tipo: "INCOME" | "EXPENSE" | null; // comprovante de Pix recebido = receita
 };
 
+// ── Conversa com ferramentas (assistente do WhatsApp) ──
+// Formato neutro (não é o do Gemini): cada adaptador traduz para a API dele.
+
+export type ParteConversa =
+  | { tipo: "texto"; texto: string; assinatura?: string }
+  // assinatura: "thought signature" do Gemini; precisa voltar igual na próxima chamada
+  | { tipo: "chamada"; nome: string; args: Record<string, unknown>; assinatura?: string }
+  | { tipo: "resultado"; nome: string; conteudo: Record<string, unknown> };
+
+export type MensagemConversa = { papel: "usuario" | "modelo"; partes: ParteConversa[] };
+
+// parametros: esquema no formato OpenAPI (type: "OBJECT", "STRING", ...). Sem parâmetros: deixe de fora.
+export type FerramentaIA = { nome: string; descricao: string; parametros?: Record<string, unknown> };
+
+export type PedidoConversa = {
+  sistema: string;
+  mensagens: MensagemConversa[];
+  ferramentas: FerramentaIA[];
+  // true = responda só com texto (última volta do loop)
+  semFerramentas?: boolean;
+  maxTokens?: number;
+  sinal?: AbortSignal;
+};
+
+export type UsoTokens = { entrada: number; saida: number; total: number };
+export type RespostaConversa = { partes: ParteConversa[]; uso: UsoTokens | null; motivo?: string };
+
 export interface ProvedorIA {
   nome: string;
+  // Assistente: conversa com chamadas de ferramenta (function calling). Opcional: sem ela, o bot usa o parser.
+  conversar?(pedido: PedidoConversa): Promise<RespostaConversa>;
   // Áudio → texto (pt-BR), para passar pelo mesmo parser do texto
   transcrever(audio: Buffer, mime: string): Promise<string>;
   // Foto de cupom, nota ou comprovante → dados estruturados
@@ -42,11 +72,40 @@ export class ErroIA extends Error {
 export const MODELO_GEMINI_PADRAO = "gemini-flash-latest";
 const URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
 
+type ParteGemini = {
+  text?: string;
+  thought?: boolean;
+  thoughtSignature?: string;
+  functionCall?: { name: string; args?: Record<string, unknown> };
+  functionResponse?: { name: string; response: Record<string, unknown> };
+};
+
 type RespostaGemini = {
-  candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+  candidates?: { content?: { parts?: ParteGemini[] }; finishReason?: string }[];
   promptFeedback?: { blockReason?: string };
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number; totalTokenCount?: number };
   error?: { message?: string };
 };
+
+// Formato neutro → partes do Gemini
+function paraGemini(p: ParteConversa): ParteGemini {
+  if (p.tipo === "texto") return { text: p.texto, ...(p.assinatura ? { thoughtSignature: p.assinatura } : {}) };
+  if (p.tipo === "chamada") return { functionCall: { name: p.nome, args: p.args }, ...(p.assinatura ? { thoughtSignature: p.assinatura } : {}) };
+  return { functionResponse: { name: p.nome, response: p.conteudo } };
+}
+
+// Partes do Gemini → formato neutro (pensamentos internos ficam de fora)
+function doGemini(partes: ParteGemini[]): ParteConversa[] {
+  const saida: ParteConversa[] = [];
+  for (const p of partes) {
+    if (p.functionCall?.name) {
+      saida.push({ tipo: "chamada", nome: p.functionCall.name, args: p.functionCall.args ?? {}, ...(p.thoughtSignature ? { assinatura: p.thoughtSignature } : {}) });
+    } else if (typeof p.text === "string" && !p.thought) {
+      saida.push({ tipo: "texto", texto: p.text, ...(p.thoughtSignature ? { assinatura: p.thoughtSignature } : {}) });
+    }
+  }
+  return saida;
+}
 
 export function criarProvedorGemini(chave: string, modelo = MODELO_GEMINI_PADRAO): ProvedorIA {
   async function gerar(partes: Record<string, unknown>[], esquema?: Record<string, unknown>) {
@@ -74,6 +133,34 @@ export function criarProvedorGemini(chave: string, modelo = MODELO_GEMINI_PADRAO
 
   return {
     nome: "gemini",
+    async conversar({ sistema, mensagens, ferramentas, semFerramentas, maxTokens = 2048, sinal }) {
+      const r = await fetch(`${URL_GEMINI}/${encodeURIComponent(modelo)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: sistema }] },
+          contents: mensagens.map((m) => ({ role: m.papel === "usuario" ? "user" : "model", parts: m.partes.map(paraGemini) })),
+          ...(ferramentas.length
+            ? {
+                tools: [{ functionDeclarations: ferramentas.map((f) => ({ name: f.nome, description: f.descricao, ...(f.parametros ? { parameters: f.parametros } : {}) })) }],
+                toolConfig: { functionCallingConfig: { mode: semFerramentas ? "NONE" : "AUTO" } },
+              }
+            : {}),
+          generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens },
+        }),
+        signal: sinal ?? AbortSignal.timeout(45_000),
+      });
+      const corpo = (await r.json().catch(() => ({}))) as RespostaGemini;
+      if (!r.ok) throw new ErroIA(corpo.error?.message ?? `Gemini respondeu ${r.status}`, r.status);
+      if (corpo.promptFeedback?.blockReason) throw new ErroIA(`Gemini bloqueou: ${corpo.promptFeedback.blockReason}`);
+      const candidato = corpo.candidates?.[0];
+      const u = corpo.usageMetadata;
+      return {
+        partes: doGemini(candidato?.content?.parts ?? []),
+        uso: u ? { entrada: u.promptTokenCount ?? 0, saida: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0), total: u.totalTokenCount ?? 0 } : null,
+        motivo: candidato?.finishReason,
+      };
+    },
     async transcrever(audio, mime) {
       const texto = await gerar([
         {

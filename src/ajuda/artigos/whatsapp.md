@@ -2,12 +2,14 @@
 titulo: Famicash no WhatsApp
 categoria: Lançamentos
 ordem: 5.5
-resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, como "gastei 45,90 mercado". Veja o saldo e o resumo do mês e receba alertas no WhatsApp.
-palavras: whatsapp, zap, wpp, bot, robô, robo, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, alertas no whatsapp
+resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, áudio ou foto. Converse com o assistente sobre suas finanças, simule compras e receba alertas no WhatsApp. Nada é salvo sem você confirmar.
+palavras: whatsapp, zap, wpp, bot, robô, robo, assistente, assistente financeiro, ia, inteligência artificial, inteligencia artificial, perguntar, conversar, como estão minhas finanças, simular, simulação, simulacao, vale a pena comprar, parcelar, corrigir, sim, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, alertas no whatsapp
 relacionados: lancamentos, cartoes-de-credito, alertas-por-email, familia-e-espacos
 ---
 
-Com o WhatsApp ligado, você lança uma despesa ou receita **mandando uma mensagem** para o Famicash, sem abrir o app. O número do Famicash no WhatsApp é **+55 21 3955-2279**.
+Com o WhatsApp ligado, você lança uma despesa ou receita **mandando uma mensagem** para o Famicash, sem abrir o app, e conversa com o **assistente financeiro** sobre o seu dinheiro. O número do Famicash no WhatsApp é **+55 21 3955-2279**.
+
+> **Nada é salvo sem você confirmar.** O assistente só prepara o lançamento; ele vira lançamento quando você toca em **Confirmar** (ou responde **sim**).
 
 ## Ligar o seu número
 
@@ -43,13 +45,63 @@ O Famicash entende:
 
 ## Confirmar antes de lançar
 
-O bot responde com um resumo (valor, categoria, conta ou cartão, data e espaço) e três botões:
+O Famicash responde com o que entendeu (tipo, valor, categoria, conta ou cartão, data e espaço) e três botões:
 
-- **Confirmar**: cria o lançamento. Ele aparece em **Lançamentos** como qualquer outro.
-- **Editar categoria**: mostra uma lista. Se a categoria não estiver lá, **escreva o nome** dela.
+- **Confirmar**: cria o lançamento. Ele aparece em **Lançamentos** como qualquer outro. Responder **sim** também confirma.
+- **Corrigir**: diga o que mudar, do seu jeito (veja abaixo).
 - **Cancelar**: nada é lançado. Escrever **cancelar** também funciona.
 
 Nada é lançado sem o **Confirmar**. O resumo vale **30 minutos**; depois disso, mande de novo. Errou depois de confirmar? Apague ou edite o lançamento no app.
+
+### Corrigir conversando
+
+Antes de confirmar, é só escrever (ou falar) a correção:
+
+- **não, foi no cartão Santander**
+- **muda para ontem**
+- **categoria lazer**
+- **o nome é almoço da firma**
+- **foi 52,30** ou **foi em 3x**
+
+O assistente atualiza o resumo e pergunta de novo. Se a descrição ficou genérica, ele pergunta se você quer **dar um nome** ao lançamento.
+
+## Converse com o assistente
+
+Além de lançar, você pode **perguntar** sobre as suas finanças, por texto ou áudio. O assistente olha os dados do seu espaço (saldos, receitas e despesas, orçamentos, objetivos, faturas, contas a pagar e dívidas) e responde de forma direta. Exemplos:
+
+- **como estão minhas finanças?**
+- **vou estourar o orçamento do mercado este mês?**
+- **quanto gastei com uber em outubro?**
+- **quando vence a fatura do Nubank e quanto está?**
+- **tenho conta para pagar esta semana?**
+- **estou no ritmo do objetivo da viagem?**
+- **em quanto tempo eu quito minhas dívidas pagando R$ 800 por mês?**
+- **como funciona a fatura do cartão no Famicash?** (ele responde com base nesta Central de Ajuda)
+
+Ele compara com os meses anteriores, avisa se o ritmo de gasto até hoje leva a estourar um orçamento e se o ritmo de economia alcança a meta no prazo.
+
+### Simular antes de decidir
+
+Pergunte, por exemplo: **se eu comprar uma TV de 60 polegadas parcelada no cartão, vai atrapalhar meu orçamento?**
+
+O assistente pergunta o que faltar (preço, número de parcelas e qual cartão) e mostra:
+
+- em quais **faturas** as parcelas caem (pela regra do fechamento do cartão) e como elas ficam;
+- o **limite** disponível depois da compra;
+- quanto a parcela pesa na sua **renda** e na **folga** do mês;
+- os **orçamentos** e **objetivos** afetados;
+- prós, contras e uma recomendação.
+
+**A decisão é sempre sua.** A simulação não lança nada; se quiser comprar, peça para lançar e confirme.
+
+### O que o assistente não faz
+
+- Não grava nada sem a sua confirmação e não mexe nas configurações do app.
+- Não vê outros espaços nem dados de outras pessoas: só o espaço do WhatsApp.
+- Não indica investimentos, bancos ou produtos financeiros, e não promete rendimento.
+- Lembra só do assunto recente: as últimas mensagens ficam guardadas por até **1 dia** e ele usa as dos últimos **45 minutos**.
+
+Se o assistente estiver indisponível, o bot continua funcionando do jeito clássico: entende mensagens como **gastei 45,90 mercado** e os comandos abaixo.
 
 ## Compras no cartão
 
@@ -62,17 +114,20 @@ Escreva **cartão** (ou **crédito**) e o nome do cartão. A compra segue a mesm
 - **saldo**: o saldo de cada conta e o total. Contas com **Ignorar nos totais** aparecem marcadas e ficam fora do total.
 - **resumo**: receitas, despesas e saldo do mês, e onde você mais gastou (as mesmas regras do Início).
 - **ajuda**: exemplos de mensagens.
+- **cancelar**: descarta o lançamento que está esperando confirmação.
+
+Os comandos funcionam sempre, mesmo sem o assistente.
 
 ## Em qual espaço o bot lança
 
 No espaço escolhido ao ligar o número. Para trocar, vá em **Segurança › WhatsApp › Espaço padrão do WhatsApp**. O saldo e o resumo também vêm desse espaço.
 
-Quem é **Visualizador** (somente leitura) no espaço pode ver o **saldo** e o **resumo**, mas não lança. Veja [Família e espaços](artigo:familia-e-espacos).
+Quem é **Visualizador** (somente leitura) no espaço pode ver o **saldo** e o **resumo** e fazer perguntas ao assistente, mas não lança. Veja [Família e espaços](artigo:familia-e-espacos).
 
 ## Áudio e foto
 
 - **Foto com legenda**: mande a foto do cupom com a legenda **45,90 mercado** e o bot lança pela legenda.
-- **Áudio**: fale como escreveria, ex.: "gastei quarenta e cinco e noventa no mercado". O bot mostra o que entendeu.
+- **Áudio**: fale como escreveria, ex.: "gastei quarenta e cinco e noventa no mercado". O bot mostra o que entendeu. Também dá para **perguntar** por áudio.
 - **Foto sem legenda**: o bot lê o cupom, a nota ou o comprovante (Pix, boleto) e acha o valor, a data, a loja e sugere a categoria.
 
 Se o áudio e a foto ainda não estiverem disponíveis para você, o bot avisa e você pode escrever a mensagem.
@@ -93,3 +148,4 @@ Em **Segurança › WhatsApp**, toque em **Desligar WhatsApp**. O bot para de re
 - **"Código incorreto ou vencido"**: gere um novo código no app e mande de novo, do mesmo número.
 - **"Qual cartão?"**: você tem mais de um cartão. Escreva o nome, ex.: **30 no cartão Nubank ifood**.
 - **Não entendeu a mensagem**: coloque o **valor em número**, ex.: **gastei 45,90 mercado**.
+- **O assistente errou um dado**: antes de confirmar, toque em **Corrigir** ou escreva a correção. Os números das respostas vêm do app; se algo parecer diferente, confira em **Lançamentos**.

@@ -7,9 +7,12 @@ import { contasComSaldo } from "../saldos.js";
 import { dividirParcelas, mesDaFatura, somarMesesNaData } from "../cartoes.js";
 import { mapaDePais, selecionarPorcoes, somarPorCategoria } from "../porcoes.js";
 import { somarMeses } from "../../lib/money.js";
-import { diaLocal, formatarDia, formatarReais } from "../alertas/regras.js";
-import { lerCodigoDeVinculo, lerMensagem, somarDiasAoDia, type LancamentoLido } from "./parser.js";
-import { acharCategoria, acharConta, categoriaPeloNome, montarDescricao, type CategoriaSimples, type ContaSimples } from "./casamento.js";
+import { diaLocal, formatarReais } from "../alertas/regras.js";
+import { lerCodigoDeVinculo, lerMensagem, type LancamentoLido } from "./parser.js";
+import { acharCategoria, acharConta, categoriaPeloNome, montarDescricao, type ContaSimples } from "./casamento.js";
+import { VALIDADE_RASCUNHO_MIN, categoriasDoEspaco, contasDoEspaco, hojeLocal, nomeFatura, rascunhoPendente, textoDoRascunho } from "./rascunhos.js";
+import { ErroAgente, assistenteDisponivel, lembrar, responderComAgente } from "./agente.js";
+import { normalizar } from "./parser.js";
 import { baixarMidia, enviarBotoes, enviarLista, enviarTexto, type LinhaLista } from "./cliente.js";
 import { confirmarVinculo } from "./vinculo.js";
 import { podeUsarWhatsApp } from "./plano.js";
@@ -21,12 +24,15 @@ import { provedorIA, type DadosComprovante } from "./ia.js";
 // - Número desconhecido: explica como ligar em famicash.com (ou liga, se mandou o código).
 // - Texto: "gastei 45,90 mercado" vira um RASCUNHO com botões Confirmar / Editar categoria / Cancelar.
 //   O lançamento só é criado no Confirmar. Rascunho vale 30 minutos.
-// - Comandos: saldo, resumo, ajuda, cancelar.
-// - Áudio e foto: passam pela IA (ia.ts); sem IA configurada, respondemos que chega em breve.
+// - Comandos: saldo, resumo, ajuda, cancelar (atalhos que funcionam sempre, sem IA).
+// - Com IA (GEMINI_API_KEY): o ASSISTENTE (agente.ts) responde texto, áudio e foto: entende o lançamento,
+//   corrige em linguagem natural, responde "como estão minhas finanças?" e simula compras. Ele só mexe em
+//   rascunhos; gravar continua sendo no Confirmar (ou "sim"). Se a IA falhar, cai no parser de sempre.
+// - Áudio e foto sem IA configurada: respondemos que chega em breve.
 // Cada mensagem é processada uma vez só (id da mensagem do WhatsApp em whatsapp_inbound).
 // ─────────────────────────────────────────────
 
-export const VALIDADE_RASCUNHO_MIN = 30;
+export { VALIDADE_RASCUNHO_MIN, textoDoRascunho };
 const SITE = "famicash.com";
 
 // ── Tipos do webhook (só o que usamos) ────────
@@ -117,8 +123,6 @@ type Contexto = {
   role: MemberRole;
 };
 
-const hojeLocal = () => diaLocal(new Date());
-
 const ajudaTexto = (espaco: string) =>
   [
     "*Famicash no WhatsApp* 👋",
@@ -130,6 +134,16 @@ const ajudaTexto = (espaco: string) =>
     "• 30 no cartão Nubank ifood",
     "• 300 no cartão Nubank em 3x tv",
     "",
+    ...(assistenteDisponivel()
+      ? [
+          "Também pode conversar comigo, por texto ou áudio:",
+          "• como estão minhas finanças?",
+          "• vou estourar o orçamento do mercado?",
+          "• se eu comprar uma TV de R$ 3.000 em 10x no cartão, atrapalha?",
+          "Nada é lançado sem você confirmar. ✅",
+          "",
+        ]
+      : []),
     "Comandos: *saldo*, *resumo*, *ajuda*.",
     `Espaço: ${espaco} (troque em ${SITE} › Segurança › WhatsApp).`,
   ].join("\n");
@@ -204,7 +218,20 @@ async function tratarMensagem(msg: MensagemWebhook) {
 
 // ── Texto ─────────────────────────────────────
 
-async function tratarTexto(ctx: Contexto, texto: string, origem?: string) {
+// "sim", "confirmar", "pode lançar"... sozinhos confirmam o rascunho pendente (sem IA: decisão da pessoa)
+const CONFIRMACOES = new Set(["sim", "s", "confirmar", "confirma", "confirmo", "confirmado", "pode lancar", "pode confirmar", "pode salvar", "lanca", "lancar", "ok", "isso", "isso mesmo", "certo", "correto", "ta certo", "esta certo", "perfeito", "beleza", "blz", "👍", "✅", "sim confirma", "sim pode lancar"]);
+export function ehConfirmacao(texto: string) {
+  const t = normalizar(texto).replace(/[!.,;]+/g, " ").replace(/\s+/g, " ").trim();
+  return CONFIRMACOES.has(t);
+}
+
+// Memória curta do assistente (só quando ele está ligado)
+async function anotar(ctx: Contexto, role: "USER" | "ASSISTANT", texto: string) {
+  if (!assistenteDisponivel()) return;
+  await lembrar(ctx, role, texto).catch((e) => console.error("WhatsApp: falha ao guardar a conversa", e));
+}
+
+async function tratarTexto(ctx: Contexto, texto: string, origem?: string, entradaIA?: string) {
   const leitura = lerMensagem(texto, hojeLocal());
   if (leitura.tipo === "comando") {
     switch (leitura.comando) {
@@ -216,10 +243,21 @@ async function tratarTexto(ctx: Contexto, texto: string, origem?: string) {
         return void (await enviarTexto(ctx.waId, await textoResumo(ctx)));
       case "cancelar": {
         const r = await prisma.whatsAppDraft.updateMany({ where: { waId: ctx.waId, status: "PENDING" }, data: { status: "CANCELED", awaitingCategory: false } });
-        return void (await enviarTexto(ctx.waId, r.count ? "Cancelado. Nada foi lançado." : "Não há nada para cancelar."));
+        const resposta = r.count ? "Cancelado. Nada foi lançado." : "Não há nada para cancelar.";
+        await anotar(ctx, "USER", texto);
+        await anotar(ctx, "ASSISTANT", resposta);
+        return void (await enviarTexto(ctx.waId, resposta));
       }
     }
   }
+
+  // "sim" com um rascunho pendente = Confirmar
+  if (ehConfirmacao(texto)) {
+    const pendente = await rascunhoPendente(ctx.waId, ctx.userId);
+    if (pendente) return confirmar(ctx, pendente);
+  }
+
+  const ia = assistenteDisponivel();
 
   // Esperando a categoria por texto ("Editar categoria")?
   if (leitura.tipo === "desconhecido") {
@@ -231,8 +269,14 @@ async function tratarTexto(ctx: Contexto, texto: string, origem?: string) {
       const categorias = await categoriasDoEspaco(esperando.householdId);
       const c = categoriaPeloNome(texto, categorias, esperando.type === "INCOME" ? "INCOME" : "EXPENSE");
       if (c) return aplicarCategoria(ctx, esperando, c.id);
-      return void (await enviarTexto(ctx.waId, "Não achei essa categoria. Escolha na lista ou escreva o nome dela como está no app."));
+      if (!ia) return void (await enviarTexto(ctx.waId, "Não achei essa categoria. Escolha na lista ou escreva o nome dela como está no app."));
     }
+  }
+
+  // Assistente de IA (se falhar, segue para o parser abaixo)
+  if (ia && (await tratarComAssistente(ctx, entradaIA ?? texto, origem))) return;
+
+  if (leitura.tipo === "desconhecido") {
     const exemplo = origem ? `Entendi: “${texto.slice(0, 200)}”, mas não achei o valor.` : "Não entendi. 🤔";
     return void (await enviarTexto(ctx.waId, `${exemplo} Tente assim: *gastei 45,90 mercado* ou mande *ajuda*.`));
   }
@@ -240,19 +284,56 @@ async function tratarTexto(ctx: Contexto, texto: string, origem?: string) {
   return criarRascunho(ctx, leitura.lancamento, origem);
 }
 
+// ── Assistente de IA ──────────────────────────
+
+// true = respondeu (mesmo que só com o rascunho); false = falhou e o bot deve usar o parser
+async function tratarComAssistente(ctx: Contexto, entrada: string, prefixo?: string): Promise<boolean> {
+  let texto = "";
+  let rascunhoId: string | null = null;
+  try {
+    const r = await responderComAgente(ctx, entrada);
+    texto = r.texto;
+    rascunhoId = r.estado.rascunhoId;
+  } catch (e) {
+    console.warn(`WhatsApp IA: assistente falhou, usando o parser (${e instanceof Error ? e.message : e})`);
+    // Falhou depois de montar o rascunho: mostra o rascunho mesmo assim
+    rascunhoId = e instanceof ErroAgente ? (e.estado?.rascunhoId ?? null) : null;
+    if (!rascunhoId) return false;
+  }
+
+  const rascunho = rascunhoId ? await prisma.whatsAppDraft.findFirst({ where: { id: rascunhoId, status: "PENDING" } }) : null;
+  const corpo = [prefixo, texto].filter(Boolean).join("\n\n");
+  let memoria = texto;
+  if (rascunho) {
+    const resumo = await textoDoRascunho(rascunho, ctx.espaco);
+    memoria = [texto, `[Rascunho mostrado com os botões Confirmar/Corrigir/Cancelar]\n${resumo}`].filter(Boolean).join("\n\n");
+    // O corpo dos botões aceita até 1024 caracteres: texto longo vai antes, numa mensagem só dele
+    if (corpo && corpo.length + resumo.length > 1000) {
+      await enviarTexto(ctx.waId, corpo);
+      await enviarBotoesDoAssistente(ctx, rascunho, resumo);
+    } else {
+      await enviarBotoesDoAssistente(ctx, rascunho, corpo ? `${corpo}\n\n${resumo}` : resumo);
+    }
+  } else {
+    await enviarTexto(ctx.waId, corpo || "Pronto.");
+  }
+  await anotar(ctx, "USER", entrada);
+  await anotar(ctx, "ASSISTANT", memoria);
+  return true;
+}
+
+function enviarBotoesDoAssistente(ctx: Contexto, r: WhatsAppDraft, corpo: string) {
+  return enviarBotoes(ctx.waId, corpo, [
+    { id: `ok:${r.id}`, titulo: "Confirmar" },
+    { id: `fix:${r.id}`, titulo: "Corrigir" },
+    { id: `no:${r.id}`, titulo: "Cancelar" },
+  ]);
+}
+
+const comoCorrigir =
+  "Me diga o que mudar, do seu jeito. Por exemplo:\n• *foi no cartão Santander*\n• *muda para ontem*\n• *categoria lazer*\n• *o nome é almoço da firma*\n• *foi 52,30*";
+
 // ── Rascunho ──────────────────────────────────
-
-async function categoriasDoEspaco(householdId: string): Promise<CategoriaSimples[]> {
-  return prisma.category.findMany({ where: { householdId }, select: { id: true, name: true, type: true, parentId: true }, orderBy: { name: "asc" } });
-}
-
-async function contasDoEspaco(householdId: string) {
-  return prisma.financialAccount.findMany({
-    where: { householdId },
-    select: { id: true, name: true, type: true, isDefault: true, archivedAt: true, closingDay: true, dueDay: true },
-    orderBy: { createdAt: "asc" },
-  });
-}
 
 const somenteLeitura = (ctx: Contexto) => `Seu acesso ao espaço ${ctx.espaco} é somente leitura, então não dá para lançar. Você ainda pode ver o *saldo* e o *resumo*.`;
 
@@ -316,36 +397,6 @@ async function criarRascunho(ctx: Contexto, l: LancamentoLido, origem?: string) 
   await enviarResumoRascunho(ctx, rascunho, origem);
 }
 
-const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const nomeFatura = (mes: string) => `${MESES_CURTOS[Number(mes.slice(5, 7)) - 1]}/${mes.slice(0, 4)}`;
-
-function quando(dia: string) {
-  const hoje = hojeLocal();
-  const curto = formatarDia(dia).slice(0, 5);
-  if (dia === hoje) return `hoje (${curto})`;
-  if (dia === somarDiasAoDia(hoje, -1)) return `ontem (${curto})`;
-  return formatarDia(dia);
-}
-
-export async function textoDoRascunho(r: WhatsAppDraft, espaco: string) {
-  const [conta, categoria] = await Promise.all([
-    prisma.financialAccount.findUnique({ where: { id: r.accountId }, select: { name: true, type: true } }),
-    r.categoryId ? prisma.category.findUnique({ where: { id: r.categoryId }, include: { parent: { select: { name: true } } } }) : null,
-  ]);
-  const receita = r.type === "INCOME";
-  const cartao = conta?.type === "CREDIT_CARD";
-  const nomeCategoria = categoria ? (categoria.parent ? `${categoria.parent.name} › ${categoria.name}` : categoria.name) : "sem categoria";
-  const parcelas = r.installments > 1 ? ` em ${r.installments}x de ${formatarReais(dividirParcelas(r.amount, r.installments).at(-1)!)}` : "";
-  return [
-    `*Confirma ${receita ? "esta receita" : "esta despesa"}?*`,
-    `${receita ? "💰" : "💸"} ${formatarReais(r.amount)}${parcelas} · ${r.description}`,
-    `🏷️ ${nomeCategoria}`,
-    cartao ? `💳 Cartão ${conta?.name}${r.invoiceMonth ? ` · fatura de ${nomeFatura(r.invoiceMonth)}` : ""}` : `🏦 ${conta?.name ?? "Conta"}`,
-    `📅 ${quando(diaLocal(r.date))}`,
-    `📁 Espaço ${espaco}`,
-  ].join("\n");
-}
-
 async function enviarResumoRascunho(ctx: Contexto, r: WhatsAppDraft, origem?: string) {
   const texto = await textoDoRascunho(r, ctx.espaco);
   await enviarBotoes(ctx.waId, origem ? `${origem}\n\n${texto}` : texto, [
@@ -374,7 +425,12 @@ async function tratarBotao(ctx: Contexto, id: string) {
   if (acao === "ok") return confirmar(ctx, r);
   if (acao === "no") {
     await prisma.whatsAppDraft.updateMany({ where: { id: r.id, status: "PENDING" }, data: { status: "CANCELED", awaitingCategory: false } });
+    await anotar(ctx, "ASSISTANT", "[A pessoa tocou em Cancelar] Cancelado. Nada foi lançado.");
     return void (await enviarTexto(ctx.waId, "Cancelado. Nada foi lançado."));
+  }
+  if (acao === "fix") {
+    await anotar(ctx, "ASSISTANT", `[A pessoa tocou em Corrigir] ${comoCorrigir}`);
+    return void (await enviarTexto(ctx.waId, comoCorrigir));
   }
   if (acao === "cat") return pedirCategoria(ctx, r);
   if (acao === "setcat") return aplicarCategoria(ctx, r, extra === "none" ? null : extra);
@@ -480,7 +536,9 @@ async function confirmar(ctx: Contexto, r: WhatsAppDraft) {
   const receita = r.type === "INCOME";
   const onde = "cartao" in resultado ? `no cartão ${resultado.cartao} (fatura de ${nomeFatura(resultado.fatura!)})` : `em ${resultado.conta}`;
   const pendente = "pendente" in resultado && resultado.pendente ? " Ficou como pendente (data futura)." : "";
-  await enviarTexto(ctx.waId, `✅ Lançado! ${receita ? "Receita" : "Despesa"} de ${formatarReais(r.amount)} ${onde}.${pendente}\nPara desfazer, apague em Lançamentos no app.`);
+  const feito = `✅ Lançado! ${receita ? "Receita" : "Despesa"} de ${formatarReais(r.amount)} ${onde}.${pendente}\nPara desfazer, apague em Lançamentos no app.`;
+  await anotar(ctx, "ASSISTANT", `[Confirmado pela pessoa] ${feito}`);
+  await enviarTexto(ctx.waId, feito);
 }
 
 class ErroDeNegocio extends Error {}
@@ -533,7 +591,8 @@ async function textoResumo(ctx: Contexto) {
 const emBreve = "Áudio e foto chegam em breve por aqui! 🎧📷 Por enquanto, escreva assim: *gastei 45,90 mercado*.";
 
 async function tratarAudio(ctx: Contexto, audio: { id: string; mime_type?: string }) {
-  if (ctx.role === "VIEWER") return void (await enviarTexto(ctx.waId, somenteLeitura(ctx)));
+  // Com o assistente, o Visualizador pode perguntar por áudio (lançar continua bloqueado nas ferramentas)
+  if (ctx.role === "VIEWER" && !assistenteDisponivel()) return void (await enviarTexto(ctx.waId, somenteLeitura(ctx)));
   const ia = provedorIA();
   if (!ia) return void (await enviarTexto(ctx.waId, emBreve));
   let texto: string;
@@ -545,7 +604,7 @@ async function tratarAudio(ctx: Contexto, audio: { id: string; mime_type?: strin
     return void (await enviarTexto(ctx.waId, "Não consegui ouvir esse áudio. Tente de novo ou escreva a mensagem."));
   }
   if (!texto) return void (await enviarTexto(ctx.waId, "Não consegui entender o áudio. Pode escrever?"));
-  await tratarTexto(ctx, texto, `🎤 Entendi: “${texto.slice(0, 300)}”`);
+  await tratarTexto(ctx, texto, `🎤 Entendi: “${texto.slice(0, 300)}”`, `(Mensagem de áudio, transcrita) ${texto}`);
 }
 
 // Frase equivalente ao que a IA leu, para passar pelo mesmo caminho do texto
@@ -562,26 +621,39 @@ export function fraseDoComprovante(d: DadosComprovante, legenda?: string) {
 }
 const normalizarSimples = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
+// Dados lidos da foto, como mensagem para o assistente
+function entradaDoComprovante(d: DadosComprovante, legenda?: string) {
+  const partes = [
+    `valor ${d.valor ? formatarReais(d.valor) : "não encontrado"}`,
+    `data ${d.data ?? "não encontrada"}`,
+    `estabelecimento ${d.estabelecimento ?? "não encontrado"}`,
+    `categoria sugerida ${d.categoriaSugerida ?? "nenhuma"}`,
+    `tipo ${d.tipo === "INCOME" ? "receita (dinheiro recebido)" : "despesa"}`,
+  ];
+  return `(Foto de comprovante. Dados lidos: ${partes.join("; ")}.)${legenda ? ` Legenda da foto: “${legenda.slice(0, 300)}”` : ""}`;
+}
+
 async function tratarImagem(ctx: Contexto, imagem: { id: string; mime_type?: string; caption?: string }) {
   if (ctx.role === "VIEWER") return void (await enviarTexto(ctx.waId, somenteLeitura(ctx)));
-  // Legenda com valor ("45,90 mercado") já basta, sem IA
+  // Legenda com valor ("45,90 mercado") já basta, sem ler a foto
   const legenda = imagem.caption?.trim();
   if (legenda && lerMensagem(legenda, hojeLocal()).tipo === "lancamento") return tratarTexto(ctx, legenda);
 
   const ia = provedorIA();
   if (!ia) return void (await enviarTexto(ctx.waId, emBreve));
-  let frase: string | null;
+  let lido: DadosComprovante;
   try {
     const { dados, mime } = await baixarMidia(imagem.id);
     const categorias = (await categoriasDoEspaco(ctx.householdId)).map((c) => c.name);
-    const lido = await ia.lerComprovante(dados, imagem.mime_type || mime, { hoje: hojeLocal(), categorias, legenda });
-    frase = fraseDoComprovante(lido, legenda);
+    lido = await ia.lerComprovante(dados, imagem.mime_type || mime, { hoje: hojeLocal(), categorias, legenda });
   } catch (e) {
     console.error("WhatsApp: falha na foto", e);
     return void (await enviarTexto(ctx.waId, "Não consegui ler essa foto. Tente outra mais nítida ou escreva o valor."));
   }
+  const frase = fraseDoComprovante(lido, legenda);
   if (!frase) return void (await enviarTexto(ctx.waId, "Não achei o valor nessa foto. Mande uma foto mais nítida do cupom ou escreva, ex.: *gastei 45,90 mercado*."));
-  await tratarTexto(ctx, frase, "📷 Li o comprovante:");
+  // Assistente: recebe os dados lidos; sem ele (ou se falhar), a frase passa pelo parser
+  await tratarTexto(ctx, frase, "📷 Li o comprovante:", assistenteDisponivel() ? entradaDoComprovante(lido, legenda) : undefined);
 }
 
 // ── Limpeza (no start e a cada 6 horas) ───────
@@ -595,6 +667,8 @@ export async function limparWhatsApp(agora = new Date()) {
     prisma.whatsAppDraft.updateMany({ where: { status: "PENDING", expiresAt: { lt: agora } }, data: { status: "CANCELED", awaitingCategory: false } }),
     prisma.whatsAppDraft.deleteMany({ where: { createdAt: { lt: new Date(agora.getTime() - 90 * UM_DIA_MS) } } }),
     prisma.whatsAppLinkCode.deleteMany({ where: { expiresAt: { lt: agora } } }),
+    // Memória curta do assistente: só é lida por 45 minutos; guardamos no máximo 1 dia
+    prisma.whatsAppChatMessage.deleteMany({ where: { createdAt: { lt: new Date(agora.getTime() - UM_DIA_MS) } } }),
   ]);
 }
 
