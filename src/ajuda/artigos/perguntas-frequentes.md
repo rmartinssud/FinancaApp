@@ -3,7 +3,7 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, privacidade, lgpd, excluir conta, apagar conta, dados
+palavras: assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, privacidade, lgpd, excluir conta, apagar conta, dados
 relacionados: cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
 ---
 
@@ -53,9 +53,13 @@ Na tela **Segurança** (toque no seu nome, no menu), em **Alertas por e-mail**, 
 
 Sim. Ligue seu número em **Segurança › WhatsApp** e mande mensagens como **gastei 45,90 mercado** ou **30 no cartão Nubank ifood** para o Famicash (+55 21 3955-2279). O bot mostra um resumo e só lança quando você toca em **Confirmar**. Mande **saldo** ou **resumo** para ver os números do mês. Veja [Famicash no WhatsApp](artigo:whatsapp).
 
+## O assistente do WhatsApp pode lançar sozinho?
+
+Não. Ele entende o que você escreveu, falou ou fotografou e monta o lançamento, mas **nada é salvo sem você confirmar** (botão **Confirmar** ou responder **sim**). Antes disso, dá para corrigir conversando, como **foi no cartão Santander** ou **muda para ontem**. Você também pode perguntar **como estão minhas finanças?** ou simular uma compra parcelada; a decisão é sempre sua. Veja [Famicash no WhatsApp](artigo:whatsapp).
+
 ## Como o Famicash cuida dos meus dados? Posso apagar minha conta?
 
-O Famicash não vende seus dados e não mostra anúncios. Áudios e fotos enviados ao WhatsApp são lidos e descartados. Para pedir uma cópia ou a exclusão da conta, escreva para **contato@famicash.com** a partir do e-mail cadastrado. Tudo está explicado na [Política de Privacidade](/privacidade).
+O Famicash não vende seus dados e não mostra anúncios. Áudios e fotos enviados ao WhatsApp são lidos e descartados; o texto das últimas mensagens com o assistente fica guardado por até 1 dia. Para pedir uma cópia ou a exclusão da conta, escreva para **contato@famicash.com** a partir do e-mail cadastrado. Tudo está explicado na [Política de Privacidade](/privacidade).
 
 ## Não achei minha dúvida
 

@@ -429,9 +429,16 @@ Bot para lançar por mensagem ("gastei 45,90 mercado"), comandos **saldo**, **re
 | `WHATSAPP_APP_SECRET` | Chave secreta do app Meta (confere o `X-Hub-Signature-256`) |
 | `WHATSAPP_GRAPH_VERSION` | Opcional, padrão `v21.0` |
 | `WHATSAPP_BOT_NUMBER` | Opcional, número mostrado no app (padrão `+55 21 3955-2279`) |
-| `AI_PROVIDER` / `GEMINI_API_KEY` / `GEMINI_MODEL` | Opcional: áudio e foto via Google Gemini (padrão `gemini-flash-latest`). Sem chave, o bot avisa que chega em breve |
+| `AI_PROVIDER` / `GEMINI_API_KEY` / `GEMINI_MODEL` | Opcional: assistente de IA, áudio e foto via Google Gemini (padrão `gemini-flash-latest`). Sem chave, o bot funciona só com comandos e avisa que áudio/foto chegam em breve |
+| `WHATSAPP_ASSISTENTE` | Opcional: `off` desliga o assistente de IA (volta ao bot de comandos). Vazio = ligado quando há chave |
 
 Sem as quatro primeiras, o WhatsApp fica desligado (webhook responde 404, a tela mostra "em breve").
+
+### Assistente de IA (Gemini com function calling)
+
+`server/src/services/whatsapp/agente.ts` recebe cada mensagem (texto, áudio transcrito, foto lida), monta o prompt com as regras, os dados do espaço e o índice da Central de Ajuda, e roda um loop de ferramentas (`ferramentas.ts`): resumo, orçamentos, objetivos, cartões e faturas, contas a pagar, dívidas, histórico por categoria, busca de lançamentos, simulação de compra parcelada, ajuda e rascunho (preparar/alterar/cancelar). Tudo filtrado pelo espaço do número ligado; Visualizador só consulta. **Nada é gravado sem Confirmar** (botão ou "sim", decidido no bot, sem IA). Memória curta em `whatsapp_chat_messages` (lida por 45 min, apagada depois de 1 dia). Limites: 6 voltas, 60 s, 2048 tokens de saída por volta; tokens de cada mensagem vão para o log (`WhatsApp IA: ... tokens`). Se a IA falhar, o bot cai no parser clássico.
+
+O conhecimento do app vem dos artigos `src/ajuda/artigos/*.md`. A imagem Docker da API só leva `server/`, então existe uma cópia em `server/ajuda/artigos`: depois de mudar a Ajuda, rode `npm --prefix server run ajuda:sync` (um teste falha se a cópia ficar diferente).
 
 ### Webhook no Meta
 

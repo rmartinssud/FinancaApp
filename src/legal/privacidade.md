@@ -22,7 +22,7 @@ Não coletamos dados bancários de acesso (senha de banco, token, número comple
 - Mostrar seus saldos, faturas, relatórios, gráficos e alertas.
 - Compartilhar as finanças de um espaço só com as pessoas que você convidou.
 - Enviar e-mails de serviço: confirmação de cadastro, troca de senha, convites e os alertas que você ligar.
-- No WhatsApp, entender o que você escreveu, falou ou fotografou e transformar isso em um lançamento para você confirmar.
+- No WhatsApp, entender o que você escreveu, falou ou fotografou, transformar isso em um lançamento para você confirmar e responder suas perguntas sobre as finanças do espaço (assistente de IA).
 - Manter a segurança, prevenir fraudes e cumprir obrigações legais.
 
 **Não vendemos seus dados, não mostramos anúncios e não usamos suas finanças para publicidade.**
@@ -39,7 +39,7 @@ Só com empresas que nos ajudam a operar o serviço, e apenas o necessário:
 - **Resend:** envio dos e-mails do sistema.
 - **Cloudflare:** DNS do domínio e encaminhamento do e-mail de contato.
 - **Meta (WhatsApp Business):** entrega das mensagens entre você e o bot, se você usar o WhatsApp.
-- **Google (Gemini):** leitura das mensagens, áudios e fotos enviados ao bot para identificar valor, data e categoria. O conteúdo é enviado só para esse processamento.
+- **Google (Gemini):** leitura das mensagens, áudios e fotos enviados ao bot para identificar valor, data e categoria e, quando você faz uma pergunta ao assistente, os números do espaço necessários para responder (saldos, totais, orçamentos, faturas, objetivos, dívidas). O conteúdo é enviado só para esse processamento.
 
 Alguns desses fornecedores ficam fora do Brasil. Nesses casos a transferência segue o art. 33 da LGPD, com fornecedores que adotam padrões de proteção adequados. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir.
 
@@ -47,6 +47,7 @@ Alguns desses fornecedores ficam fora do Brasil. Nesses casos a transferência s
 
 - Seus dados financeiros ficam guardados enquanto sua conta existir.
 - Áudios e fotos enviados ao WhatsApp não ficam guardados: são processados e descartados. Fica só o lançamento criado a partir deles.
+- O texto das últimas mensagens da conversa com o assistente do WhatsApp fica guardado por até 1 dia, para ele lembrar do assunto; depois é apagado.
 - Registros de acesso ficam guardados por 6 meses, como pede o Marco Civil da Internet.
 - Quando você pede a exclusão da conta, apagamos seus dados em até 30 dias, salvo o que a lei obrigar a manter.
 
