@@ -14,6 +14,7 @@ import { VALIDADE_RASCUNHO_MIN, categoriasDoEspaco, contasDoEspaco, hojeLocal, n
 import { buscarNaAjuda, artigosDaAjuda } from "./conhecimento.js";
 import type { FerramentaIA } from "./ia.js";
 import { provedorComVoz, type ModoResposta } from "./voz.js";
+import { ligarComprovante } from "./comprovantes.js";
 
 // ─────────────────────────────────────────────
 // Ferramentas do assistente do WhatsApp (function calling).
@@ -35,6 +36,8 @@ export type ContextoAgente = {
   role: MemberRole;
   // Preferência de resposta (texto/áudio) salva no número ligado
   modoResposta?: ModoResposta;
+  // Comprovante (foto/PDF) desta mensagem: o rascunho criado ou corrigido agora fica ligado a ele
+  comprovanteId?: string;
 };
 
 // O que aconteceu no turno (o bot usa para mandar os botões do rascunho e decidir texto/áudio)
@@ -759,6 +762,7 @@ const prepararLancamento: Ferramenta = {
     const r = await prisma.whatsAppDraft.create({
       data: { ...v.data, userId: ctx.userId, householdId: ctx.householdId, waId: ctx.waId, expiresAt: new Date(Date.now() + VALIDADE_RASCUNHO_MIN * 60 * 1000) },
     });
+    await ligarComprovante(ctx.comprovanteId, r.id);
     return responderRascunho(ctx, r.id, estado, avisos);
   },
 };
@@ -812,6 +816,8 @@ const alterarRascunho: Ferramenta = {
       data: { ...v.data, awaitingCategory: false, expiresAt: new Date(Date.now() + VALIDADE_RASCUNHO_MIN * 60 * 1000) },
     });
     if (!feito.count) return { erro: "O rascunho acabou de ser resolvido. Prepare um novo se a pessoa quiser." };
+    // Mandou o comprovante para o rascunho que já estava aberto: ele passa a ser o comprovante deste rascunho
+    await ligarComprovante(ctx.comprovanteId, r.id);
     return responderRascunho(ctx, r.id, estado, []);
   },
 };

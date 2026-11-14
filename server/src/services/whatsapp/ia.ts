@@ -242,7 +242,7 @@ export function criarProvedorGemini(chave: string, modelo = MODELO_GEMINI_PADRAO
               `desta lista (use o nome exato ou null): ${categorias.slice(0, 60).join(", ") || "(sem categorias)"}. ` +
               "Comprovante de Pix/transferência RECEBIDA é INCOME; o resto é EXPENSE. " +
               (legenda ? `Legenda enviada junto: "${legenda.slice(0, 200)}". ` : "") +
-              "Se a imagem não for um comprovante ou não der para ler o valor, use null em valor.",
+              "O arquivo pode ser foto ou PDF (de várias páginas: use o total do comprovante). Se não for um comprovante ou não der para ler o valor, use null em valor.",
           },
           arquivo(imagem, mime),
         ],

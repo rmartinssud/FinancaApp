@@ -3,7 +3,7 @@ titulo: Campos extras do lançamento
 categoria: Lançamentos
 ordem: 5
 resumo: Subcategoria, tags, multicategorias, encargos e desconto, anexos e as opções de ignorar.
-palavras: anexo grande, arquivo grande, 3 mb, 15 mb, reduzir foto, comprimir, otimizar imagem, otimizando imagem, subcategoria, tags, etiqueta, multicategorias, dividir categoria, data lançamento, encargos, juros, multa, desconto, anexo, foto, pdf, comprovante, não efetivar automaticamente, débito automático, boleto, ignorar em estatísticas, ignorar em orçamentos, ignorar em economia mensal, ignorar nos totais
+palavras: anexo pelo whatsapp, anexar pelo whatsapp, anexo grande, arquivo grande, 3 mb, 15 mb, reduzir foto, comprimir, otimizar imagem, otimizando imagem, subcategoria, tags, etiqueta, multicategorias, dividir categoria, data lançamento, encargos, juros, multa, desconto, anexo, foto, pdf, comprovante, não efetivar automaticamente, débito automático, boleto, ignorar em estatísticas, ignorar em orçamentos, ignorar em economia mensal, ignorar nos totais
 relacionados: lancamentos, categorias, orcamentos, estatisticas-e-economia, cartoes-de-credito, relatorios, calendario
 ---
 
@@ -43,6 +43,8 @@ Arquivo maior que 3 MB? Não precisa reduzir antes: o Famicash **otimiza sozinho
 - **Fotos** (JPG, PNG, WEBP e HEIC): enquanto aparece **Otimizando imagem...**, a foto é reduzida mantendo o texto do cupom legível. Depois você vê o tamanho final ao lado do nome (ex.: **1,1 MB · otimizada**). A foto otimizada é salva em JPG e já em pé.
 - **PDFs**: são comprimidos ao salvar o lançamento. Se mesmo assim passarem de 3 MB, o app avisa; nesse caso, tire uma **foto** do comprovante ou envie um PDF menor.
 - Dá para escolher arquivos de até **15 MB**. Acima disso, o app pede um arquivo menor.
+
+Lançou pelo **WhatsApp** a partir de uma foto ou PDF? Depois do **Confirmar**, o bot pergunta se você quer **anexar o comprovante**; ele entra aqui com as mesmas regras. Veja [Famicash no WhatsApp](artigo:whatsapp).
 
 Fotos JPG, PNG e WEBP e PDFs abrem direto no navegador. Fotos **HEIC** (o formato do iPhone) e outros tipos aparecem com um ícone e o botão **Baixar**, porque muitos navegadores não mostram esse formato.
 

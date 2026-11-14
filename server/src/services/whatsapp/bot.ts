@@ -13,11 +13,25 @@ import { acharCategoria, acharConta, categoriaPeloNome, montarDescricao, type Co
 import { VALIDADE_RASCUNHO_MIN, categoriasDoEspaco, contasDoEspaco, hojeLocal, nomeFatura, rascunhoPendente, textoDoRascunho } from "./rascunhos.js";
 import { ErroAgente, assistenteDisponivel, lembrar, responderComAgente } from "./agente.js";
 import { normalizar } from "./parser.js";
-import { baixarMidia, enviarBotoes, enviarLista, enviarTexto, marcarLidaEDigitando, type LinhaLista } from "./cliente.js";
+import { ErroWhatsApp, MAX_MIDIA, baixarMidia, enviarBotoes, enviarLista, enviarTexto, marcarLidaEDigitando, type LinhaLista } from "./cliente.js";
 import { enviarVoz, provedorComVoz, querResponderEmAudio, type ModoResposta } from "./voz.js";
 import { confirmarVinculo } from "./vinculo.js";
 import { podeUsarWhatsApp } from "./plano.js";
 import { provedorIA, type DadosComprovante } from "./ia.js";
+import {
+  anexarComprovante,
+  descartarDoRascunho,
+  descartarSeSolto,
+  ehMimeDeComprovante,
+  guardarComprovante,
+  ligarComprovante,
+  limparComprovantes,
+  nomeDoComprovante,
+  perguntaEmAberto,
+  perguntarSeAnexa,
+  respostaDeAnexo,
+  type ResultadoAnexo,
+} from "./comprovantes.js";
 
 // ─────────────────────────────────────────────
 // Bot do WhatsApp: recebe o webhook do Meta e responde.
@@ -30,6 +44,8 @@ import { provedorIA, type DadosComprovante } from "./ia.js";
 //   corrige em linguagem natural, responde "como estão minhas finanças?" e simula compras. Ele só mexe em
 //   rascunhos; gravar continua sendo no Confirmar (ou "sim"). Se a IA falhar, cai no parser de sempre.
 // - Áudio e foto sem IA configurada: respondemos que chega em breve.
+// - Comprovante (foto ou documento PDF/imagem): a IA lê e monta o rascunho; depois do Confirmar perguntamos
+//   "Anexar comprovante" / "Não anexar" e o arquivo vira anexo do lançamento (comprovantes.ts).
 // - Ao receber: marca como lida e mostra "digitando..." (renovado a cada ~20 s); falha nisso nunca trava a resposta.
 // - Voz (voz.ts): quem manda áudio recebe a resposta do assistente também em áudio (nota de voz), além do texto.
 //   Preferência por número: AUTO (padrão), TEXT ou AUDIO. Rascunhos continuam com os botões em texto.
@@ -50,6 +66,7 @@ type MensagemWebhook = {
   interactive?: { type: string; button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string } };
   audio?: { id: string; mime_type?: string };
   image?: { id: string; mime_type?: string; caption?: string };
+  document?: { id: string; mime_type?: string; caption?: string; filename?: string };
 };
 
 export type PayloadWebhook = {
@@ -145,6 +162,8 @@ type Contexto = {
   modoResposta: ModoResposta;
   // A mensagem desta vez chegou em áudio? (AUTO responde em áudio)
   entradaEmAudio?: boolean;
+  // Comprovante (foto/PDF) guardado desta mensagem: o rascunho criado a partir dela fica ligado a ele
+  comprovanteId?: string;
 };
 
 // Resposta em áudio nesta mensagem? (modo: a preferência, que o assistente pode ter acabado de mudar)
@@ -248,9 +267,11 @@ async function tratarMensagem(msg: MensagemWebhook) {
     case "audio":
       return tratarAudio(ctx, msg.audio!);
     case "image":
-      return tratarImagem(ctx, msg.image!);
+      return tratarComprovante(ctx, msg.image!, "foto");
+    case "document":
+      return tratarComprovante(ctx, msg.document!, "documento");
     default:
-      return void (await enviarTexto(waId, "Por enquanto eu entendo texto, áudio e foto. Exemplo: *gastei 45,90 mercado*. Mande *ajuda* para ver mais."));
+      return void (await enviarTexto(waId, "Por enquanto eu entendo texto, áudio, foto e PDF de comprovante. Exemplo: *gastei 45,90 mercado*. Mande *ajuda* para ver mais."));
   }
 }
 
@@ -291,8 +312,20 @@ async function tratarTexto(ctx: Contexto, texto: string, origem?: string, entrad
     }
   }
 
+  // Resposta à pergunta "Anexar comprovante?" (depois do Confirmar). "anexa"/"não" valem sempre;
+  // o "sim" genérico só quando não há outro lançamento esperando confirmação (aí ele confirma o rascunho).
+  const sim = ehConfirmacao(texto);
+  const sobreAnexo = respostaDeAnexo(texto, sim);
+  if (sobreAnexo) {
+    const pergunta = await perguntaEmAberto(ctx.waId, ctx.userId);
+    if (pergunta?.draftId && (sobreAnexo !== "sim" || !(await rascunhoPendente(ctx.waId, ctx.userId)))) {
+      await anotar(ctx, "USER", texto);
+      return sobreAnexo === "nao" ? naoAnexar(ctx, pergunta.draftId) : anexar(ctx, pergunta.draftId);
+    }
+  }
+
   // "sim" com um rascunho pendente = Confirmar
-  if (ehConfirmacao(texto)) {
+  if (sim) {
     const pendente = await rascunhoPendente(ctx.waId, ctx.userId);
     if (pendente) return confirmar(ctx, pendente);
   }
@@ -449,6 +482,7 @@ async function criarRascunho(ctx: Contexto, l: LancamentoLido, origem?: string) 
       expiresAt: new Date(Date.now() + VALIDADE_RASCUNHO_MIN * 60 * 1000),
     },
   });
+  await ligarComprovante(ctx.comprovanteId, rascunho.id);
   // Sem o assistente (parser), mas com voz: um resumo curto em áudio antes dos botões
   if (emAudio(ctx)) await falar(ctx, `${resumoFalado(rascunho)} ${CONFIRA_BOTOES}`);
   await enviarResumoRascunho(ctx, rascunho, origem);
@@ -476,12 +510,16 @@ const expirou = "Esse lançamento expirou ou já foi resolvido. Mande de novo, s
 async function tratarBotao(ctx: Contexto, id: string) {
   const [acao, draftId, extra] = id.split(":");
   if (!draftId) return void (await enviarTexto(ctx.waId, ajudaTexto(ctx.espaco)));
+  // Pergunta depois do Confirmar (o rascunho já virou lançamento)
+  if (acao === "anx") return anexar(ctx, draftId);
+  if (acao === "nanx") return naoAnexar(ctx, draftId);
   const r = await rascunhoDe(ctx, draftId);
   if (!r || r.status !== "PENDING" || r.expiresAt <= new Date()) return void (await enviarTexto(ctx.waId, expirou));
 
   if (acao === "ok") return confirmar(ctx, r);
   if (acao === "no") {
     await prisma.whatsAppDraft.updateMany({ where: { id: r.id, status: "PENDING" }, data: { status: "CANCELED", awaitingCategory: false } });
+    await descartarDoRascunho(r.id);
     await anotar(ctx, "ASSISTANT", "[A pessoa tocou em Cancelar] Cancelado. Nada foi lançado.");
     return void (await enviarTexto(ctx.waId, "Cancelado. Nada foi lançado."));
   }
@@ -594,8 +632,56 @@ async function confirmar(ctx: Contexto, r: WhatsAppDraft) {
   const onde = "cartao" in resultado ? `no cartão ${resultado.cartao} (fatura de ${nomeFatura(resultado.fatura!)})` : `em ${resultado.conta}`;
   const pendente = "pendente" in resultado && resultado.pendente ? " Ficou como pendente (data futura)." : "";
   const feito = `✅ Lançado! ${receita ? "Receita" : "Despesa"} de ${formatarReais(r.amount)} ${onde}.${pendente}\nPara desfazer, apague em Lançamentos no app.`;
+  // Veio de um comprovante (foto/PDF)? Pergunta se anexa ao lançamento, na mesma mensagem
+  if (await perguntarSeAnexa(r.id)) {
+    await anotar(ctx, "ASSISTANT", `[Confirmado pela pessoa] ${feito}\n[Perguntei se quer anexar o comprovante, com os botões Anexar comprovante/Não anexar]`);
+    return void (await enviarBotoes(ctx.waId, `${feito}\n\n${PERGUNTA_ANEXO}`, [
+      { id: `anx:${r.id}`, titulo: "Anexar comprovante" },
+      { id: `nanx:${r.id}`, titulo: "Não anexar" },
+    ]));
+  }
   await anotar(ctx, "ASSISTANT", `[Confirmado pela pessoa] ${feito}`);
   await enviarTexto(ctx.waId, feito);
+}
+
+// ── Anexar o comprovante ao lançamento ────────
+
+export const PERGUNTA_ANEXO = "📎 Quer anexar o comprovante a este lançamento? Ele fica guardado junto, em Lançamentos no app.";
+const NO_APP = "O lançamento continua salvo, sem o anexo. Se quiser, anexe pelo app, em Lançamentos.";
+
+function textoDoAnexo(r: ResultadoAnexo, ctx: Contexto) {
+  if (r.ok) {
+    const onde = r.cartao && r.parcelado ? "à compra (na 1ª parcela)" : "ao lançamento";
+    return `📎 Comprovante anexado ${onde}! Veja em Lançamentos no app.`;
+  }
+  switch (r.motivo) {
+    case "resolvido":
+      return "Esse comprovante já foi resolvido ou expirou. Para anexar agora, use o app, em Lançamentos.";
+    case "somente-leitura":
+      return `Seu acesso ao espaço ${ctx.espaco} agora é somente leitura, então não dá para anexar. ${NO_APP}`;
+    case "fora-do-espaco":
+      return "Você não faz mais parte do espaço deste lançamento, então não anexei o comprovante.";
+    case "sem-lancamento":
+      return "Não achei mais esse lançamento (ele pode ter sido apagado no app). Não anexei o comprovante.";
+    case "recusado":
+      return `Não consegui anexar o comprovante: ${r.mensagem ?? "arquivo não aceito."} ${NO_APP}`;
+    default:
+      return `Não consegui anexar o comprovante agora. ${NO_APP}`;
+  }
+}
+
+async function anexar(ctx: Contexto, draftId: string) {
+  const r = await anexarComprovante(ctx, draftId);
+  const resposta = textoDoAnexo(r, ctx);
+  await anotar(ctx, "ASSISTANT", resposta);
+  await enviarTexto(ctx.waId, resposta);
+}
+
+async function naoAnexar(ctx: Contexto, draftId: string) {
+  const r = await prisma.whatsAppReceipt.deleteMany({ where: { draftId, userId: ctx.userId, waId: ctx.waId } });
+  const resposta = r.count ? "Tudo bem, não anexei. O lançamento continua salvo." : "Esse comprovante já foi resolvido. O lançamento continua salvo.";
+  await anotar(ctx, "ASSISTANT", resposta);
+  await enviarTexto(ctx.waId, resposta);
 }
 
 class ErroDeNegocio extends Error {}
@@ -643,7 +729,7 @@ async function textoResumo(ctx: Contexto) {
   ].join("\n");
 }
 
-// ── Áudio e foto ──────────────────────────────
+// ── Áudio, foto e documento ──────────────────────────────
 
 const emBreve = "Áudio e foto chegam em breve por aqui! 🎧📷 Por enquanto, escreva assim: *gastei 45,90 mercado*.";
 
@@ -679,7 +765,7 @@ export function fraseDoComprovante(d: DadosComprovante, legenda?: string) {
 const normalizarSimples = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 // Dados lidos da foto, como mensagem para o assistente
-function entradaDoComprovante(d: DadosComprovante, legenda?: string) {
+function entradaDoComprovante(d: DadosComprovante, legenda?: string, origem: "foto" | "documento" = "foto") {
   const partes = [
     `valor ${d.valor ? formatarReais(d.valor) : "não encontrado"}`,
     `data ${d.data ?? "não encontrada"}`,
@@ -687,30 +773,71 @@ function entradaDoComprovante(d: DadosComprovante, legenda?: string) {
     `categoria sugerida ${d.categoriaSugerida ?? "nenhuma"}`,
     `tipo ${d.tipo === "INCOME" ? "receita (dinheiro recebido)" : "despesa"}`,
   ];
-  return `(Foto de comprovante. Dados lidos: ${partes.join("; ")}.)${legenda ? ` Legenda da foto: “${legenda.slice(0, 300)}”` : ""}`;
+  const oQue = origem === "documento" ? "Documento (PDF/imagem) de comprovante" : "Foto de comprovante";
+  return `(${oQue}. Dados lidos: ${partes.join("; ")}.)${legenda ? ` Legenda: “${legenda.slice(0, 300)}”` : ""}`;
 }
 
-async function tratarImagem(ctx: Contexto, imagem: { id: string; mime_type?: string; caption?: string }) {
-  if (ctx.role === "VIEWER") return void (await enviarTexto(ctx.waId, somenteLeitura(ctx)));
-  // Legenda com valor ("45,90 mercado") já basta, sem ler a foto
-  const legenda = imagem.caption?.trim();
-  if (legenda && lerMensagem(legenda, hojeLocal()).tipo === "lancamento") return tratarTexto(ctx, legenda);
+type MidiaComprovante = { id: string; mime_type?: string; caption?: string; filename?: string };
 
-  const ia = provedorIA();
-  if (!ia) return void (await enviarTexto(ctx.waId, emBreve));
-  let lido: DadosComprovante;
-  try {
-    const { dados, mime } = await baixarMidia(imagem.id);
-    const categorias = (await categoriasDoEspaco(ctx.householdId)).map((c) => c.name);
-    lido = await ia.lerComprovante(dados, imagem.mime_type || mime, { hoje: hojeLocal(), categorias, legenda });
-  } catch (e) {
-    console.error("WhatsApp: falha na foto", e);
-    return void (await enviarTexto(ctx.waId, "Não consegui ler essa foto. Tente outra mais nítida ou escreva o valor."));
+// Foto (image) ou documento (PDF/imagem) de comprovante. Lê com a IA e monta o rascunho;
+// o arquivo fica guardado para a pergunta "Anexar comprovante?" depois do Confirmar.
+async function tratarComprovante(ctx: Contexto, midia: MidiaComprovante, origem: "foto" | "documento") {
+  if (ctx.role === "VIEWER") return void (await enviarTexto(ctx.waId, somenteLeitura(ctx)));
+  const mimeDeclarado = (midia.mime_type ?? "").split(";")[0].trim().toLowerCase();
+  if (origem === "documento" && mimeDeclarado && !ehMimeDeComprovante(mimeDeclarado)) {
+    return void (await enviarTexto(ctx.waId, "Por aqui eu leio comprovantes em *PDF* ou *foto* (JPG, PNG, WEBP ou HEIC). Mande nesse formato ou escreva, ex.: *gastei 45,90 mercado*."));
   }
-  const frase = fraseDoComprovante(lido, legenda);
-  if (!frase) return void (await enviarTexto(ctx.waId, "Não achei o valor nessa foto. Mande uma foto mais nítida do cupom ou escreva, ex.: *gastei 45,90 mercado*."));
-  // Assistente: recebe os dados lidos; sem ele (ou se falhar), a frase passa pelo parser
-  await tratarTexto(ctx, frase, "📷 Li o comprovante:", assistenteDisponivel() ? entradaDoComprovante(lido, legenda) : undefined);
+  // Legenda com valor ("45,90 mercado") já basta, sem ler o arquivo com a IA
+  const legenda = midia.caption?.trim();
+  const pelaLegenda = Boolean(legenda && lerMensagem(legenda, hojeLocal()).tipo === "lancamento");
+  const ia = provedorIA();
+  if (!pelaLegenda && !ia) return void (await enviarTexto(ctx.waId, emBreve));
+
+  const nomeArquivo = origem === "documento" ? "esse arquivo" : "essa foto";
+  let arquivo: { dados: Buffer; mime: string } | null = null;
+  try {
+    arquivo = await baixarMidia(midia.id);
+  } catch (e) {
+    console.error(`WhatsApp: falha ao baixar ${origem}`, e);
+    // Pela legenda dá para lançar mesmo sem o arquivo (só não oferece anexar)
+    if (!pelaLegenda) {
+      const grande = e instanceof ErroWhatsApp && e.status === 413;
+      return void (await enviarTexto(
+        ctx.waId,
+        grande
+          ? `${origem === "documento" ? "Esse arquivo" : "Essa foto"} passa de ${MAX_MIDIA / 1024 / 1024} MB, não consigo ler por aqui. Mande uma foto do comprovante ou escreva o valor.`
+          : `Não consegui ler ${nomeArquivo}. Tente de novo ou escreva o valor.`,
+      ));
+    }
+  }
+
+  // Guarda o arquivo (se for foto/PDF de verdade) para poder anexar depois do Confirmar
+  const comprovanteId = arquivo ? await guardarComprovante(ctx, arquivo.dados, nomeDoComprovante(arquivo.dados, midia.filename, hojeLocal())) : null;
+  const ctxC: Contexto = comprovanteId ? { ...ctx, comprovanteId } : ctx;
+  try {
+    if (pelaLegenda) return await tratarTexto(ctxC, legenda!);
+    let lido: DadosComprovante;
+    try {
+      const categorias = (await categoriasDoEspaco(ctx.householdId)).map((c) => c.name);
+      lido = await ia!.lerComprovante(arquivo!.dados, mimeDeclarado || arquivo!.mime, { hoje: hojeLocal(), categorias, legenda });
+    } catch (e) {
+      console.error(`WhatsApp: falha ao ler ${origem}`, e);
+      return void (await enviarTexto(ctx.waId, `Não consegui ler ${nomeArquivo}. Tente ${origem === "documento" ? "outro arquivo ou uma foto" : "outra mais nítida"} ou escreva o valor.`));
+    }
+    const frase = fraseDoComprovante(lido, legenda);
+    if (!frase) {
+      return void (await enviarTexto(
+        ctx.waId,
+        `Não achei o valor ${origem === "documento" ? "nesse arquivo" : "nessa foto"}. Mande ${origem === "documento" ? "o comprovante" : "uma foto mais nítida do cupom"} ou escreva, ex.: *gastei 45,90 mercado*.`,
+      ));
+    }
+    // Assistente: recebe os dados lidos; sem ele (ou se falhar), a frase passa pelo parser
+    const prefixo = origem === "documento" ? "📄 Li o comprovante:" : "📷 Li o comprovante:";
+    await tratarTexto(ctxC, frase, prefixo, assistenteDisponivel() ? entradaDoComprovante(lido, legenda, origem) : undefined);
+  } finally {
+    // Não virou rascunho: não guarda o arquivo
+    if (comprovanteId) await descartarSeSolto(comprovanteId);
+  }
 }
 
 // ── Limpeza (no start e a cada 6 horas) ───────
@@ -722,6 +849,8 @@ export async function limparWhatsApp(agora = new Date()) {
     // Ids de mensagens: o Meta só reenvia por alguns dias
     prisma.whatsAppInbound.deleteMany({ where: { receivedAt: { lt: new Date(agora.getTime() - 30 * UM_DIA_MS) } } }),
     prisma.whatsAppDraft.updateMany({ where: { status: "PENDING", expiresAt: { lt: agora } }, data: { status: "CANCELED", awaitingCategory: false } }),
+    // Comprovantes guardados para anexar: no máximo 1 dia (e some antes com o rascunho cancelado)
+    limparComprovantes(agora),
     prisma.whatsAppDraft.deleteMany({ where: { createdAt: { lt: new Date(agora.getTime() - 90 * UM_DIA_MS) } } }),
     prisma.whatsAppLinkCode.deleteMany({ where: { expiresAt: { lt: agora } } }),
     // Memória curta do assistente: só é lida por 45 minutos; guardamos no máximo 1 dia

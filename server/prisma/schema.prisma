@@ -40,6 +40,7 @@ model User {
   whatsappLink     WhatsAppLink?
   whatsappCode     WhatsAppLinkCode?
   whatsappDrafts   WhatsAppDraft[]
+  whatsappReceipts WhatsAppReceipt[]
   whatsappChat     WhatsAppChatMessage[]
 
   @@map("users")
@@ -829,11 +830,36 @@ model WhatsAppDraft {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  receipt   WhatsAppReceipt?
 
   @@index([waId, status])
   @@map("whatsapp_drafts")
+}
+
+// Foto/PDF do comprovante mandado pelo WhatsApp, guardado por pouco tempo para virar anexo
+// do lançamento se a pessoa quiser (pergunta depois do Confirmar). Apagado ao anexar,
+// ao responder "Não anexar", com o rascunho cancelado ou depois de 1 dia (limparWhatsApp).
+model WhatsAppReceipt {
+  id        String         @id @default(cuid())
+  userId    String
+  waId      String
+  // Rascunho criado a partir do comprovante (null enquanto o bot ainda está montando)
+  draftId   String?        @unique
+  data      Bytes
+  mime      String
+  fileName  String
+  // Quando perguntamos "Anexar comprovante?" (depois do Confirmar)
+  askedAt   DateTime?
+  createdAt DateTime       @default(now())
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  draft WhatsAppDraft? @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([waId, askedAt])
+  @@index([createdAt])
+  @@map("whatsapp_receipts")
 }
 
 // Preferência de resposta do assistente no WhatsApp (texto ou nota de voz)

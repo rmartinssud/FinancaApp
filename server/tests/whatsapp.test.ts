@@ -511,7 +511,7 @@ describe("whatsapp: lançar por texto", () => {
     await texto(waId, "comprei pão");
     expect(textoDe(ultima(waId))).toContain("Não entendi");
     await postarWebhook(payload(waId, { type: "sticker", sticker: { id: "1" } }));
-    expect(textoDe(ultima(waId))).toContain("texto, áudio e foto");
+    expect(textoDe(ultima(waId))).toContain("texto, áudio, foto e PDF de comprovante");
   });
 
   it("rascunho vence em 30 minutos; limpeza cancela os vencidos", async () => {
