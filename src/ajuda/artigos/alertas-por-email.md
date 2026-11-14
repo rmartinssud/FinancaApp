@@ -3,8 +3,8 @@ titulo: Alertas por e-mail
 categoria: Planejamento
 ordem: 9.5
 resumo: Receba no e-mail quando um orçamento chega ao alerta ou estoura, quando a fatura do cartão está para vencer e quais contas vencem hoje ou amanhã.
-palavras: alerta, alertas, aviso, avisos, notificação, notificacao, e-mail, email, lembrete, orçamento estourado, fatura vencendo, vencimento, contas a pagar, pendente, desligar alertas, parar de receber, gerenciar alertas
-relacionados: orcamentos, cartoes-de-credito, lancamentos, familia-e-espacos
+palavras: whatsapp, alertas no whatsapp, alerta, alertas, aviso, avisos, notificação, notificacao, e-mail, email, lembrete, orçamento estourado, fatura vencendo, vencimento, contas a pagar, pendente, desligar alertas, parar de receber, gerenciar alertas
+relacionados: orcamentos, cartoes-de-credito, lancamentos, familia-e-espacos, whatsapp
 ---
 
 O Famicash pode te avisar por **e-mail** sobre o que pede atenção. Os e-mails chegam de **nao-responda@famicash.com**.
@@ -18,6 +18,10 @@ O Famicash pode te avisar por **e-mail** sobre o que pede atenção. Os e-mails 
 Todo alerta tem, no rodapé, o link **Gerenciar alertas por e-mail**, que abre essa mesma tela.
 
 > As preferências valem **para o espaço ativo**. Participa de mais de um espaço? Troque de espaço no menu e ajuste os alertas de cada um.
+
+## Também no WhatsApp
+
+Os mesmos alertas podem chegar no **WhatsApp**. Primeiro ligue o seu número (**Segurança › WhatsApp**); depois, em **Alertas no WhatsApp**, ligue os tipos que quiser. No WhatsApp eles começam **desligados** para todo mundo, até para o Dono, e cada tipo é ligado à parte do e-mail. Veja [Famicash no WhatsApp](artigo:whatsapp).
 
 ## Os tipos de alerta
 

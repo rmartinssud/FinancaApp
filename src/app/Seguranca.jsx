@@ -7,6 +7,7 @@ import Campo from "../auth/Campo.jsx";
 import BotaoEnviar from "../auth/BotaoEnviar.jsx";
 import Alerta from "../auth/Alerta.jsx";
 import AlertasEmail from "./componentes/AlertasEmail.jsx";
+import WhatsAppBot from "./componentes/WhatsAppBot.jsx";
 import { authClient, useSession } from "../lib/auth-client.js";
 import { traduzirErro } from "../lib/erros.js";
 
@@ -44,11 +45,12 @@ function Seguranca() {
   const [aviso, setAviso] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  // Link "Gerenciar alertas" dos e-mails (/app/seguranca#alertas): rola até a seção
+  // Link "Gerenciar alertas" dos e-mails (/app/seguranca#alertas) e #whatsapp: rola até a seção
   const { hash } = useLocation();
   useEffect(() => {
-    if (hash !== "#alertas") return;
-    const t = setTimeout(() => document.getElementById("alertas")?.scrollIntoView({ block: "start" }), 300);
+    const secao = { "#alertas": "alertas", "#whatsapp": "whatsapp", "#alertas-whatsapp": "alertas-whatsapp" }[hash];
+    if (!secao) return;
+    const t = setTimeout(() => document.getElementById(secao)?.scrollIntoView({ block: "start" }), 300);
     return () => clearTimeout(t);
   }, [hash]);
 
@@ -191,7 +193,11 @@ function Seguranca() {
         </div>
       </section>
 
+      <WhatsAppBot className={`mt-6 max-w-2xl ${cartao}`} />
+
       <AlertasEmail className={`mt-6 max-w-2xl ${cartao}`} />
+
+      <AlertasEmail canal="WHATSAPP" className={`mt-6 max-w-2xl ${cartao}`} />
     </AppLayout>
   );
 }

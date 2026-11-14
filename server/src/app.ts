@@ -21,6 +21,7 @@ import { statsRouter, savingsRouter } from "./routes/stats.js";
 import { reportsRouter } from "./routes/reports.js";
 import { calendarRouter } from "./routes/calendar.js";
 import { householdsRouter, familyRouter, invitesRouter } from "./routes/familia.js";
+import { whatsappRouter, whatsappWebhookRouter } from "./routes/whatsapp.js";
 
 export function createApp() {
   const app = express();
@@ -47,6 +48,9 @@ export function createApp() {
 
   // Upload de anexo: corpo cru (até 3 MB), antes do express.json()
   app.use("/api/transactions/:id/attachments", uploadRouter);
+
+  // Webhook do WhatsApp (Meta): corpo cru para conferir a assinatura, antes do express.json()
+  app.use("/api/whatsapp/webhook", whatsappWebhookRouter);
 
   app.use(express.json({ limit: "100kb" }));
 
@@ -76,6 +80,7 @@ export function createApp() {
   app.use("/api/households", householdsRouter);
   app.use("/api/family", familyRouter);
   app.use("/api/invites", invitesRouter);
+  app.use("/api/whatsapp", whatsappRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });

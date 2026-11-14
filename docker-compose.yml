@@ -41,6 +41,17 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       # Pasta dos anexos (foto/PDF dos lançamentos), num volume para não sumir no deploy
       UPLOADS_DIR: ${UPLOADS_DIR:-/data/anexos}
+      # Bot do WhatsApp (Meta Cloud API). Sem as quatro primeiras, o WhatsApp fica desligado.
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v21.0}
+      WHATSAPP_BOT_NUMBER: ${WHATSAPP_BOT_NUMBER:-+55 21 3955-2279}
+      # Áudio e foto no WhatsApp (opcional): provedor de IA
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
     volumes:
       - anexos:/data/anexos
     depends_on:
