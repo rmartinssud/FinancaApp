@@ -42,6 +42,7 @@ function EducacaoPublica({ pagina }) {
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>© {new Date().getFullYear()} Famicash · Finanças da família, inclusive pelo WhatsApp.</p>
+          <p className="mt-1">RPLL Tecnologia da Informação e Telecomunicação Ltda · CNPJ 51.378.336/0001-23</p>
           <nav aria-label="Links do rodapé" className="flex flex-wrap gap-x-4">
             <Link to="/" className={`inline-flex min-h-11 items-center rounded hover:text-primary ${classeFoco}`}>
               Conheça o Famicash
