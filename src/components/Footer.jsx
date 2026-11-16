@@ -76,9 +76,13 @@ function Footer() {
           ))}
         </div>
 
-        <p className="mt-14 border-t border-primary/15 py-6 text-center text-sm text-slate-600">
-          © 2026 Famicash. Todos os direitos reservados.
-        </p>
+        <div className="mt-14 border-t border-primary/15 py-6 text-center text-sm text-slate-600">
+          <p>© {new Date().getFullYear()} Famicash. Todos os direitos reservados.</p>
+          <p className="mt-1">
+            Famicash é um produto da RPLL Tecnologia da Informação e Telecomunicação Ltda · CNPJ 51.378.336/0001-23
+          </p>
+          <p className="mt-1">Rua Murilo Braga, 58, Senador Câmara, Rio de Janeiro/RJ, CEP 21833-200</p>
+        </div>
       </Container>
     </footer>
   );
