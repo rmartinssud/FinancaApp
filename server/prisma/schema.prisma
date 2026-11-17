@@ -204,6 +204,19 @@ model Household {
   whatsappDrafts   WhatsAppDraft[]
   whatsappChat     WhatsAppChatMessage[]
 
+  // Plano do espaço (Fase 10). Quem manda é o DONO: só ele resgata cupom (e, no futuro, assina).
+  // plan/planEndsAt: plano pago ou de cupom; vencido, volta ao teste (se ainda valer) ou ao Grátis.
+  plan                       PlanTier            @default(GRATIS)
+  planEndsAt                 DateTime?
+  planSource                 String? // "VOUCHER" ou "PAYMENT"
+  // Teste grátis de 15 dias do Família, criado junto com o espaço
+  trialEndsAt                DateTime?           @default(dbgenerated("(now() + '15 days'::interval)"))
+  // Reservado para o pagamento (Asaas, depois): id da assinatura no provedor
+  planProvider               String?
+  planProviderSubscriptionId String?
+  voucherRedemptions         VoucherRedemption[]
+  aiUsage                    AiUsage[]
+
   @@map("households")
 }
 
@@ -1067,4 +1080,60 @@ model EduProgress {
   @@id([userId, contentId])
   @@index([contentId])
   @@map("edu_progress")
+}
+
+// ─────────────────────────────────────────────
+// Fase 10: planos, cupons e uso da IA
+// ─────────────────────────────────────────────
+
+enum PlanTier {
+  GRATIS
+  FAMILIA
+  FAMILIA_PLUS
+}
+
+// Cupom criado no painel (ADMIN). Ex.: FUNDADOR = Família+ por 12 meses.
+model Voucher {
+  id          String    @id @default(cuid())
+  code        String    @unique // sempre em MAIÚSCULAS
+  plan        PlanTier // FAMILIA ou FAMILIA_PLUS
+  months      Int // 1 a 12
+  maxUses     Int? // null = sem limite
+  expiresAt   DateTime? // depois disso não pode mais ser resgatado
+  active      Boolean   @default(true)
+  note        String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  redemptions VoucherRedemption[]
+
+  @@map("vouchers")
+}
+
+// Um resgate por espaço por cupom
+model VoucherRedemption {
+  id          String   @id @default(cuid())
+  voucherId   String
+  householdId String
+  userId      String
+  planEndsAt  DateTime // até quando o plano ficou depois do resgate
+  createdAt   DateTime @default(now())
+
+  voucher   Voucher   @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([voucherId, householdId])
+  @@map("voucher_redemptions")
+}
+
+// Mensagens do assistente do WhatsApp por espaço e mês (mês no horário de Brasília, "2026-11")
+model AiUsage {
+  householdId String
+  month       String
+  count       Int    @default(0)
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@id([householdId, month])
+  @@map("ai_usage")
 }

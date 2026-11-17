@@ -4,7 +4,7 @@ categoria: Família e espaços
 ordem: 12
 resumo: Convidar pessoas, papéis de cada uma e como trocar de espaço sem perder o acesso.
 palavras: família, familia, espaço, espaco, compartilhar, convite, convidar, link, email, dono, membro, visualizador, somente leitura, papel, trocar de espaço, sair do espaço, quem lançou, pessoa
-relacionados: primeiros-passos, perguntas-frequentes, lancamentos
+relacionados: primeiros-passos, perguntas-frequentes, lancamentos, planos
 ---
 
 Um **espaço** guarda um conjunto de finanças: contas, cartões, lançamentos, orçamentos. Um mesmo login pode participar de **vários espaços** (ex.: o seu Pessoal e o da Família).
@@ -21,6 +21,8 @@ Na tela **Família**, toque em **Convidar pessoa** e escolha o **Papel**. Depois
 
 - **Por email**: digite o email da pessoa e toque em **Enviar convite**; ou
 - **Por link**: copie o link e mande no WhatsApp.
+
+Quantas pessoas cabem depende do **plano do espaço**: no **Grátis**, só o dono; no **Família**, até 4; no **Família+**, até 8. Os convites pendentes também ocupam vaga (cancele um para liberar). Veja [Planos, limites, teste grátis e cupons](artigo:planos).
 
 O convite é de **uso único** e vale por **7 dias**. Em **Convites pendentes** você pode reenviar ou remover. Copiar o link de um convite pendente **gera um link novo**, e o anterior deixa de valer.
 

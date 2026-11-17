@@ -35,3 +35,8 @@ export function useMe() {
     compartilhado: (ativo?.memberCount ?? 1) > 1,
   };
 }
+
+// Esquece o /api/me guardado (ex.: depois de resgatar um cupom, o selo do plano no menu muda)
+export function esquecerMe() {
+  pedido = null;
+}

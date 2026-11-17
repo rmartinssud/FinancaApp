@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { apagarArquivos, chavesDosLancamentos } from "../services/armazenamento.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
+import { exigirLimite } from "../services/planos.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
 import { valorComSinal, valorNaoNegativo, hojeComoData } from "../lib/money.js";
 import { contasComSaldo, serializarConta, saldoEDisponivel } from "../services/saldos.js";
@@ -95,6 +96,7 @@ accountsRouter.get("/", validateQuery(filtro), async (req, res) => {
 accountsRouter.post("/", validateBody(novaConta), async (req, res) => {
   const d = req.body as z.infer<typeof novaConta>;
   // Cartão não é conta padrão (a conta padrão é a que já vem escolhida em despesas/receitas)
+  await exigirLimite(scope(req).householdId, d.type === "CREDIT_CARD" ? "cartoes" : "contas");
   const padrao = d.type !== "CREDIT_CARD" && d.isDefault === true;
   const conta = await prisma.$transaction(async (tx) => {
     if (padrao) await tx.financialAccount.updateMany({ where: { ...scope(req), isDefault: true }, data: { isDefault: false } });

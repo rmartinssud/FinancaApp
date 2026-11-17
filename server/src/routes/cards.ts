@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
+import { exigirLimite } from "../services/planos.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
 import { Decimal, ZERO, valorNaoNegativo, valorPositivo, dataSchema, mesSchema } from "../lib/money.js";
 import { cartoesComFatura, datasDaFatura, faturaAtual, situacaoDaFatura } from "../services/cartoes.js";
@@ -66,6 +67,7 @@ cardsRouter.post("/", validateBody(novoCartao), async (req, res) => {
   const d = req.body as z.infer<typeof novoCartao>;
   const erro = await conferirContaPagamento(req, d.paymentAccountId);
   if (erro) return res.status(erro.status).json({ error: erro.error });
+  await exigirLimite(scope(req).householdId, "cartoes");
 
   const cartao = await prisma.financialAccount.create({
     data: { ...scope(req), ...d, paymentAccountId: d.paymentAccountId ?? null, type: "CREDIT_CARD", initialBalance: 0 },
@@ -88,6 +90,7 @@ cardsRouter.patch("/:id", validateBody(edicaoCartao), async (req, res) => {
 
   const erro = await conferirContaPagamento(req, d.paymentAccountId);
   if (erro) return res.status(erro.status).json({ error: erro.error });
+  if (archived === false && cartao.archivedAt) await exigirLimite(scope(req).householdId, "cartoes");
 
   await prisma.financialAccount.update({
     where: { id: cartao.id },

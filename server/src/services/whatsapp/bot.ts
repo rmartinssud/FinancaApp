@@ -17,6 +17,7 @@ import { ErroWhatsApp, MAX_MIDIA, baixarMidia, enviarBotoes, enviarLista, enviar
 import { enviarVoz, provedorComVoz, querResponderEmAudio, type ModoResposta } from "./voz.js";
 import { confirmarVinculo } from "./vinculo.js";
 import { podeUsarWhatsApp } from "./plano.js";
+import { consumirMensagemIA, vozLiberada } from "../planos.js";
 import { provedorIA, type DadosComprovante } from "./ia.js";
 import {
   anexarComprovante,
@@ -164,10 +165,12 @@ type Contexto = {
   entradaEmAudio?: boolean;
   // Comprovante (foto/PDF) guardado desta mensagem: o rascunho criado a partir dela fica ligado a ele
   comprovanteId?: string;
+  // Respostas em áudio estão no plano do espaço (Família+)?
+  voz: boolean;
 };
 
 // Resposta em áudio nesta mensagem? (modo: a preferência, que o assistente pode ter acabado de mudar)
-const emAudio = (ctx: Contexto, modo = ctx.modoResposta) => querResponderEmAudio(modo, Boolean(ctx.entradaEmAudio));
+const emAudio = (ctx: Contexto, modo = ctx.modoResposta) => ctx.voz && querResponderEmAudio(modo, Boolean(ctx.entradaEmAudio));
 const falar = (ctx: Contexto, texto: string) => enviarVoz(ctx.waId, texto, { userId: ctx.userId });
 
 const ajudaTexto = (espaco: string) =>
@@ -220,6 +223,7 @@ async function carregarContexto(waId: string): Promise<Contexto | { erro: string
     espaco: membro.household.name,
     role: membro.role,
     modoResposta: link.replyMode,
+    voz: await vozLiberada(link.householdId),
   };
 }
 
@@ -255,6 +259,17 @@ async function tratarMensagem(msg: MensagemWebhook) {
   if ("erro" in ctx) return void (await enviarTexto(waId, ctx.erro));
   if (!(await podeUsarWhatsApp({ userId: ctx.userId, householdId: ctx.householdId }))) {
     return void (await enviarTexto(waId, "O WhatsApp não está disponível no seu plano. Veja os planos em famicash.com."));
+  }
+
+  // Mensagens do assistente no mês (por espaço). Os botões (Confirmar, Cancelar...) não contam.
+  if (["text", "audio", "image", "document"].includes(msg.type)) {
+    const uso = await consumirMensagemIA(ctx.householdId);
+    if (!uso.ok) {
+      return void (await enviarTexto(
+        waId,
+        `Você chegou ao limite de ${uso.plano.mensagensIA.toLocaleString("pt-BR")} mensagens do assistente deste mês no plano ${uso.plano.nome} 🙏\n\nO limite renova no dia 1º. Enquanto isso, dá para lançar tudo pelo app. Para ter mais mensagens, veja *Meu plano* em ${SITE}.`,
+      ));
+    }
   }
 
   switch (msg.type) {

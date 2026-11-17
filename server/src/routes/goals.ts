@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
+import { exigirLimite } from "../services/planos.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
 import { Decimal, valorPositivo, valorNaoNegativo, dataSchema } from "../lib/money.js";
 import { apagarArquivos } from "../services/armazenamento.js";
@@ -136,6 +137,7 @@ const campos = (d: DadosObjetivo) => ({
 goalsRouter.post("/", validateBody(objetivoSchema), async (req, res) => {
   const d = req.body as DadosObjetivo;
   if (!(await conferirConta(req, res, d))) return;
+  await exigirLimite(scope(req).householdId, "objetivos");
   const criado = await prisma.goal.create({ data: { ...scope(req), ...campos(d) } });
   res.status(201).json(await umComProgresso(criado.id));
 });
@@ -157,6 +159,7 @@ goalsRouter.post("/:id/status", validateBody(situacaoSchema), async (req, res) =
   const { status } = req.body as z.infer<typeof situacaoSchema>;
   const atual = await buscar(req);
   if (!atual) return res.status(404).json({ error: "Objetivo não encontrado." });
+  if (status === "ACTIVE" && atual.status !== "ACTIVE") await exigirLimite(scope(req).householdId, "objetivos");
   await prisma.goal.update({
     where: { id: atual.id },
     data: { status, completedAt: status === "COMPLETED" ? (atual.completedAt ?? new Date()) : status === "ACTIVE" ? null : atual.completedAt },

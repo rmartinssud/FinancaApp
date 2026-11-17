@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { FaShieldHalved, FaCircleCheck } from "react-icons/fa6";
 import AppLayout from "./AppLayout.jsx";
@@ -114,6 +114,9 @@ function Seguranca() {
     <AppLayout>
       <p className="text-sm font-bold uppercase tracking-widest text-primary">Conta</p>
       <h1 className="mt-2 font-heading text-2xl font-bold text-slate-900 md:text-4xl">Segurança</h1>
+      <p className="mt-2 text-slate-600">
+        Plano, limites e cupom: <Link to="/app/plano" className="font-bold text-primary underline">Meu plano</Link>
+      </p>
 
       <section className={`mt-8 max-w-2xl ${cartao}`} aria-labelledby="titulo-2fa">
         <div className="flex items-start gap-4">

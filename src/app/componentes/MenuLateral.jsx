@@ -18,12 +18,15 @@ import {
   FaFileInvoiceDollar,
   FaGraduationCap,
   FaPenToSquare,
+  FaCrown,
+  FaPlugCircleBolt,
+  FaTicket,
 } from "react-icons/fa6";
 import logo from "../../assets/logo-famicash.webp";
 import SeletorEspaco from "./SeletorEspaco.jsx";
 import { iniciais } from "../../lib/pessoas.js";
 
-// Itens do menu. "emBreve" aparece desativado com o selo "Em breve".
+// Itens do menu. "emBreve" aparece desativado com o selo "Em breve"; "selo" é um selo num item que abre normalmente.
 const SECOES_MENU = [
   {
     itens: [
@@ -32,6 +35,7 @@ const SECOES_MENU = [
       { para: "/app/lancamentos", texto: "Lançamentos", Icone: FaMoneyBillTransfer },
       { para: "/app/cartoes", texto: "Cartões de crédito", Icone: FaCreditCard },
       { para: "/app/familia", texto: "Família", Icone: FaUsers },
+      { para: "/app/open-finance", texto: "Open Finance", Icone: FaPlugCircleBolt, selo: "Breve" },
     ],
   },
   {
@@ -58,7 +62,10 @@ const SECOES_MENU = [
   },
   {
     titulo: "Suporte",
-    itens: [{ para: "/app/ajuda", texto: "Ajuda", Icone: FaCircleQuestion }],
+    itens: [
+      { para: "/app/plano", texto: "Meu plano", Icone: FaCrown },
+      { para: "/app/ajuda", texto: "Ajuda", Icone: FaCircleQuestion },
+    ],
   },
 ];
 
@@ -67,6 +74,8 @@ const SECAO_EQUIPE = {
   titulo: "Equipe Famicash",
   itens: [{ para: "/app/admin/educacao", texto: "Painel de conteúdo", Icone: FaPenToSquare }],
 };
+// Cupons: só ADMIN
+const ITEM_CUPONS = { para: "/app/admin/cupons", texto: "Cupons", Icone: FaTicket };
 
 const classeItem = "flex min-h-12 w-full items-center gap-4 rounded-full px-5 text-[15px] font-medium transition";
 
@@ -97,7 +106,9 @@ function MenuLateral({ me, onSair, saindo, idTitulo }) {
             {nome || "..."}
           </span>
           <span className="block truncate text-sm text-slate-500">{email}</span>
-          <span className="mt-1.5 inline-flex items-center rounded-full border border-slate-300 px-3 py-0.5 text-xs font-bold text-slate-700">Gratuito</span>
+          <span className="mt-1.5 inline-flex items-center rounded-full border border-slate-300 px-3 py-0.5 text-xs font-bold text-slate-700">
+            {me?.plan ? (me.plan.source === "TESTE" ? `${me.plan.name} (teste)` : me.plan.name) : "..."}
+          </span>
         </span>
         <FaChevronRight aria-hidden="true" className="shrink-0 text-slate-400" />
       </Link>
@@ -108,11 +119,16 @@ function MenuLateral({ me, onSair, saindo, idTitulo }) {
       </div>
 
       <nav aria-label="Menu do app" className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
-        {[...SECOES_MENU, ...(me?.platformRole === "ADMIN" || me?.platformRole === "EDITOR" ? [SECAO_EQUIPE] : [])].map((secao, i) => (
+        {[
+          ...SECOES_MENU,
+          ...(me?.platformRole === "ADMIN" || me?.platformRole === "EDITOR"
+            ? [{ ...SECAO_EQUIPE, itens: [...SECAO_EQUIPE.itens, ...(me.platformRole === "ADMIN" ? [ITEM_CUPONS] : [])] }]
+            : []),
+        ].map((secao, i) => (
           <div key={secao.titulo ?? i} className={i > 0 ? "mt-4" : ""}>
             {secao.titulo && <p className="px-5 pb-1 pt-2 text-sm font-bold text-slate-500">{secao.titulo}</p>}
             <ul className="space-y-0.5">
-              {secao.itens.map(({ para, texto, Icone, fim, emBreve }) => (
+              {secao.itens.map(({ para, texto, Icone, fim, emBreve, selo }) => (
                 <li key={texto}>
                   {emBreve ? (
                     <span aria-disabled="true" className={`${classeItem} cursor-not-allowed text-slate-400`}>
@@ -132,6 +148,7 @@ function MenuLateral({ me, onSair, saindo, idTitulo }) {
                     >
                       <Icone aria-hidden="true" className="shrink-0 text-lg" />
                       <span className="flex-1">{texto}</span>
+                      {selo && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-800">{selo}</span>}
                     </NavLink>
                   )}
                 </li>
