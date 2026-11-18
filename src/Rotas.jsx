@@ -40,6 +40,9 @@ const Educacao = lazy(() => import("./app/Educacao.jsx"));
 const AdminEducacao = lazy(() => import("./app/admin/AdminEducacao.jsx"));
 const EditorConteudo = lazy(() => import("./app/admin/EditorConteudo.jsx"));
 const EditorCurso = lazy(() => import("./app/admin/EditorCurso.jsx"));
+const MeuPlano = lazy(() => import("./app/MeuPlano.jsx"));
+const OpenFinance = lazy(() => import("./app/OpenFinance.jsx"));
+const AdminCupons = lazy(() => import("./app/admin/AdminCupons.jsx"));
 
 function Rotas() {
   return (
@@ -90,6 +93,10 @@ function Rotas() {
           <Route path="/app/relatorios" element={<RotaProtegida><Relatorios /></RotaProtegida>} />
           <Route path="/app/calendario" element={<RotaProtegida><Calendario /></RotaProtegida>} />
           <Route path="/app/seguranca" element={<RotaProtegida><Seguranca /></RotaProtegida>} />
+          <Route path="/app/plano" element={<RotaProtegida><MeuPlano /></RotaProtegida>} />
+          <Route path="/app/open-finance" element={<RotaProtegida><OpenFinance /></RotaProtegida>} />
+          {/* Cupons de plano (só ADMIN da plataforma; a API confere de novo) */}
+          <Route path="/app/admin/cupons" element={<RotaProtegida><AdminCupons /></RotaProtegida>} />
           <Route path="/app/ajuda" element={<RotaProtegida><Ajuda /></RotaProtegida>} />
           <Route path="/app/ajuda/:slug" element={<RotaProtegida><Ajuda /></RotaProtegida>} />
           <Route path="/app/educacao" element={<RotaProtegida><Educacao pagina="home" /></RotaProtegida>} />

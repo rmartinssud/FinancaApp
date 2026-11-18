@@ -8,6 +8,7 @@ import { env } from "../env.js";
 import { sendEmail, emailComLink } from "../lib/email.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, requireRole } from "../middleware/household.js";
+import { exigirLimite, planoDoEspaco } from "../services/planos.js";
 import { validateBody } from "../middleware/validate.js";
 import { criarEspaco } from "../services/onboarding.js";
 
@@ -176,6 +177,7 @@ familyRouter.post("/invites", soDono, validateBody(novoConvite), async (req, res
     const jaMembro = await prisma.householdMember.findFirst({ where: { householdId: h.id, user: { email: d.email } } });
     if (jaMembro) return res.status(409).json({ error: "Essa pessoa já faz parte do espaço." });
   }
+  await exigirLimite(h.id, "pessoas");
   const { token, tokenHash, expiresAt } = novoToken();
   const convite = await prisma.householdInvite.create({
     data: { householdId: h.id, email: d.email ?? null, role: d.role, tokenHash, expiresAt, invitedById: req.user!.id },
@@ -300,6 +302,11 @@ invitesRouter.post("/:token/accept", requireAuth, async (req, res) => {
 
   const jaMembro = await prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId: user.id } } });
   if (!jaMembro) {
+    // Limite de pessoas do plano (o convite já contava como vaga; aqui confere só quem já entrou)
+    const { plano } = await planoDoEspaco(householdId);
+    if ((await prisma.householdMember.count({ where: { householdId } })) >= plano.pessoas) {
+      return res.status(403).json({ error: `O espaço ${convite.household.name} chegou ao limite de ${plano.pessoas} ${plano.pessoas === 1 ? "pessoa" : "pessoas"} do plano ${plano.nome}. Peça ao dono para ver Meu plano.`, code: "LIMITE_PLANO", upgrade: true });
+    }
     await prisma.$transaction([
       prisma.householdMember.create({ data: { householdId, userId: user.id, role: convite.role } }),
       prisma.householdInvite.update({ where: { id: convite.id }, data: { acceptedAt: new Date(), acceptedBy: user.id } }),

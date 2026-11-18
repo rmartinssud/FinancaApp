@@ -11,6 +11,7 @@ import { formatarTelefone } from "../services/whatsapp/telefone.js";
 import { podeUsarWhatsApp } from "../services/whatsapp/plano.js";
 import type { AlertChannel } from "@prisma/client";
 import { papelDoUsuario } from "../services/educacao/papeis.js";
+import { planoDoEspaco, serializarPlano } from "../services/planos.js";
 
 export const meRouter = Router();
 
@@ -22,6 +23,8 @@ meRouter.get("/", requireAuth, withHousehold, async (req, res) => {
     // Papel na plataforma (Educação financeira): USER, EDITOR ou ADMIN
     platformRole: await papelDoUsuario(u.id),
     household: req.household,
+    // Plano do espaço ativo (o selo no menu)
+    plan: serializarPlano(await planoDoEspaco(req.household!.id)),
     households: await espacosDoUsuario(u.id, req.household!.id),
   });
 });

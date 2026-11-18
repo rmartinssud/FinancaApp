@@ -22,7 +22,7 @@ const perguntas = [
   {
     pergunta: "Quanto custa?",
     resposta:
-      "Existe um plano grátis para sempre. Os planos pagos liberam a família conectada, o WhatsApp e o planejador de dívidas, e você pode cancelar quando quiser.",
+      "Existe um plano grátis para sempre, sem anúncios, e toda conta nova ganha 15 dias grátis do plano Família. Os planos Família (R$ 99,90/ano ou R$ 11,90/mês) e Família+ (R$ 169,90/ano ou R$ 19,90/mês) liberam contas e cartões ilimitados, mais pessoas no espaço e mais mensagens no assistente do WhatsApp.",
   },
   {
     pergunta: "O app conecta direto com o meu banco?",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { withHousehold, scope, bloqueiaSomenteLeitura } from "../middleware/household.js";
+import { exigirLimite } from "../services/planos.js";
 import { validateQuery, validateBody } from "../middleware/validate.js";
 import { Decimal, ZERO, valorPositivo, valorNaoNegativo, dataSchema } from "../lib/money.js";
 import { apagarArquivos } from "../services/armazenamento.js";
@@ -156,6 +157,7 @@ debtsRouter.get("/:id", async (req, res) => {
 debtsRouter.post("/", validateBody(dividaSchema), async (req, res) => {
   const d = req.body as DadosDivida;
   if (!(await conferirConta(req, res, d.accountId))) return;
+  await exigirLimite(scope(req).householdId, "dividas");
   const criada = await prisma.debt.create({ data: { ...scope(req), ...campos(d), startingBalance: d.currentBalance, createdById: req.user!.id } });
   res.status(201).json(await umComSaldo(criada.id));
 });
@@ -179,6 +181,7 @@ debtsRouter.post("/:id/status", validateBody(situacaoSchema), async (req, res) =
   const { status } = req.body as z.infer<typeof situacaoSchema>;
   const atual = await buscar(req);
   if (!atual) return naoEncontrada(res);
+  if (status === "ACTIVE" && atual.status !== "ACTIVE") await exigirLimite(scope(req).householdId, "dividas");
   await prisma.debt.update({ where: { id: atual.id }, data: { status } });
   // Reativar uma dívida com saldo zero a deixa como quitada
   res.json(await umComSaldo(atual.id));

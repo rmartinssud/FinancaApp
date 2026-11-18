@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { armazenamento, apagarArquivos } from "./armazenamento.js";
 import { AnexoRecusado, LIMITE_ANEXO, otimizarAnexo, trocarExtensao } from "./otimizarAnexo.js";
+import { LimiteDoPlano, exigirEspacoParaAnexo } from "./planos.js";
 
 // ─────────────────────────────────────────────
 // Gravar um anexo num lançamento: as mesmas regras para o app (routes/attachments.ts)
@@ -48,6 +49,14 @@ export async function gravarAnexo(transactionId: string, dados: Buffer, nomeOrig
   const pronto = await otimizarAnexo(dados, tipoRecebido);
   const { tipo } = pronto;
   if (pronto.dados.length > LIMITE_ANEXO) throw new AnexoRecusado("Arquivo grande demais. O limite é 3 MB por arquivo.", 413);
+  // Cota de anexos do plano do espaço (Grátis 100 MB, Família 1 GB, Família+ 5 GB)
+  const { householdId } = await prisma.transaction.findUniqueOrThrow({ where: { id: transactionId }, select: { householdId: true } });
+  try {
+    await exigirEspacoParaAnexo(householdId, pronto.dados.length);
+  } catch (e) {
+    if (e instanceof LimiteDoPlano) throw new AnexoRecusado(e.message, 403);
+    throw e;
+  }
   let nome = limparNomeArquivo(nomeOriginal, tipo.ext);
   if (tipo.ext !== tipoRecebido.ext) nome = trocarExtensao(nome, tipo.ext);
 

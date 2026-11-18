@@ -236,6 +236,12 @@ function WhatsAppBot({ className = "" }) {
               <span className="mt-2 block text-sm text-slate-500">É onde o bot lança e de onde vêm o saldo e o resumo.</span>
             </label>
 
+            {dados.audioNeedsUpgrade && (
+              <p className="text-sm text-slate-500">
+                Respostas em áudio do assistente fazem parte do plano Família+. <Link to="/app/plano" className="font-bold text-primary underline">Ver Meu plano</Link>
+              </p>
+            )}
+
             {dados.audioReplies && (
               <label className="block">
                 <span className="mb-2 block font-medium text-slate-800">Respostas do assistente</span>

@@ -25,6 +25,8 @@ import { whatsappRouter, whatsappWebhookRouter } from "./routes/whatsapp.js";
 import { educacaoRouter } from "./routes/educacao.js";
 import { adminEducacaoRouter } from "./routes/adminEducacao.js";
 import { seoRouter } from "./routes/seo.js";
+import { planoRouter, adminCuponsRouter } from "./routes/planos.js";
+import { LimiteDoPlano } from "./services/planos.js";
 
 export function createApp() {
   const app = express();
@@ -90,6 +92,8 @@ export function createApp() {
   app.use("/api/whatsapp", whatsappRouter);
   app.use("/api/educacao", educacaoRouter);
   app.use("/api/seo", seoRouter);
+  app.use("/api/plano", planoRouter);
+  app.use("/api/admin/cupons", adminCuponsRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });
@@ -97,6 +101,8 @@ export function createApp() {
 
   // Erros inesperados: registra no console e responde sem detalhes
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    // Limite do plano (contas, cartões, pessoas...): mensagem clara com a dica de upgrade
+    if (err instanceof LimiteDoPlano) return res.status(err.status).json({ error: err.message, code: err.code, upgrade: true });
     console.error(err);
     res.status(500).json({ error: "Erro interno. Tente novamente." });
   });

@@ -3,8 +3,8 @@ titulo: Perguntas frequentes
 categoria: Dúvidas frequentes
 ordem: 13
 resumo: Respostas rápidas para as dúvidas mais comuns.
-palavras: anexo, comprovante grande, foto grande, passa de 3 mb, otimizar imagem, assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, áudio, audio, resposta em áudio, nota de voz, prefiro texto, privacidade, lgpd, excluir conta, apagar conta, dados
-relacionados: campos-extras-do-lancamento, cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
+palavras: plano, planos, preço, quanto custa, limite, cupom, teste grátis, open finance, anexo, comprovante grande, foto grande, passa de 3 mb, otimizar imagem, assistente, ia, assistente do whatsapp, dúvidas, duvidas, faq, perguntas, fatura seguinte, total diferente, categoria diferente, saldo diferente, trocar espaço, sair do espaço, pendente, efetivado, objetivo, guardar dinheiro, depósito no objetivo, dívida, pagamento de dívida, quitar dívida, avalanche, bola de neve, whatsapp, bot, lançar pelo whatsapp, áudio, audio, resposta em áudio, nota de voz, prefiro texto, privacidade, lgpd, excluir conta, apagar conta, dados
+relacionados: planos, open-finance, campos-extras-do-lancamento, cartoes-de-credito, ajustar-saldo, familia-e-espacos, inicio, objetivos, dividas, whatsapp
 ---
 
 ## Por que a compra do cartão caiu na fatura seguinte?
@@ -59,7 +59,7 @@ Não. Ele entende o que você escreveu, falou ou fotografou e monta o lançament
 
 ## O assistente do WhatsApp responde em áudio?
 
-Sim. Quando você manda um **áudio**, ele responde também com uma **mensagem de voz**, com o mesmo texto junto. Lançamentos continuam chegando com os botões **Confirmar**, **Corrigir** e **Cancelar**. Prefere só texto (ou sempre áudio)? Escreva **prefiro respostas em texto** ou **responda em áudio**, ou mude em **Segurança › WhatsApp › Respostas do assistente**. Veja [Famicash no WhatsApp](artigo:whatsapp).
+Sim, no plano **Família+**. Quando você manda um **áudio**, ele responde também com uma **mensagem de voz**, com o mesmo texto junto. Lançamentos continuam chegando com os botões **Confirmar**, **Corrigir** e **Cancelar**. Prefere só texto (ou sempre áudio)? Escreva **prefiro respostas em texto** ou **responda em áudio**, ou mude em **Segurança › WhatsApp › Respostas do assistente**. Veja [Famicash no WhatsApp](artigo:whatsapp).
 
 ## Minha foto do comprovante passa de 3 MB. E agora?
 
@@ -68,6 +68,18 @@ Pode anexar assim mesmo. Fotos maiores que 3 MB são **otimizadas automaticament
 ## Como o Famicash cuida dos meus dados? Posso apagar minha conta?
 
 O Famicash não vende seus dados e não mostra anúncios. Áudios e fotos enviados ao WhatsApp são lidos e descartados; o texto das últimas mensagens com o assistente fica guardado por até 1 dia. Para pedir uma cópia ou a exclusão da conta, escreva para **contato@famicash.com** a partir do e-mail cadastrado. Tudo está explicado na [Política de Privacidade](/privacidade).
+
+## Quanto custa o Famicash?
+
+Existe o plano **Grátis** para sempre, sem anúncios. O **Família** custa **R$ 99,90 por ano** (ou R$ 11,90 por mês) e o **Família+** **R$ 169,90 por ano** (ou R$ 19,90 por mês). Todo espaço novo ganha **15 dias grátis do Família**. Tem um cupom? Use em **Meu plano**. Veja [Planos, limites, teste grátis e cupons](artigo:planos).
+
+## Apareceu "Seu plano permite até..." E agora?
+
+É o limite do plano do espaço. **Nada foi apagado**: só não dá para criar mais itens daquele tipo. Arquive o que não usa, cancele convites pendentes ou mude de plano em **Meu plano**. Veja [Planos](artigo:planos).
+
+## Dá para conectar meu banco automaticamente?
+
+Ainda não: o **Open Finance** chega em breve. Veja [Open Finance](artigo:open-finance).
 
 ## Não achei minha dúvida
 

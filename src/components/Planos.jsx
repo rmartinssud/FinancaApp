@@ -2,44 +2,22 @@ import { CheckCircleFill } from "react-bootstrap-icons";
 import ButtonArrow45 from "./ButtonArrow45.jsx";
 import Container from "./Container.jsx";
 import SectionTitle from "./SectionTitle.jsx";
+import { DIAS_TESTE, PLANOS as planos, preco } from "../lib/planos.js";
 
-// ATENÇÃO: nomes, preços e itens dos planos são PLACEHOLDERS (valores provisórios).
-// Ajuste quando a precificação estiver definida.
-const planos = [
-  {
-    nome: "Grátis",
-    preco: "R$ 0",
-    periodo: "para sempre",
-    descricao: "Para começar a organizar suas finanças.",
-    itens: ["1 usuário", "Carteira e 2 contas", "Receitas e despesas ilimitadas", "Resumo mensal"],
-  },
-  {
-    nome: "Família",
-    preco: "R$ 19,90",
-    periodo: "/mês",
-    descricao: "Para a casa toda registrar junto.",
-    itens: ["Até 5 membros da família", "Contas e cartões ilimitados", "Assistente no WhatsApp", "Dashboard com gráficos"],
-    destaque: true,
-  },
-  {
-    nome: "Premium",
-    preco: "R$ 29,90",
-    periodo: "/mês",
-    descricao: "Para quem quer sair das dívidas mais rápido.",
-    itens: ["Tudo do plano Família", "Planejador de dívidas", "Dicas personalizadas", "Suporte prioritário"],
-  },
-];
-
+// Planos e preços: src/lib/planos.js (os mesmos números do servidor)
 function Planos() {
   return (
     <section id="planos" className="py-20 md:py-28">
       <Container>
         <SectionTitle subtitulo="Planos" antes="Escolha o plano ideal para" destaque="sua casa" centralizado className="max-w-3xl" />
+        <p className="mx-auto mt-4 max-w-2xl text-center text-slate-600">
+          Toda conta nova começa com <strong>{DIAS_TESTE} dias grátis do plano Família</strong>. Depois, continue no Grátis ou escolha um plano. No plano anual você economiza.
+        </p>
 
         <div className="mx-auto mt-14 grid max-w-xl items-stretch gap-8 lg:max-w-none lg:grid-cols-3">
           {planos.map((p) => (
             <article
-              key={p.nome}
+              key={p.id}
               className={`relative flex flex-col rounded-[28px] p-8 drop-shadow-xl ${p.destaque ? "bg-primary text-white lg:-my-4 lg:py-12" : "bg-white text-slate-800"}`}
             >
               {p.destaque && (
@@ -50,8 +28,11 @@ function Planos() {
               <h3 className="font-heading text-2xl font-bold">{p.nome}</h3>
               <p className={`mt-2 ${p.destaque ? "text-white/80" : "text-slate-500"}`}>{p.descricao}</p>
               <p className="mt-6">
-                <span className="font-heading text-5xl font-extrabold">{p.preco}</span>
-                <span className={p.destaque ? "text-white/80" : "text-slate-500"}> {p.periodo}</span>
+                <span className="font-heading text-5xl font-extrabold">{preco(p.precoAnual)}</span>
+                <span className={p.destaque ? "text-white/80" : "text-slate-500"}> {p.precoAnual ? "/ano" : "para sempre"}</span>
+              </p>
+              <p className={`mt-2 text-sm ${p.destaque ? "text-white/80" : "text-slate-500"}`}>
+                {p.precoMensal ? `ou ${preco(p.precoMensal)}/mês` : "Sem cartão de crédito"}
               </p>
               <ul className="mb-8 mt-8 space-y-3">
                 {p.itens.map((item) => (
@@ -62,7 +43,7 @@ function Planos() {
                 ))}
               </ul>
               <ButtonArrow45
-                texto={p.preco === "R$ 0" ? "Começar grátis" : "Assinar"}
+                texto={p.precoAnual ? `Testar ${DIAS_TESTE} dias grátis` : "Começar grátis"}
                 to="/cadastro"
                 variante={p.destaque ? "light" : "primary"}
                 className="mt-auto w-full"

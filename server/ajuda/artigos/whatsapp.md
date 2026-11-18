@@ -4,7 +4,7 @@ categoria: Lançamentos
 ordem: 5.5
 resumo: Ligue seu número e lance gastos e receitas mandando uma mensagem, áudio, foto ou PDF do comprovante (que pode virar anexo do lançamento). Converse com o assistente sobre suas finanças (ele responde em áudio quando você manda áudio), simule compras e receba alertas no WhatsApp. Nada é salvo sem você confirmar.
 palavras: whatsapp, zap, wpp, bot, robô, robo, assistente, assistente financeiro, ia, inteligência artificial, inteligencia artificial, perguntar, conversar, como estão minhas finanças, simular, simulação, simulacao, vale a pena comprar, parcelar, corrigir, sim, mensagem, lançar pelo whatsapp, ligar número, vincular, código, desligar whatsapp, saldo, resumo, áudio, audio, foto, cupom, nota fiscal, comprovante, pdf, documento, arquivo, anexo, anexar, anexar comprovante, guardar comprovante, recibo, alertas no whatsapp, resposta em áudio, resposta em audio, nota de voz, mensagem de voz, falar, ouvir, prefiro texto, responder em texto, responder em áudio, digitando, lida, visto, tracinhos azuis
-relacionados: lancamentos, cartoes-de-credito, alertas-por-email, familia-e-espacos
+relacionados: lancamentos, cartoes-de-credito, alertas-por-email, familia-e-espacos, planos
 ---
 
 Com o WhatsApp ligado, você lança uma despesa ou receita **mandando uma mensagem** para o Famicash, sem abrir o app, e conversa com o **assistente financeiro** sobre o seu dinheiro. O número do Famicash no WhatsApp é **+55 21 3955-2279**.
@@ -157,6 +157,8 @@ Regras do anexo (as mesmas do app):
 
 Mandou um **áudio**? O assistente responde também com uma **mensagem de voz**, e o **mesmo texto** vai junto, para quando você não puder ouvir.
 
+> Respostas em áudio fazem parte do plano **Família+**. Nos outros planos, o assistente entende os seus áudios normalmente, mas responde só em texto. Veja [Planos](artigo:planos).
+
 - **Perguntas e conversas** ("como estão minhas finanças?"): vêm em áudio + texto. Respostas longas ficam com até cerca de **1 minuto** de áudio; o resto está no texto.
 - **Lançamentos para confirmar**: o áudio lê um resumo curto e, logo abaixo, chega a mensagem com os botões **Confirmar**, **Corrigir** e **Cancelar**, como sempre.
 - **Confirmações, erros e listas de categorias** continuam só em texto.
@@ -169,6 +171,10 @@ Você escolhe como prefere receber:
 - **Sempre em áudio**: manda áudio (com o texto junto) mesmo quando você escreve.
 
 Para mudar, peça no próprio WhatsApp, por texto ou áudio: **prefiro respostas em texto**, **responda em áudio** ou **volte ao automático**. Ou vá em **Segurança › WhatsApp › Respostas do assistente**.
+
+## Limite de mensagens por mês
+
+Cada plano tem um número de mensagens do assistente por mês, somando todo mundo do espaço: **30** no Grátis, **300** no Família e **1.000** no Família+. Texto, áudio, foto e PDF contam; os botões **Confirmar**, **Corrigir** e **Cancelar** não. Quando acaba, o assistente avisa com educação e o limite renova no **dia 1º**. Você continua lançando pelo app. Veja [Planos, limites, teste grátis e cupons](artigo:planos).
 
 ## Lida e "digitando..."
 

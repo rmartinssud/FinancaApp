@@ -8,7 +8,14 @@ import { env } from "../src/env.js";
 import { RITMO_DIGITANDO, aguardarProcessamento } from "../src/services/whatsapp/bot.js";
 import { criarProvedorGemini, definirProvedorIA, type FalaSintetizada, type PedidoConversa, type ProvedorIA, type RespostaConversa } from "../src/services/whatsapp/ia.js";
 import { converterComFfmpeg, definirConversorAudio, duracaoSegundos, paraFala, porExtenso, reaisPorExtenso } from "../src/services/whatsapp/voz.js";
-import { familiaLogada } from "./helpers.js";
+import { familiaLogada as familiaBase } from "./helpers.js";
+
+// Resposta em áudio é do plano Família+ (Fase 10): os espaços destes testes já começam nele
+async function familiaLogada(...args: Parameters<typeof familiaBase>) {
+  const f = await familiaBase(...args);
+  await prisma.household.update({ where: { id: f.householdId }, data: { plan: "FAMILIA_PLUS", planEndsAt: new Date(Date.now() + 30 * 86_400_000), planSource: "VOUCHER" } });
+  return f;
+}
 
 // ─────────────────────────────────────────────
 // WhatsApp: lida + "digitando...", resposta em áudio (nota de voz) e preferência texto/áudio.

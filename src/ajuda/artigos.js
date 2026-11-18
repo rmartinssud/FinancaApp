@@ -25,6 +25,7 @@ export const ORDEM_CATEGORIAS = [
   "Análises",
   "Família e espaços",
   "Educação financeira",
+  "Planos e conta",
   "Dúvidas frequentes",
 ];
 

@@ -11,6 +11,7 @@ import { formatarTelefone, normalizarTelefone } from "../services/whatsapp/telef
 import { ESPERA_NOVO_CODIGO_SEG, VALIDADE_CODIGO_MIN, gerarCodigo, numeroDeOutraPessoa } from "../services/whatsapp/vinculo.js";
 import { podeUsarWhatsApp } from "../services/whatsapp/plano.js";
 import { provedorComVoz } from "../services/whatsapp/voz.js";
+import { vozLiberada } from "../services/planos.js";
 import { espacosDoUsuario } from "./familia.js";
 
 // ─────────────────────────────────────────────
@@ -82,14 +83,17 @@ async function situacao(userId: string, householdAtivo: string) {
   ]);
   const enabled = Boolean(cfg) && (await podeUsarWhatsApp({ userId, householdId: householdAtivo }));
   const botNumber = cfg?.botNumber ?? null;
+  const voz = await vozLiberada(link?.householdId ?? householdAtivo);
   // O espaço padrão ainda vale? (a pessoa pode ter saído dele)
   const espacoValido = link?.householdId && espacos.some((e) => e.id === link.householdId) ? link.household : null;
   return {
     enabled,
     botNumber,
     botLink: botNumber ? `https://wa.me/${soDigitos(botNumber)}` : null,
-    // Resposta em áudio disponível agora (IA com voz e WHATSAPP_AUDIO_RESPOSTA diferente de "off")?
-    audioReplies: Boolean(provedorComVoz()),
+    // Resposta em áudio disponível agora (IA com voz, WHATSAPP_AUDIO_RESPOSTA diferente de "off" e plano Família+)?
+    audioReplies: Boolean(provedorComVoz()) && voz,
+    // Voz existe, mas o plano do espaço não inclui (a tela mostra o convite para o Família+)
+    audioNeedsUpgrade: Boolean(provedorComVoz()) && !voz,
     link: link
       ? { phone: formatarTelefone(link.phone), household: espacoValido, linkedAt: link.linkedAt.toISOString(), replyMode: link.replyMode }
       : null,

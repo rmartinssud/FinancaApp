@@ -711,3 +711,21 @@ describe("whatsapp: canal de alertas (modelos)", () => {
     expect(envio).toEqual({ nome: "famicash_contas_a_pagar", idioma: "pt_BR", corpo: ["Maria", "Pessoal", "2 contas", "1 hoje e 1 amanhã", "R$ 10,00"], botaoUrl: "app/lancamentos?mes=2026-12" });
   });
 });
+
+describe("whatsapp: limite de mensagens do plano (Fase 10)", () => {
+  it("passou do limite do mês: responde com educação e não lança nada; botões não contam", async () => {
+    const f = await familiaLogada(app);
+    const { waId } = await ligar(f);
+    const mes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date());
+    // Grátis (sem teste): 30 por mês. O código de ligar não conta.
+    await prisma.household.update({ where: { id: f.householdId }, data: { trialEndsAt: new Date(Date.now() - 86_400_000) } });
+    expect(await prisma.aiUsage.findUnique({ where: { householdId_month: { householdId: f.householdId, month: mes } } })).toBeNull();
+    await prisma.aiUsage.create({ data: { householdId: f.householdId, month: mes, count: 30 } });
+
+    await texto(waId, "gastei 50 mercado");
+    const resposta = textoDe(ultima(waId));
+    expect(resposta).toContain("limite de 30 mensagens do assistente deste mês no plano Grátis");
+    expect(resposta).toContain("Meu plano");
+    expect(await prisma.whatsAppDraft.count({ where: { waId } })).toBe(0);
+  });
+});

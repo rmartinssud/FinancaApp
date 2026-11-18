@@ -107,6 +107,10 @@ Em **Editar**, no fim da tela:
 - **Arquivar dívida**: tira a dívida da lista e do plano, mas guarda o histórico na aba **Arquivadas** (ela aparece quando houver alguma). **Reativar** traz de volta.
 - **Apagar dívida**: apaga a dívida e o histórico de pagamentos. Se houver pagamentos, você escolhe se as despesas em Lançamentos **ficam** (os saldos das contas não mudam) ou são **apagadas junto**.
 
+## Score e dívidas no Serasa
+
+No fim da tela **Dívidas** há o atalho **Consultar score e dívidas no Serasa**. Ele abre o site do Serasa, onde você vê seu score e se há dívidas no seu CPF (inclusive as que foram passadas para empresas de cobrança). O Famicash não lê esses dados: se encontrar uma dívida lá, cadastre aqui para entrar no plano.
+
 ## Família e permissões
 
 As dívidas são do espaço: quem está no espaço vê as mesmas dívidas e o mesmo plano. Quem tem acesso **somente leitura** vê tudo, mas não cadastra, não edita e não registra pagamentos. Veja [Família e espaços](artigo:familia-e-espacos).
